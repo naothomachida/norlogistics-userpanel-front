@@ -1,10 +1,24 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+interface OrderItem {
+  name: string;
+  address: string;
+  weight?: string;
+  dimensions?: {
+    length: string;
+    width: string;
+    height: string;
+  };
+}
+
 export interface Order {
   id: string;
+  transportType?: 'person' | 'cargo';
+  vehicleType?: string;
   carModel: string;
   pickupLocation: string;
   destination: string;
+  items?: OrderItem[];
   status: 'pending' | 'in_progress' | 'en_route' | 'completed' | 'cancelled';
 }
 

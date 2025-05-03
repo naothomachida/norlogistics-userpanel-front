@@ -1,4 +1,4 @@
-.transactions-page {
+.orders-page {
   background-color: #ffffff;
   color: #000000;
   min-height: 100vh;
@@ -9,32 +9,24 @@
   overflow-x: hidden;
 }
 
-.transactions-content {
+.orders-content {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
 }
 
-.transactions-header {
-  background-color: #1a1a1a;
-  padding: 1rem 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.transactions-main {
+.orders-main {
   padding: 2.5rem 0;
 }
 
-.transactions-title {
+.orders-title {
   font-size: 6rem;
   font-weight: bold;
   margin-bottom: 1.5rem;
 }
 
-.transactions-title-row {
+.orders-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -43,7 +35,7 @@
   padding-bottom: 1rem;
 }
 
-.transactions-title-count {
+.orders-title-count {
   font-size: 1rem;
   color: #777;
   align-self: flex-end;
@@ -67,13 +59,14 @@
   justify-content: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+  cursor: pointer;
 }
 
 .action-button:hover {
   background-color: #e5e5e5;
 }
 
-.transactions-filters {
+.orders-filters {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
@@ -123,18 +116,27 @@
   color: #777;
 }
 
-.transactions-table-container {
+.no-orders {
+  padding: 3rem 0;
+  text-align: center;
+  color: #777;
+  background-color: #f9f9f9;
+  border-radius: 0.5rem;
+  margin: 2rem 0;
+}
+
+.orders-table-container {
   width: 100%;
   overflow-x: auto;
 }
 
-.transactions-table {
+.orders-table {
   width: 100%;
   border-collapse: collapse;
   min-width: 900px;
 }
 
-.transactions-table th {
+.orders-table th {
   padding: 1rem 0.5rem;
   text-align: left;
   font-weight: 500;
@@ -142,41 +144,64 @@
   border-bottom: 1px solid #eaeaea;
 }
 
-.transactions-table td {
+.orders-table td {
   padding: 1.25rem 0.5rem;
   text-align: left;
   border-bottom: 1px solid #eaeaea;
 }
 
-.transactions-table tbody tr:hover {
+.orders-table tbody tr:hover {
   background-color: #f9f9f9;
 }
 
-.amount-positive {
-  color: #4ade80;
-  font-weight: 500;
+.status-select {
+  width: 150px;
 }
 
-.amount-negative {
-  color: #f87171;
-  font-weight: 500;
-}
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  color: #4ade80;
-  font-weight: 500;
+.status-select select {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #eaeaea;
+  background-color: #f9f9f9;
   font-size: 0.875rem;
+  cursor: pointer;
 }
 
-.status-badge svg {
-  margin-right: 0.25rem;
+.status-pending {
+  color: #ca8a04;
+  background-color: #fef3c7;
+  border-color: #fef3c7;
+}
+
+.status-in_progress {
+  color: #2563eb;
+  background-color: #dbeafe;
+  border-color: #dbeafe;
+}
+
+.status-en_route {
+  color: #16a34a;
+  background-color: #dcfce7;
+  border-color: #dcfce7;
+}
+
+.status-completed {
+  color: #ffffff;
+  background-color: #16a34a;
+  border-color: #16a34a;
+}
+
+.status-cancelled {
+  color: #ffffff;
+  background-color: #ef4444;
+  border-color: #ef4444;
 }
 
 .action-icons {
   display: flex;
   gap: 0.5rem;
+  justify-content: center;
 }
 
 .action-icon {
@@ -192,11 +217,11 @@
 }
 
 @media (max-width: 768px) {
-  .transactions-title {
+  .orders-title {
     font-size: 3rem;
   }
   
-  .transactions-filters {
+  .orders-filters {
     flex-direction: column;
   }
   
