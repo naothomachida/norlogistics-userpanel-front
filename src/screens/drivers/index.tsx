@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Header from '../../components/layout/Header';
 import './drivers.css';
 import { RootState } from '../../store';
 import { addDriver, updateDriver, removeDriver, updateDriverStatus, Driver } from '../../store/driversSlice';
+
+// Tipo para representar os filtros
+type DriverFilters = {
+  status: string; // 'all', 'active' ou 'inactive'
+  license: string; // 'all' ou uma categoria de CNH específica
+  searchQuery: string;
+};
 
 const Drivers: React.FC = () => {
   const dispatch = useDispatch();
@@ -19,6 +26,103 @@ const Drivers: React.FC = () => {
     license: 'B', 
     status: 'active' 
   });
+
+  // Estado para os filtros
+  const [filters, setFilters] = useState<DriverFilters>({
+    status: 'all',
+    license: 'all',
+    searchQuery: ''
+  });
+
+  // Controle para o dropdown de filtros
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showLicenseDropdown, setShowLicenseDropdown] = useState(false);
+
+  // Função para atualizar os filtros
+  const updateFilter = (filterType: keyof DriverFilters, value: string) => {
+    setFilters({
+      ...filters,
+      [filterType]: value
+    });
+    
+    // Fechar o dropdown correspondente
+    if (filterType === 'status') setShowStatusDropdown(false);
+    if (filterType === 'license') setShowLicenseDropdown(false);
+  };
+
+  // Função para contar quantos filtros estão ativos
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.status !== 'all') count++;
+    if (filters.license !== 'all') count++;
+    if (filters.searchQuery) count++;
+    return count;
+  }, [filters]);
+
+  // Função para limpar todos os filtros
+  const clearAllFilters = () => {
+    setFilters({
+      status: 'all',
+      license: 'all',
+      searchQuery: ''
+    });
+  };
+
+  // Tradução dos tipos de licença
+  const getLicenseDescription = (license: string): string => {
+    const descriptions: Record<string, string> = {
+      'all': 'Todas',
+      'A': 'Motos',
+      'B': 'Carros',
+      'C': 'Caminhões leves',
+      'D': 'Ônibus',
+      'E': 'Veículos pesados',
+      'AB': 'Motos e carros',
+      'AC': 'Motos e caminhões leves',
+      'AD': 'Motos e ônibus',
+      'AE': 'Motos e veículos pesados',
+    };
+    return descriptions[license] || license;
+  };
+
+  // Traduzir status para português
+  const translateStatus = (status: string) => {
+    const translations: Record<string, string> = {
+      'all': 'Todos',
+      'active': 'Ativo',
+      'inactive': 'Inativo'
+    };
+    return translations[status] || status;
+  };
+
+  // Filtragem dos motoristas
+  const filteredDrivers = useMemo(() => {
+    return drivers.filter(driver => {
+      // Filtro por status
+      if (filters.status !== 'all' && driver.status !== filters.status) {
+        return false;
+      }
+      
+      // Filtro por tipo de licença
+      if (filters.license !== 'all' && driver.license !== filters.license) {
+        return false;
+      }
+      
+      // Filtro por termo de busca
+      if (filters.searchQuery) {
+        const searchLower = filters.searchQuery.toLowerCase();
+        const nameMatches = driver.name.toLowerCase().includes(searchLower);
+        const emailMatches = driver.email.toLowerCase().includes(searchLower);
+        const phoneMatches = driver.phone.toLowerCase().includes(searchLower);
+        
+        if (!nameMatches && !emailMatches && !phoneMatches) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [drivers, filters]);
 
   const handleStatusChange = (id: string, newStatus: 'active' | 'inactive') => {
     dispatch(updateDriverStatus({ id, status: newStatus }));
@@ -70,22 +174,6 @@ const Drivers: React.FC = () => {
     });
   };
 
-  // Tradução dos tipos de licença
-  const getLicenseDescription = (license: string): string => {
-    const descriptions: Record<string, string> = {
-      'A': 'Motos',
-      'B': 'Carros',
-      'C': 'Caminhões leves',
-      'D': 'Ônibus',
-      'E': 'Veículos pesados',
-      'AB': 'Motos e carros',
-      'AC': 'Motos e caminhões leves',
-      'AD': 'Motos e ônibus',
-      'AE': 'Motos e veículos pesados',
-    };
-    return descriptions[license] || license;
-  };
-
   return (
     <div className="drivers-page">
       <Header />
@@ -94,7 +182,7 @@ const Drivers: React.FC = () => {
           <div className="drivers-title-row">
             <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: '20px' }}>
               <h1 className="drivers-title">Motoristas</h1>
-              <span className="drivers-title-count">{drivers.length}</span>
+              <span className="drivers-title-count">{filteredDrivers.length}</span>
             </div>
             <div className="action-buttons">
               <button 
@@ -115,9 +203,144 @@ const Drivers: React.FC = () => {
             </div>
           </div>
 
-          {drivers.length === 0 ? (
+          <div className="drivers-filters">
+            <div className="filter-group filter-dropdown">
+              <div 
+                className="filter-selected" 
+                onClick={() => {
+                  setShowStatusDropdown(!showStatusDropdown);
+                  setShowLicenseDropdown(false);
+                }}
+              >
+                <span>Status: {translateStatus(filters.status)}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                </svg>
+              </div>
+              {showStatusDropdown && (
+                <div className="filter-options">
+                  <div 
+                    className={`filter-option ${filters.status === 'all' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('status', 'all')}
+                  >
+                    Todos
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.status === 'active' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('status', 'active')}
+                  >
+                    Ativo
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.status === 'inactive' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('status', 'inactive')}
+                  >
+                    Inativo
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="filter-group filter-dropdown">
+              <div 
+                className="filter-selected" 
+                onClick={() => {
+                  setShowLicenseDropdown(!showLicenseDropdown);
+                  setShowStatusDropdown(false);
+                }}
+              >
+                <span>CNH: {filters.license === 'all' ? 'Todas' : `${filters.license} - ${getLicenseDescription(filters.license)}`}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                </svg>
+              </div>
+              {showLicenseDropdown && (
+                <div className="filter-options">
+                  <div 
+                    className={`filter-option ${filters.license === 'all' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('license', 'all')}
+                  >
+                    Todas
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.license === 'A' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('license', 'A')}
+                  >
+                    A - Motos
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.license === 'B' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('license', 'B')}
+                  >
+                    B - Carros
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.license === 'C' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('license', 'C')}
+                  >
+                    C - Caminhões leves
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.license === 'D' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('license', 'D')}
+                  >
+                    D - Ônibus
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.license === 'E' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('license', 'E')}
+                  >
+                    E - Veículos pesados
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.license === 'AB' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('license', 'AB')}
+                  >
+                    AB - Motos e carros
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="filter-spacer"></div>
+            
+            <div className="search-input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Buscar motoristas" 
+                value={filters.searchQuery}
+                onChange={(e) => updateFilter('searchQuery', e.target.value)}
+              />
+            </div>
+            
+            {activeFilterCount > 0 && (
+              <div className="filter-group filter-clear" onClick={clearAllFilters}>
+                <span>Filtros ({activeFilterCount})</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {filteredDrivers.length === 0 ? (
             <div className="no-drivers">
-              <p>Nenhum motorista encontrado. Adicione um novo motorista para começar.</p>
+              <p>Nenhum motorista encontrado com os filtros atuais.</p>
+              {activeFilterCount > 0 && (
+                <button 
+                  className="action-button" 
+                  style={{ margin: '1rem auto', display: 'flex' }}
+                  onClick={clearAllFilters}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor" />
+                  </svg>
+                  Limpar filtros
+                </button>
+              )}
               <button 
                 className="action-button" 
                 style={{ margin: '1rem auto', display: 'flex' }}
@@ -143,7 +366,7 @@ const Drivers: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {drivers.map(driver => (
+                  {filteredDrivers.map(driver => (
                     <tr key={driver.id}>
                       <td>{driver.name}</td>
                       <td>{driver.email}</td>

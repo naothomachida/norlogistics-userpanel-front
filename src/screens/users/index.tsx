@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Header from '../../components/layout/Header';
 import './users.css';
 
@@ -11,63 +11,97 @@ const initialUsers = [
   { id: '5', name: 'Roberto Ferreira', email: 'roberto.ferreira@example.com', role: 'user', status: 'active' },
 ];
 
+// Tipo para representar os filtros
+type UserFilters = {
+  status: string; // 'all', 'active' ou 'inactive'
+  role: string; // 'all', 'admin', 'manager', 'user'
+  searchQuery: string;
+};
+
 const Users: React.FC = () => {
   const [users, setUsers] = useState(initialUsers);
-  const [filteredUsers, setFilteredUsers] = useState(initialUsers);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user', status: 'active' });
   
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
-  
-  // Apply filters whenever filter states change
-  useEffect(() => {
-    let result = [...users];
+  // Estado para os filtros
+  const [filters, setFilters] = useState<UserFilters>({
+    status: 'all',
+    role: 'all',
+    searchQuery: ''
+  });
+
+  // Controle para o dropdown de filtros
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+
+  // Função para atualizar os filtros
+  const updateFilter = (filterType: keyof UserFilters, value: string) => {
+    setFilters({
+      ...filters,
+      [filterType]: value
+    });
     
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      result = result.filter(user => user.status === statusFilter);
-    }
-    
-    // Apply role filter
-    if (roleFilter !== 'all') {
-      result = result.filter(user => user.role === roleFilter);
-    }
-    
-    // Apply search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(user => 
-        user.name.toLowerCase().includes(query) || 
-        user.email.toLowerCase().includes(query)
-      );
-    }
-    
-    setFilteredUsers(result);
-    
-    // Count active filters
+    // Fechar o dropdown correspondente
+    if (filterType === 'status') setShowStatusDropdown(false);
+    if (filterType === 'role') setShowRoleDropdown(false);
+  };
+
+  // Função para contar quantos filtros estão ativos
+  const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (statusFilter !== 'all') count++;
-    if (roleFilter !== 'all') count++;
-    if (searchQuery) count++;
-    setActiveFiltersCount(count);
-  }, [users, statusFilter, roleFilter, searchQuery]);
+    if (filters.status !== 'all') count++;
+    if (filters.role !== 'all') count++;
+    if (filters.searchQuery) count++;
+    return count;
+  }, [filters]);
+
+  // Função para limpar todos os filtros
+  const clearAllFilters = () => {
+    setFilters({
+      status: 'all',
+      role: 'all',
+      searchQuery: ''
+    });
+  };
+
+  // Filtragem dos usuários
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      // Filtro por status
+      if (filters.status !== 'all' && user.status !== filters.status) {
+        return false;
+      }
+      
+      // Filtro por função
+      if (filters.role !== 'all' && user.role !== filters.role) {
+        return false;
+      }
+      
+      // Filtro por termo de busca
+      if (filters.searchQuery) {
+        const searchLower = filters.searchQuery.toLowerCase();
+        const nameMatches = user.name.toLowerCase().includes(searchLower);
+        const emailMatches = user.email.toLowerCase().includes(searchLower);
+        
+        if (!nameMatches && !emailMatches) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [users, filters]);
 
   const handleStatusChange = (id: string, newStatus: 'active' | 'inactive') => {
-    const updatedUsers = users.map(user => 
+    setUsers(users.map(user => 
       user.id === id ? { ...user, status: newStatus } : user
-    );
-    setUsers(updatedUsers);
+    ));
   };
 
   const handleRoleChange = (id: string, newRole: 'admin' | 'manager' | 'user') => {
-    const updatedUsers = users.map(user => 
+    setUsers(users.map(user => 
       user.id === id ? { ...user, role: newRole } : user
-    );
-    setUsers(updatedUsers);
+    ));
   };
 
   const handleRemoveUser = (id: string) => {
@@ -83,11 +117,26 @@ const Users: React.FC = () => {
     setNewUser({ name: '', email: '', role: 'user', status: 'active' });
     setShowAddUserModal(false);
   };
-  
-  const clearFilters = () => {
-    setStatusFilter('all');
-    setRoleFilter('all');
-    setSearchQuery('');
+
+  // Traduzir status para português
+  const translateStatus = (status: string) => {
+    const translations: Record<string, string> = {
+      'all': 'Todos',
+      'active': 'Ativo',
+      'inactive': 'Inativo'
+    };
+    return translations[status] || status;
+  };
+
+  // Traduzir função para português
+  const translateRole = (role: string) => {
+    const translations: Record<string, string> = {
+      'all': 'Todas',
+      'admin': 'Administrador',
+      'manager': 'Gerente',
+      'user': 'Usuário'
+    };
+    return translations[role] || role;
   };
 
   return (
@@ -120,30 +169,88 @@ const Users: React.FC = () => {
           </div>
 
           <div className="users-filters">
-            <div className="filter-group">
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="filter-select"
+            <div className="filter-group filter-dropdown">
+              <div 
+                className="filter-selected" 
+                onClick={() => {
+                  setShowStatusDropdown(!showStatusDropdown);
+                  setShowRoleDropdown(false);
+                }}
               >
-                <option value="all">Status: Todos</option>
-                <option value="active">Status: Ativo</option>
-                <option value="inactive">Status: Inativo</option>
-              </select>
+                <span>Status: {translateStatus(filters.status)}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                </svg>
+              </div>
+              {showStatusDropdown && (
+                <div className="filter-options">
+                  <div 
+                    className={`filter-option ${filters.status === 'all' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('status', 'all')}
+                  >
+                    Todos
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.status === 'active' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('status', 'active')}
+                  >
+                    Ativo
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.status === 'inactive' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('status', 'inactive')}
+                  >
+                    Inativo
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="filter-group">
-              <select 
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="filter-select"
+            
+            <div className="filter-group filter-dropdown">
+              <div 
+                className="filter-selected" 
+                onClick={() => {
+                  setShowRoleDropdown(!showRoleDropdown);
+                  setShowStatusDropdown(false);
+                }}
               >
-                <option value="all">Função: Todas</option>
-                <option value="admin">Função: Administrador</option>
-                <option value="manager">Função: Gerente</option>
-                <option value="user">Função: Usuário</option>
-              </select>
+                <span>Função: {translateRole(filters.role)}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                </svg>
+              </div>
+              {showRoleDropdown && (
+                <div className="filter-options">
+                  <div 
+                    className={`filter-option ${filters.role === 'all' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('role', 'all')}
+                  >
+                    Todas
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.role === 'admin' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('role', 'admin')}
+                  >
+                    Administrador
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.role === 'manager' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('role', 'manager')}
+                  >
+                    Gerente
+                  </div>
+                  <div 
+                    className={`filter-option ${filters.role === 'user' ? 'selected' : ''}`} 
+                    onClick={() => updateFilter('role', 'user')}
+                  >
+                    Usuário
+                  </div>
+                </div>
+              )}
             </div>
+            
             <div className="filter-spacer"></div>
+            
             <div className="search-input">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor" />
@@ -151,33 +258,46 @@ const Users: React.FC = () => {
               <input 
                 type="text" 
                 placeholder="Buscar usuários" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={filters.searchQuery}
+                onChange={(e) => updateFilter('searchQuery', e.target.value)}
               />
             </div>
-            <div className="filter-group">
-              {activeFiltersCount > 0 ? (
-                <button className="filter-reset-button" onClick={clearFilters}>
-                  Filtros ({activeFiltersCount}) <span className="filter-reset-x">×</span>
-                </button>
-              ) : (
-                <span>Filtros (0)</span>
-              )}
-            </div>
+            
+            {activeFilterCount > 0 && (
+              <div className="filter-group filter-clear" onClick={clearAllFilters}>
+                <span>Filtros ({activeFilterCount})</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor" />
+                </svg>
+              </div>
+            )}
           </div>
 
           {filteredUsers.length === 0 ? (
             <div className="no-users">
-              <p>Nenhum usuário encontrado com os filtros aplicados.</p>
-              {activeFiltersCount > 0 && (
+              <p>Nenhum usuário encontrado com os filtros atuais.</p>
+              {activeFilterCount > 0 && (
                 <button 
                   className="action-button" 
                   style={{ margin: '1rem auto', display: 'flex' }}
-                  onClick={clearFilters}
+                  onClick={clearAllFilters}
                 >
-                  Limpar Filtros
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor" />
+                  </svg>
+                  Limpar filtros
                 </button>
               )}
+              <button 
+                className="action-button" 
+                style={{ margin: '1rem auto', display: 'flex' }}
+                onClick={() => setShowAddUserModal(true)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+                </svg>
+                Adicionar Usuário
+              </button>
             </div>
           ) : (
             <div className="users-table-container">

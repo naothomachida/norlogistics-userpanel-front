@@ -22,9 +22,9 @@
 }
 
 .order-form-title {
-  font-size: 6rem;
+  font-size: 2.5rem;
   font-weight: bold;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .order-form-title-row {
@@ -57,8 +57,8 @@
 }
 
 .step-number {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background-color: #e5e5e5;
   border-radius: 50%;
   display: flex;
@@ -67,6 +67,7 @@
   font-weight: bold;
   margin-bottom: 0.5rem;
   transition: background-color 0.3s ease;
+  font-size: 0.75rem;
 }
 
 .step-indicator.active .step-number {
@@ -75,7 +76,7 @@
 }
 
 .step-name {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
@@ -96,9 +97,9 @@
 }
 
 .step-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   text-align: center;
 }
 
@@ -113,8 +114,8 @@
 .transport-card {
   background-color: white;
   border-radius: 1rem;
-  padding: 2rem;
-  width: 280px;
+  padding: 1.5rem;
+  width: 250px;
   text-align: center;
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -138,14 +139,14 @@
 }
 
 .transport-card h3 {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .transport-card p {
   color: #666;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 /* Seleção de veículo (Etapa 2) */
@@ -158,7 +159,7 @@
 .vehicle-card {
   background-color: white;
   border-radius: 0.75rem;
-  padding: 1.5rem;
+  padding: 1.25rem;
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
@@ -176,14 +177,14 @@
 }
 
 .vehicle-card h3 {
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .vehicle-card p {
   color: #666;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 /* Formulário de detalhes (Etapa 3) */
@@ -210,7 +211,7 @@
 }
 
 .item-header h3 {
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   font-weight: 600;
   margin: 0;
 }
@@ -246,17 +247,17 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  font-size: 0.875rem;
-  color: #555;
+  font-size: 0.75rem;
 }
 
 .form-group input, 
-.form-group select {
+.form-group select,
+.form-group textarea {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.6rem;
   border: 1px solid #e5e5e5;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .dimensions-row {
@@ -269,24 +270,26 @@
 .dimensions-row h4 {
   width: 100%;
   margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
   font-weight: 500;
+  color: #555;
 }
 
 .add-item-button {
-  background-color: #f3f4f6;
-  color: #4b5563;
+  background-color: #f5f5f5;
+  color: #333;
   border: none;
-  padding: 0.75rem 1.5rem;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  padding: 0.4rem 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 1rem;
 }
 
 .add-item-button:hover {
@@ -308,12 +311,16 @@
 }
 
 .back-button {
-  background-color: #f3f4f6;
-  color: #4b5563;
+  background-color: #f5f5f5;
+  color: #333;
   border: none;
-  padding: 0.75rem 1.5rem;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
+  padding: 0.4rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
@@ -325,9 +332,10 @@
   background-color: #000000;
   color: #ffffff;
   border: none;
-  padding: 0.75rem 1.5rem;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
+  padding: 0.4rem 0.8rem;
+  font-weight: 500;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
@@ -400,13 +408,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background-color: #f3f4f6;
   border-radius: 50%;
   font-weight: bold;
-  font-size: 0.875rem;
-  margin-right: 1rem;
+  font-size: 0.7rem;
+  margin-right: 0.75rem;
 }
 
 .route-point-content {
@@ -414,14 +422,14 @@
 }
 
 .route-point-content h3 {
-  font-size: 1.125rem;
+  font-size: 0.85rem;
   font-weight: 600;
   margin: 0 0 0.25rem 0;
 }
 
 .route-point-content p {
   color: #666;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   margin: 0;
 }
 
@@ -434,17 +442,17 @@
   display: inline-block;
   background-color: #0ea5e9;
   color: white;
-  padding: 0.25rem 0.5rem;
+  padding: 0.15rem 0.4rem;
   border-radius: 0.25rem;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 /* Media queries */
 @media (max-width: 768px) {
   .order-form-title {
-    font-size: 3rem;
+    font-size: 1.75rem;
   }
   
   .step-container {
@@ -499,17 +507,18 @@
 
 .location-select-group label {
   display: block;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   font-weight: 500;
   color: #444;
+  font-size: 0.75rem;
 }
 
 .location-select-group select {
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.6rem 0.75rem;
   border: 1px solid #e5e5e5;
-  border-radius: 0.5rem;
-  font-size: 0.95rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
   background-color: #ffffff;
   transition: all 0.3s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
@@ -518,8 +527,8 @@
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg width='14' height='8' viewBox='0 0 14 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L7 7L13 1' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 1rem center;
-  padding-right: 2.5rem;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
 }
 
 .location-select-group select:focus {
@@ -529,8 +538,8 @@
 }
 
 .location-warning {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
   background-color: #fff8e1;
   border-left: 4px solid #ffc107;
   border-radius: 0.375rem;
@@ -539,15 +548,15 @@
 
 .location-warning p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
 }
 
 .origin-badge, .destination-badge {
   display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  margin-left: 0.4rem;
+  padding: 0.15rem 0.4rem;
   border-radius: 1rem;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
 }
 
@@ -583,10 +592,10 @@
 
 .last-passenger-badge {
   display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  margin-left: 0.4rem;
+  padding: 0.15rem 0.4rem;
   border-radius: 1rem;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
   background-color: #ede9fe;
   color: #5b21b6;
@@ -595,7 +604,7 @@
 .form-hint {
   display: block;
   color: #666;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   margin-top: 0.25rem;
   font-style: italic;
 }
