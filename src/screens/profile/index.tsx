@@ -105,7 +105,7 @@ const Profile: React.FC = () => {
       <div className="profile-content">
         <main className="profile-main">
           <div className="profile-title-row">
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: '20px' }}>
               <h1 className="profile-title">Perfil</h1>
             </div>
           </div>

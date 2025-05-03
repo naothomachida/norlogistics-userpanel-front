@@ -18,6 +18,7 @@
 
 .orders-main {
   padding: 2.5rem 0;
+  margin-top: 60px;
 }
 
 .orders-title {
@@ -261,4 +262,80 @@
 .transport-badge.unknown {
   background-color: #e5e7eb;
   color: #6b7280;
+}
+
+.location-cell {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
+
+.location-cell:hover {
+  text-decoration: underline;
+  color: #0055a4;
+}
+
+/* Estilos para os filtros com dropdown */
+.filter-dropdown {
+  position: relative;
+  cursor: pointer;
+  min-width: 170px;
+}
+
+.filter-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.filter-options {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  z-index: 10;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.filter-option {
+  padding: 0.75rem 1rem;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.filter-option:hover {
+  background-color: #f3f4f6;
+}
+
+.filter-option.selected {
+  background-color: #f3f4f6;
+  font-weight: 500;
+}
+
+.filter-clear {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.filter-clear:hover {
+  background-color: #fecaca;
+}
+
+/* Estilos responsivos para os filtros */
+@media (max-width: 768px) {
+  .filter-dropdown {
+    width: 100%;
+  }
 } 

@@ -11,14 +11,25 @@ interface OrderItem {
   };
 }
 
+interface RoutePoint {
+  name: string;
+  address: string;
+  isCompany: boolean;
+  isLastPassenger?: boolean;
+}
+
 export interface Order {
   id: string;
   transportType?: 'person' | 'cargo';
   vehicleType?: string;
   carModel: string;
-  pickupLocation: string;
-  destination: string;
+  pickupLocation?: string;
+  destination?: string;
+  originLocationId?: string;
+  destinationLocationId?: string;
+  driverId?: string;
   items?: OrderItem[];
+  routePoints?: RoutePoint[];
   status: 'pending' | 'in_progress' | 'en_route' | 'completed' | 'cancelled';
 }
 
@@ -48,11 +59,17 @@ const ordersSlice = createSlice({
         order.status = action.payload.status;
       }
     },
+    assignDriverToOrder: (state, action: PayloadAction<{ orderId: string, driverId: string }>) => {
+      const order = state.orders.find(order => order.id === action.payload.orderId);
+      if (order) {
+        order.driverId = action.payload.driverId;
+      }
+    },
     removeOrder: (state, action: PayloadAction<string>) => {
       state.orders = state.orders.filter(order => order.id !== action.payload);
     }
   }
 });
 
-export const { addOrder, updateOrderStatus, removeOrder } = ordersSlice.actions;
+export const { addOrder, updateOrderStatus, assignDriverToOrder, removeOrder } = ordersSlice.actions;
 export default ordersSlice.reducer; 

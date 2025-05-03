@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Header.css';
+import norLogo from '../../assets/logo-nor.png';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -35,12 +36,29 @@ const Header: React.FC = () => {
     setShowDropdown(false);
   };
 
+  const handleLogout = () => {
+    // Pedir confirmação ao usuário
+    if (window.confirm('Tem certeza que deseja sair?')) {
+      // 1. Limpar dados de usuário no localStorage/sessionStorage
+      localStorage.removeItem('userEmail');
+      
+      // 2. Se houver outros dados de usuário, limpar também
+      // Por exemplo, tokens de autenticação, permissões, etc.
+      
+      // 3. Redirecionar para a página de login
+      navigate('/login');
+    }
+    
+    // 4. Fechar o dropdown (mesmo se cancelar)
+    setShowDropdown(false);
+  };
+
   return (
     <header className="app-header">
       <div className="header-logo-container">
         <div className="header-logo">
-          <span className="logo-icon">⚡</span>
-          blank.
+          <img src={norLogo} alt="NOR Logistics" className="nor-logo" />
+          <span className="nor-text">NOR-LOGISTICS</span>
         </div>
         <nav className="header-nav">
           <Link 
@@ -56,16 +74,22 @@ const Header: React.FC = () => {
             Nova solicitação
           </Link>
           <Link 
-            to="/settings" 
-            className={`header-nav-link ${isActive('/settings') ? 'active' : ''}`}
-          >
-            Configuração
-          </Link>
-          <Link 
             to="/users" 
             className={`header-nav-link ${isActive('/users') ? 'active' : ''}`}
           >
             Lista de usuários
+          </Link>
+          <Link 
+            to="/drivers" 
+            className={`header-nav-link ${isActive('/drivers') ? 'active' : ''}`}
+          >
+            Motoristas
+          </Link>
+          <Link 
+            to="/settings" 
+            className={`header-nav-link ${isActive('/settings') ? 'active' : ''}`}
+          >
+            Configuração
           </Link>
         </nav>
       </div>
@@ -95,7 +119,7 @@ const Header: React.FC = () => {
                 <span>Configurações</span>
               </div>
               <div className="dropdown-divider"></div>
-              <div className="dropdown-item">
+              <div className="dropdown-item" onClick={handleLogout}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z" fill="currentColor"/>
                 </svg>

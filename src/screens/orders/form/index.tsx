@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useState, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { addOrder } from '../../../store/ordersSlice';
+import { RootState } from '../../../store';
 import Header from '../../../components/layout/Header';
 import './order-form.css';
+import { Location } from '../../../store/locationSlice';
 
 // Ícones
 const PersonIcon = () => (
@@ -18,29 +20,37 @@ const CargoIcon = () => (
   </svg>
 );
 
-// Tipos de veículos
-const vehicleTypes = {
-  person: [
-    { id: 'basic', name: 'Básico', description: 'Econômico e compacto' },
-    { id: 'hatch', name: 'Hatch', description: 'Compacto e versátil' },
-    { id: 'sedan', name: 'Sedan', description: 'Confortável e espaçoso' },
-    { id: 'suv', name: 'SUV', description: 'Robusto e espaçoso' },
-    { id: 'minibus', name: 'Microônibus', description: 'Para grupos pequenos' },
-    { id: 'bus', name: 'Ônibus', description: 'Para grupos grandes' },
-  ],
-  cargo: [
-    { id: 'van', name: 'Van', description: 'Cargas pequenas até 1 tonelada' },
-    { id: 'truck_small', name: 'Caminhão pequeno', description: '3/4, VUC, até 3 toneladas' },
-    { id: 'truck_medium', name: 'Caminhão médio', description: 'Toco, até 6 toneladas' },
-    { id: 'truck_large', name: 'Caminhão grande', description: 'Truck, até 12 toneladas' },
-    { id: 'truck_extra', name: 'Carreta', description: 'Cargas acima de 12 toneladas' },
-    { id: 'truck_special', name: 'Carreta especial', description: 'Cargas indivisíveis ou excedentes' },
-  ]
-};
+// Ícone de arrasto
+const DragHandleIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="currentColor"/>
+  </svg>
+);
+
+// Interface para ponto de rota
+interface RoutePoint {
+  id: string;
+  name: string;
+  address: string;
+  isCompany?: boolean;
+  isLastPassenger?: boolean;
+  // Outros campos para cargas
+  weight?: string;
+  dimensions?: {
+    length: string;
+    width: string;
+    height: string;
+  };
+}
 
 const OrderForm: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  
+  // Obter tipos de veículos e locais do Redux store
+  const personVehicles = useSelector((state: RootState) => state.vehicleTypes.person);
+  const cargoVehicles = useSelector((state: RootState) => state.vehicleTypes.cargo);
+  const locations = useSelector((state: RootState) => state.locations.locations);
 
   // Controles de etapas
   const [currentStep, setCurrentStep] = useState(1);
@@ -65,7 +75,22 @@ const OrderForm: React.FC = () => {
         height: '',
       },
     }],
+
+    // Etapa 4: Origem e destino
+    originLocationId: '',
+    destinationLocationId: '',
   });
+
+  // Estado para a rota
+  const [routePoints, setRoutePoints] = useState<RoutePoint[]>([]);
+  
+  // Estado para controlar o arrastar e soltar
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+
+  // Verificar se há itens válidos para definir o último passageiro como destino
+  const hasValidItems = useMemo(() => {
+    return formData.items.some(item => item.name && item.address);
+  }, [formData.items]);
 
   // Manipuladores de eventos
   const handleTransportTypeSelect = (type: string) => {
@@ -140,33 +165,171 @@ const OrderForm: React.FC = () => {
     }
   };
 
+  const handleChangeOriginDestination = (field: string, value: string) => {
+    setFormData({
+      ...formData,
+      [field]: value,
+    });
+  };
+
+  const handleProceedToLocationSelection = () => {
+    setCurrentStep(4);
+  };
+
+  const handleProceedToRouteOrganization = () => {
+    // Encontrar os locais de origem e destino
+    let originLocation = locations.find(loc => loc.id === formData.originLocationId);
+    let destinationLocation: Location | undefined;
+    
+    // Caso especial para "último passageiro"
+    let useLastPassengerAsDestination = false;
+    if (formData.destinationLocationId === 'last-passenger') {
+      useLastPassengerAsDestination = true;
+      // Verificar se há itens válidos
+      if (!hasValidItems) {
+        alert('É necessário cadastrar pelo menos um passageiro para usar a opção "Último passageiro".');
+        return;
+      }
+    } else {
+      destinationLocation = locations.find(loc => loc.id === formData.destinationLocationId);
+    }
+    
+    if (!originLocation || (!useLastPassengerAsDestination && !destinationLocation)) {
+      alert('Por favor, selecione a origem e o destino.');
+      return;
+    }
+    
+    // Preparar pontos de rota a partir dos itens do formulário
+    const originPoint: RoutePoint = {
+      id: originLocation.id,
+      name: originLocation.name,
+      address: `${originLocation.address}, ${originLocation.city}-${originLocation.state}`,
+      isCompany: originLocation.isCompany || false
+    };
+    
+    const itemPoints: RoutePoint[] = formData.items
+      .filter(item => item.name && item.address) // Filtra apenas itens com dados válidos
+      .map((item, index) => ({
+        id: `item-${index}`,
+        name: item.name,
+        address: item.address,
+        weight: formData.transportType === 'cargo' ? item.weight : undefined,
+        dimensions: formData.transportType === 'cargo' ? item.dimensions : undefined
+      }));
+    
+    if (itemPoints.length === 0) {
+      alert('É necessário adicionar pelo menos um passageiro ou carga com dados válidos.');
+      return;
+    }
+    
+    // Se usar último passageiro como destino, converter o último item para destino
+    let routePointsArray: RoutePoint[] = [];
+    if (useLastPassengerAsDestination) {
+      if (itemPoints.length > 0) {
+        const lastPassenger = itemPoints.pop()!; // Remove o último item
+        const destinationPoint: RoutePoint = {
+          id: lastPassenger.id,
+          name: lastPassenger.name,
+          address: lastPassenger.address,
+          isLastPassenger: true
+        };
+        routePointsArray = [originPoint, ...itemPoints, destinationPoint];
+      }
+    } else {
+      // Destino é um local selecionado
+      const destinationPoint: RoutePoint = {
+        id: destinationLocation!.id,
+        name: destinationLocation!.name,
+        address: `${destinationLocation!.address}, ${destinationLocation!.city}-${destinationLocation!.state}`,
+        isCompany: destinationLocation!.isCompany || false
+      };
+      routePointsArray = [originPoint, ...itemPoints, destinationPoint];
+    }
+    
+    // Definir pontos da rota
+    setRoutePoints(routePointsArray);
+    
+    // Avançar para a próxima etapa
+    setCurrentStep(5);
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedItemIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    
+    // Evitar arrastar o item para o mesmo lugar
+    if (draggedItemIndex === null || draggedItemIndex === index) return;
+    
+    // Reordenar os pontos da rota
+    const newRoutePoints = [...routePoints];
+    const draggedItem = newRoutePoints[draggedItemIndex];
+    
+    // Remover o item arrastado e inseri-lo na nova posição
+    newRoutePoints.splice(draggedItemIndex, 1);
+    newRoutePoints.splice(index, 0, draggedItem);
+    
+    // Se estamos usando o último passageiro como destino, garantir que o último ponto tem a tag isLastPassenger
+    if (formData.destinationLocationId === 'last-passenger') {
+      // Limpar a flag isLastPassenger de todos os pontos
+      newRoutePoints.forEach(point => {
+        point.isLastPassenger = false;
+      });
+      
+      // Definir o último ponto como último passageiro
+      if (newRoutePoints.length > 0) {
+        newRoutePoints[newRoutePoints.length - 1].isLastPassenger = true;
+      }
+    }
+    
+    // Atualizar o estado de arrasto e a lista
+    setDraggedItemIndex(index);
+    setRoutePoints(newRoutePoints);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItemIndex(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Preparar dados dos itens para o formato final
-    const processedItems = formData.items.map(item => {
-      const processedItem: any = {
-        name: item.name,
-        address: item.address,
-      };
-      
-      // Adicionar campos específicos para cargas
-      if (formData.transportType === 'cargo') {
-        processedItem.weight = item.weight;
-        processedItem.dimensions = item.dimensions;
-      }
-      
-      return processedItem;
-    });
+    const processedItems = routePoints
+      .filter(point => !point.id.includes('lenovo') && 
+                        !point.id.includes(formData.originLocationId) && 
+                        !point.id.includes(formData.destinationLocationId))
+      .map(point => {
+        const processedItem: any = {
+          name: point.name,
+          address: point.address,
+        };
+        
+        // Adicionar campos específicos para cargas
+        if (formData.transportType === 'cargo') {
+          processedItem.weight = point.weight;
+          processedItem.dimensions = point.dimensions;
+        }
+        
+        return processedItem;
+      });
     
     // Enviar para o store
     dispatch(addOrder({
       transportType: formData.transportType as 'person' | 'cargo',
       vehicleType: formData.vehicleType,
       carModel: formData.vehicleType, // Para manter compatibilidade
-      pickupLocation: formData.items[0].address,
-      destination: formData.items.length > 1 ? formData.items[1].address : 'N/A',
+      originLocationId: formData.originLocationId,
+      destinationLocationId: formData.destinationLocationId,
       items: processedItems,
+      routePoints: routePoints.map(point => ({
+        name: point.name,
+        address: point.address,
+        isCompany: point.isCompany || false,
+        isLastPassenger: point.isLastPassenger || false
+      }))
     }));
     
     navigate('/orders');
@@ -213,8 +376,8 @@ const OrderForm: React.FC = () => {
         
       case 2:
         const vehicles = formData.transportType === 'person' 
-          ? vehicleTypes.person 
-          : vehicleTypes.cargo;
+          ? personVehicles 
+          : cargoVehicles;
           
         return (
           <div className="step-container">
@@ -246,7 +409,7 @@ const OrderForm: React.FC = () => {
                 ? 'Detalhes dos passageiros' 
                 : 'Detalhes das cargas'}
             </h2>
-            <form onSubmit={handleSubmit} className="details-form">
+            <form className="details-form">
               {formData.items.map((item, index) => (
                 <div key={index} className="item-details">
                   <div className="item-header">
@@ -373,6 +536,160 @@ const OrderForm: React.FC = () => {
                   Esta funcionalidade está em construção. Algumas opções podem ser limitadas.
                 </p>
                 <button 
+                  type="button" 
+                  className="submit-button"
+                  onClick={handleProceedToLocationSelection}
+                >
+                  Continuar
+                </button>
+              </div>
+            </form>
+          </div>
+        );
+      
+      case 4:
+        return (
+          <div className="step-container">
+            <h2 className="step-title">Selecione a origem e o destino</h2>
+            <div className="form-row">
+              <div className="form-group location-select-group">
+                <label htmlFor="origin-location">Local de Origem</label>
+                <select
+                  id="origin-location"
+                  value={formData.originLocationId}
+                  onChange={(e) => handleChangeOriginDestination('originLocationId', e.target.value)}
+                  className="settings-input"
+                  required
+                >
+                  <option value="">Selecione a origem</option>
+                  {locations.map((location: Location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name} ({location.city}-{location.state})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group location-select-group">
+                <label htmlFor="destination-location">Local de Destino</label>
+                <select
+                  id="destination-location"
+                  value={formData.destinationLocationId}
+                  onChange={(e) => handleChangeOriginDestination('destinationLocationId', e.target.value)}
+                  className="settings-input"
+                  required
+                >
+                  <option value="">Selecione o destino</option>
+                  {locations.map((location: Location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name} ({location.city}-{location.state})
+                    </option>
+                  ))}
+                  {formData.transportType === 'person' && (
+                    <option value="last-passenger" disabled={!hasValidItems}>
+                      Último passageiro
+                    </option>
+                  )}
+                </select>
+                {formData.destinationLocationId === 'last-passenger' && (
+                  <small className="form-hint">
+                    O último passageiro da lista será considerado como destino final.
+                  </small>
+                )}
+              </div>
+            </div>
+
+            {formData.originLocationId === formData.destinationLocationId && 
+             formData.originLocationId && 
+             formData.destinationLocationId !== 'last-passenger' && (
+              <div className="location-warning">
+                <p>Atenção: origem e destino são o mesmo local.</p>
+              </div>
+            )}
+            
+            <div className="form-actions final-actions">
+              <button 
+                type="button"
+                onClick={goToPreviousStep}
+                className="back-button"
+              >
+                Voltar
+              </button>
+              <button 
+                type="button" 
+                className="submit-button"
+                onClick={handleProceedToRouteOrganization}
+                disabled={!formData.originLocationId || !formData.destinationLocationId}
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        );
+        
+      case 5:
+        const isLastPassengerDestination = formData.destinationLocationId === 'last-passenger';
+        return (
+          <div className="step-container">
+            <h2 className="step-title">Organizar rota de entrega</h2>
+            <div className="route-instructions">
+              <p>Arraste e solte os pontos abaixo para organizar a rota na ordem desejada.</p>
+              <p>A rota inicia no local de origem {isLastPassengerDestination ? 'e o último passageiro será considerado como destino final.' : 'e termina no local de destino.'}</p>
+            </div>
+            
+            <div className="route-container">
+              {routePoints.map((point, index) => {
+                // Determinar se o ponto é origem, destino ou ponto intermediário
+                const isOrigin = index === 0;
+                const isDestination = !isLastPassengerDestination && index === routePoints.length - 1;
+                const isLastPassenger = point.isLastPassenger;
+                
+                // Determinar se o ponto pode ser arrastado
+                const canDrag = !isOrigin && (!isDestination || isLastPassengerDestination);
+                
+                return (
+                  <div 
+                    key={point.id}
+                    className={`route-point 
+                      ${isOrigin ? 'origin-point' : ''} 
+                      ${isDestination ? 'destination-point' : ''} 
+                      ${isLastPassenger ? 'last-passenger-point' : ''} 
+                      ${point.isCompany ? 'company-point' : ''} 
+                      ${draggedItemIndex === index ? 'dragging' : ''}`}
+                    draggable={canDrag}
+                    onDragStart={() => canDrag && handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="route-point-handle">
+                      {canDrag && <DragHandleIcon />}
+                    </div>
+                    <div className="route-point-number">{index + 1}</div>
+                    <div className="route-point-content">
+                      <h3>{point.name}</h3>
+                      <p>{point.address}</p>
+                      {point.isCompany && <span className="company-badge">Empresa</span>}
+                      {isOrigin && <span className="origin-badge">Origem</span>}
+                      {isDestination && <span className="destination-badge">Destino</span>}
+                      {isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="form-actions final-actions">
+                <button 
+                  type="button"
+                  onClick={goToPreviousStep}
+                  className="back-button"
+                >
+                  Voltar
+                </button>
+                <button 
                   type="submit" 
                   className="submit-button"
                 >
@@ -394,7 +711,7 @@ const OrderForm: React.FC = () => {
       <div className="order-form-content">
         <main className="order-form-main">
           <div className="order-form-title-row">
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: '20px' }}>
               <h1 className="order-form-title">Nova solicitação</h1>
             </div>
             <div className="action-buttons">
@@ -425,6 +742,16 @@ const OrderForm: React.FC = () => {
             <div className={`step-indicator ${currentStep >= 3 ? 'active' : ''}`}>
               <div className="step-number">3</div>
               <div className="step-name">Detalhes</div>
+            </div>
+            <div className="step-line"></div>
+            <div className={`step-indicator ${currentStep >= 4 ? 'active' : ''}`}>
+              <div className="step-number">4</div>
+              <div className="step-name">Origem/Destino</div>
+            </div>
+            <div className="step-line"></div>
+            <div className={`step-indicator ${currentStep >= 5 ? 'active' : ''}`}>
+              <div className="step-number">5</div>
+              <div className="step-name">Organizar rota</div>
             </div>
           </div>
 

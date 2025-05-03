@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../components/layout/Header';
 import './users.css';
 
@@ -13,19 +13,61 @@ const initialUsers = [
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState(initialUsers);
+  const [filteredUsers, setFilteredUsers] = useState(initialUsers);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user', status: 'active' });
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  
+  // Apply filters whenever filter states change
+  useEffect(() => {
+    let result = [...users];
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(user => user.status === statusFilter);
+    }
+    
+    // Apply role filter
+    if (roleFilter !== 'all') {
+      result = result.filter(user => user.role === roleFilter);
+    }
+    
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(user => 
+        user.name.toLowerCase().includes(query) || 
+        user.email.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredUsers(result);
+    
+    // Count active filters
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (roleFilter !== 'all') count++;
+    if (searchQuery) count++;
+    setActiveFiltersCount(count);
+  }, [users, statusFilter, roleFilter, searchQuery]);
 
   const handleStatusChange = (id: string, newStatus: 'active' | 'inactive') => {
-    setUsers(users.map(user => 
+    const updatedUsers = users.map(user => 
       user.id === id ? { ...user, status: newStatus } : user
-    ));
+    );
+    setUsers(updatedUsers);
   };
 
   const handleRoleChange = (id: string, newRole: 'admin' | 'manager' | 'user') => {
-    setUsers(users.map(user => 
+    const updatedUsers = users.map(user => 
       user.id === id ? { ...user, role: newRole } : user
-    ));
+    );
+    setUsers(updatedUsers);
   };
 
   const handleRemoveUser = (id: string) => {
@@ -41,6 +83,12 @@ const Users: React.FC = () => {
     setNewUser({ name: '', email: '', role: 'user', status: 'active' });
     setShowAddUserModal(false);
   };
+  
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setRoleFilter('all');
+    setSearchQuery('');
+  };
 
   return (
     <div className="users-page">
@@ -48,9 +96,9 @@ const Users: React.FC = () => {
       <div className="users-content">
         <main className="users-main">
           <div className="users-title-row">
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: '20px' }}>
               <h1 className="users-title">Usuários</h1>
-              <span className="users-title-count">{users.length}</span>
+              <span className="users-title-count">{filteredUsers.length}</span>
             </div>
             <div className="action-buttons">
               <button 
@@ -73,36 +121,63 @@ const Users: React.FC = () => {
 
           <div className="users-filters">
             <div className="filter-group">
-              <span>Status: Todos</span>
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">Status: Todos</option>
+                <option value="active">Status: Ativo</option>
+                <option value="inactive">Status: Inativo</option>
+              </select>
             </div>
             <div className="filter-group">
-              <span>Função: Todas</span>
+              <select 
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">Função: Todas</option>
+                <option value="admin">Função: Administrador</option>
+                <option value="manager">Função: Gerente</option>
+                <option value="user">Função: Usuário</option>
+              </select>
             </div>
             <div className="filter-spacer"></div>
             <div className="search-input">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor" />
               </svg>
-              <input type="text" placeholder="Buscar usuários" />
+              <input 
+                type="text" 
+                placeholder="Buscar usuários" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <div className="filter-group">
-              <span>Filtros (0)</span>
+              {activeFiltersCount > 0 ? (
+                <button className="filter-reset-button" onClick={clearFilters}>
+                  Filtros ({activeFiltersCount}) <span className="filter-reset-x">×</span>
+                </button>
+              ) : (
+                <span>Filtros (0)</span>
+              )}
             </div>
           </div>
 
-          {users.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="no-users">
-              <p>Nenhum usuário encontrado. Adicione um novo usuário para começar.</p>
-              <button 
-                className="action-button" 
-                style={{ margin: '1rem auto', display: 'flex' }}
-                onClick={() => setShowAddUserModal(true)}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-                </svg>
-                Adicionar Usuário
-              </button>
+              <p>Nenhum usuário encontrado com os filtros aplicados.</p>
+              {activeFiltersCount > 0 && (
+                <button 
+                  className="action-button" 
+                  style={{ margin: '1rem auto', display: 'flex' }}
+                  onClick={clearFilters}
+                >
+                  Limpar Filtros
+                </button>
+              )}
             </div>
           ) : (
             <div className="users-table-container">
@@ -117,7 +192,7 @@ const Users: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <tr key={user.id}>
                       <td>{user.name}</td>
                       <td>{user.email}</td>

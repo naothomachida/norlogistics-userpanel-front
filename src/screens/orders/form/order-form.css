@@ -18,6 +18,7 @@
 
 .order-form-main {
   padding: 2.5rem 0;
+  margin-top: 60px;
 }
 
 .order-form-title {
@@ -342,6 +343,104 @@
   font-style: italic;
 }
 
+/* Estilos para organização de rota (Etapa 4) */
+.route-instructions {
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #000;
+}
+
+.route-instructions p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.route-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.route-point {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: grab;
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.route-point:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.route-point.dragging {
+  opacity: 0.7;
+  transform: scale(1.02);
+  border: 2px dashed #000;
+  cursor: grabbing;
+}
+
+.route-point-handle {
+  color: #aaa;
+  margin-right: 0.5rem;
+  cursor: grab;
+}
+
+.route-point-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #f3f4f6;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.875rem;
+  margin-right: 1rem;
+}
+
+.route-point-content {
+  flex: 1;
+}
+
+.route-point-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+
+.route-point-content p {
+  color: #666;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.company-point {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.company-badge {
+  display: inline-block;
+  background-color: #0ea5e9;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
 /* Media queries */
 @media (max-width: 768px) {
   .order-form-title {
@@ -372,4 +471,173 @@
     margin-bottom: 1rem;
     text-align: center;
   }
+  
+  .route-point {
+    flex-wrap: wrap;
+  }
+  
+  .route-point-handle {
+    order: 1;
+    margin-right: 0.5rem;
+  }
+  
+  .route-point-number {
+    order: 2;
+  }
+  
+  .route-point-content {
+    order: 3;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Adicionando estilos para a seleção de origem e destino */
+.location-select-group {
+  width: 100%;
+}
+
+.location-select-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  color: #444;
+}
+
+.location-select-group select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='14' height='8' viewBox='0 0 14 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L7 7L13 1' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.location-select-group select:focus {
+  border-color: #000;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  outline: none;
+}
+
+.location-warning {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #fff8e1;
+  border-left: 4px solid #ffc107;
+  border-radius: 0.375rem;
+  color: #856404;
+}
+
+.location-warning p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.origin-badge, .destination-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.origin-badge {
+  background-color: #e0f7fa;
+  color: #006064;
+}
+
+.destination-badge {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+}
+
+/* Corrigindo estilos existentes */
+.submit-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.submit-button:disabled:hover {
+  background-color: #cccccc;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Estilizando a rota para tornar visualmente claro quais pontos são fixos */
+.route-point:first-child, .route-point:last-child {
+  border-left: none;
+  background-color: transparent;
+}
+
+.last-passenger-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #ede9fe;
+  color: #5b21b6;
+}
+
+.form-hint {
+  display: block;
+  color: #666;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.origin-point {
+  border-left: 4px solid #4caf50;
+  background-color: #f1f8e9;
+  cursor: default;
+}
+
+.destination-point {
+  border-left: 4px solid #9c27b0;
+  background-color: #f3e5f5;
+  cursor: default;
+}
+
+.last-passenger-point {
+  border-left: 4px solid #7c4dff;
+  background-color: #f5f0ff;
+}
+
+.origin-point:before,
+.destination-point:before,
+.last-passenger-point:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+.origin-point:before {
+  background-color: #4caf50;
+}
+
+.destination-point:before {
+  background-color: #9c27b0;
+}
+
+.last-passenger-point:before {
+  background-color: #7c4dff;
 } 
