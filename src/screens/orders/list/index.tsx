@@ -6,6 +6,33 @@ import Header from '../../../components/layout/Header';
 import { useNavigate } from 'react-router-dom';
 import './order-list.css';
 
+// Função para obter descrições dos tipos de veículos
+const getVehicleDescription = (type: string | undefined, transportType: string | undefined) => {
+  if (!type) return 'N/A';
+
+  const personVehicles: Record<string, string> = {
+    basic: 'Veículo básico',
+    hatch: 'Hatch',
+    sedan: 'Sedan',
+    suv: 'SUV',
+    minibus: 'Microônibus',
+    bus: 'Ônibus',
+  };
+
+  const cargoVehicles: Record<string, string> = {
+    van: 'Van',
+    truck_small: 'Caminhão pequeno',
+    truck_medium: 'Caminhão médio',
+    truck_large: 'Caminhão grande',
+    truck_extra: 'Carreta',
+    truck_special: 'Carreta especial',
+  };
+
+  return transportType === 'person' 
+    ? (personVehicles[type] || type) 
+    : (cargoVehicles[type] || type);
+};
+
 const OrderList: React.FC = () => {
   const orders = useSelector((state: RootState) => state.orders.orders);
   const dispatch: AppDispatch = useDispatch();
@@ -19,6 +46,24 @@ const OrderList: React.FC = () => {
     dispatch(removeOrder(id));
   };
 
+  // Traduzir status para português
+  const translateStatus = (status: string) => {
+    const translations: Record<string, string> = {
+      'pending': 'Pendente',
+      'in_progress': 'Em andamento',
+      'en_route': 'Em rota',
+      'completed': 'Concluído',
+      'cancelled': 'Cancelado'
+    };
+    return translations[status] || status;
+  };
+
+  // Traduzir tipo de transporte para português
+  const translateTransportType = (type: string | undefined) => {
+    if (!type) return 'N/A';
+    return type === 'person' ? 'Pessoas' : 'Cargas';
+  };
+
   return (
     <div className="orders-page">
       <Header />
@@ -26,7 +71,7 @@ const OrderList: React.FC = () => {
         <main className="orders-main">
           <div className="orders-title-row">
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <h1 className="orders-title">Orders</h1>
+              <h1 className="orders-title">Solicitações</h1>
               <span className="orders-title-count">{orders.length}</span>
             </div>
             <div className="action-buttons">
@@ -37,42 +82,45 @@ const OrderList: React.FC = () => {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
                 </svg>
-                Create Order
+                Nova solicitação
               </button>
               <button className="action-button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor" />
                 </svg>
-                Export
+                Exportar
               </button>
             </div>
           </div>
 
           <div className="orders-filters">
             <div className="filter-group">
-              <span>Status: All</span>
+              <span>Status: Todos</span>
+            </div>
+            <div className="filter-group">
+              <span>Tipo: Todos</span>
             </div>
             <div className="filter-group date">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z" fill="#777" />
               </svg>
-              <span style={{ marginLeft: '8px' }}>All dates</span>
+              <span style={{ marginLeft: '8px' }}>Todas as datas</span>
             </div>
             <div className="filter-spacer"></div>
             <div className="search-input">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor" />
               </svg>
-              <input type="text" placeholder="Search orders" />
+              <input type="text" placeholder="Buscar solicitações" />
             </div>
             <div className="filter-group">
-              <span>Filters (0)</span>
+              <span>Filtros (0)</span>
             </div>
           </div>
 
           {orders.length === 0 ? (
             <div className="no-orders">
-              <p>No orders found. Create a new order to get started.</p>
+              <p>Nenhuma solicitação encontrada. Crie uma nova solicitação para começar.</p>
               <button 
                 className="action-button" 
                 style={{ margin: '1rem auto', display: 'flex' }}
@@ -81,7 +129,7 @@ const OrderList: React.FC = () => {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
                 </svg>
-                Create Order
+                Nova solicitação
               </button>
             </div>
           ) : (
@@ -89,19 +137,27 @@ const OrderList: React.FC = () => {
               <table className="orders-table">
                 <thead>
                   <tr>
-                    <th>Car Model</th>
-                    <th>Pickup Location</th>
-                    <th>Destination</th>
+                    <th>Tipo</th>
+                    <th>Veículo</th>
+                    <th>Origem</th>
+                    <th>Destino</th>
+                    <th>Itens</th>
                     <th>Status</th>
-                    <th style={{textAlign: 'center'}}>Actions</th>
+                    <th style={{textAlign: 'center'}}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order.id}>
-                      <td>{order.carModel}</td>
+                      <td className="transport-type-cell">
+                        <span className={`transport-badge ${order.transportType || 'unknown'}`}>
+                          {translateTransportType(order.transportType)}
+                        </span>
+                      </td>
+                      <td>{getVehicleDescription(order.vehicleType, order.transportType)}</td>
                       <td>{order.pickupLocation}</td>
                       <td>{order.destination}</td>
+                      <td>{order.items?.length || 0}</td>
                       <td>
                         <div className="status-select">
                           <select 
@@ -109,11 +165,11 @@ const OrderList: React.FC = () => {
                             onChange={(e) => handleStatusChange(order.id, e.target.value as any)}
                             className={`status-${order.status}`}
                           >
-                            <option value="pending">Pending</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="en_route">En Route</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
+                            <option value="pending">Pendente</option>
+                            <option value="in_progress">Em andamento</option>
+                            <option value="en_route">Em rota</option>
+                            <option value="completed">Concluído</option>
+                            <option value="cancelled">Cancelado</option>
                           </select>
                         </div>
                       </td>

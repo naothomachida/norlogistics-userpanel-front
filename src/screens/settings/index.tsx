@@ -50,42 +50,6 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </div>
-            
-            <div className="settings-section">
-              <h2 className="settings-section-title">Segurança</h2>
-              
-              <div className="settings-form-group">
-                <label htmlFor="current-password">Senha atual</label>
-                <input 
-                  type="password" 
-                  id="current-password" 
-                  className="settings-input"
-                  placeholder="Digite sua senha atual"
-                />
-              </div>
-              
-              <div className="settings-form-group">
-                <label htmlFor="new-password">Nova senha</label>
-                <input 
-                  type="password" 
-                  id="new-password" 
-                  className="settings-input"
-                  placeholder="Digite a nova senha"
-                />
-              </div>
-              
-              <div className="settings-form-group">
-                <label htmlFor="confirm-password">Confirmar nova senha</label>
-                <input 
-                  type="password" 
-                  id="confirm-password" 
-                  className="settings-input"
-                  placeholder="Confirme a nova senha"
-                />
-              </div>
-              
-              <button className="settings-button">Atualizar senha</button>
-            </div>
           </div>
         </main>
       </div>
@@ -93,4 +57,4 @@ const Settings: React.FC = () => {
   );
 };
 
-export default Settings; 
+export default Settings;
