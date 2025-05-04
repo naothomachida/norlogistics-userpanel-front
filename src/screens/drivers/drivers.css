@@ -61,10 +61,31 @@
   gap: 0.4rem;
   font-size: 0.75rem;
   cursor: pointer;
+  transition: all 0.25s ease;
 }
 
 .action-button:hover {
   background-color: #e5e5e5;
+}
+
+.action-button.new-driver {
+  background-color: #000000;
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transform: translateY(0);
+}
+
+.action-button.new-driver:hover {
+  background-color: #222222;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.action-button.new-driver svg {
+  width: 16px;
+  height: 16px;
 }
 
 .no-drivers {

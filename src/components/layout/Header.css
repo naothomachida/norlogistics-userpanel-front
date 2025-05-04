@@ -46,7 +46,7 @@
 
 .header-nav {
   display: flex;
-  gap: 1.5rem;
+  gap: 2.5rem;
   margin: 0 auto;
 }
 
@@ -64,6 +64,7 @@
 .header-nav-link.active {
   opacity: 1;
   position: relative;
+  color: #a76af5; /* Cor roxa mais clara para indicar aba ativa */
 }
 
 .header-nav-link.active::after {
@@ -73,7 +74,7 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: white;
+  background-color: #a76af5; /* Linha roxa mais clara indicadora */
 }
 
 .header-actions {

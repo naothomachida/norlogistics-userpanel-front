@@ -136,6 +136,15 @@ const OrderForm: React.FC = () => {
   };
 
   const addItem = () => {
+    // Para veículos de passageiros, verificar se não excede a capacidade
+    if (formData.transportType === 'person') {
+      const selectedVehicle = personVehicles.find(v => v.id === formData.vehicleType);
+      if (selectedVehicle && formData.items.length >= Number(selectedVehicle.capacity)) {
+        alert(`Capacidade máxima do veículo (${selectedVehicle.capacity} passageiros) atingida.`);
+        return;
+      }
+    }
+    
     setFormData({
       ...formData,
       items: [
@@ -514,34 +523,53 @@ const OrderForm: React.FC = () => {
                 </div>
               ))}
               
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="add-item-button"
-                  onClick={addItem}
-                >
-                  {formData.transportType === 'person' ? 'Adicionar passageiro' : 'Adicionar carga'}
-                </button>
-              </div>
-              
-              <div className="form-actions final-actions">
+              <div className="form-actions all-buttons">
                 <button 
                   type="button"
                   onClick={goToPreviousStep}
                   className="back-button"
                 >
-                  Voltar
+                  Voltar etapa
                 </button>
-                <p className="construction-notice">
-                  Esta funcionalidade está em construção. Algumas opções podem ser limitadas.
-                </p>
-                <button 
-                  type="button" 
-                  className="submit-button"
-                  onClick={handleProceedToLocationSelection}
-                >
-                  Continuar
-                </button>
+                
+                <div className="right-actions">
+                  <button
+                    type="button"
+                    className="add-item-button"
+                    onClick={addItem}
+                  >
+                    {formData.transportType === 'person' ? 'Adicionar passageiro' : 'Adicionar carga'}
+                  </button>
+                  
+                  {formData.transportType === 'person' && formData.vehicleType && (
+                    <div className="capacity-info">
+                      {(() => {
+                        const selectedVehicle = personVehicles.find(v => v.id === formData.vehicleType);
+                        if (selectedVehicle) {
+                          const capacity = Number(selectedVehicle.capacity);
+                          const current = formData.items.length;
+                          const remaining = capacity - current;
+                          return (
+                            <span className={remaining <= 2 ? 'low-capacity' : ''}>
+                              {remaining > 0 
+                                ? `Vagas restantes: ${remaining} de ${capacity}` 
+                                : 'Capacidade máxima atingida'}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  )}
+                  
+                  <button 
+                    type="button" 
+                    className="continue-button"
+                    onClick={handleProceedToLocationSelection}
+                  >
+                    Continuar
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -609,22 +637,25 @@ const OrderForm: React.FC = () => {
               </div>
             )}
             
-            <div className="form-actions final-actions">
+            <div className="form-actions all-buttons">
               <button 
                 type="button"
                 onClick={goToPreviousStep}
                 className="back-button"
               >
-                Voltar
+                Voltar etapa
               </button>
-              <button 
-                type="button" 
-                className="submit-button"
-                onClick={handleProceedToRouteOrganization}
-                disabled={!formData.originLocationId || !formData.destinationLocationId}
-              >
-                Continuar
-              </button>
+              
+              <div className="right-actions">
+                <button 
+                  type="button" 
+                  className="continue-button"
+                  onClick={handleProceedToRouteOrganization}
+                  disabled={!formData.originLocationId || !formData.destinationLocationId}
+                >
+                  Continuar
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -681,20 +712,23 @@ const OrderForm: React.FC = () => {
             </div>
             
             <form onSubmit={handleSubmit}>
-              <div className="form-actions final-actions">
+              <div className="form-actions all-buttons">
                 <button 
                   type="button"
                   onClick={goToPreviousStep}
                   className="back-button"
                 >
-                  Voltar
+                  Voltar etapa
                 </button>
-                <button 
-                  type="submit" 
-                  className="submit-button"
-                >
-                  Finalizar ordem
-                </button>
+                
+                <div className="right-actions">
+                  <button 
+                    type="submit" 
+                    className="submit-button"
+                  >
+                    Finalizar ordem
+                  </button>
+                </div>
               </div>
             </form>
           </div>

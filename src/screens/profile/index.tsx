@@ -6,6 +6,9 @@ const Profile: React.FC = () => {
   const [profileData, setProfileData] = useState({
     name: 'João Silva',
     email: 'joao.silva@example.com',
+    phone: '(11) 98765-4321',
+    position: 'Gerente de Transportes',
+    department: 'Logística',
     photo: 'https://randomuser.me/api/portraits/men/32.jpg',
   });
 
@@ -112,7 +115,11 @@ const Profile: React.FC = () => {
 
           {saveSuccess && (
             <div className="success-message">
-              Perfil atualizado com sucesso!
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              Perfil atualizado!
             </div>
           )}
 
@@ -142,12 +149,13 @@ const Profile: React.FC = () => {
               <div className="profile-info">
                 <h2 className="profile-name">{profileData.name}</h2>
                 <p className="profile-email">{profileData.email}</p>
+                <p className="profile-position">{profileData.position} · {profileData.department}</p>
               </div>
               <button 
                 className="profile-edit-button"
                 onClick={handleEditToggle}
               >
-                {editMode ? 'Cancelar' : 'Editar perfil'}
+                {editMode ? 'Cancelar' : 'Editar'}
               </button>
             </div>
 
@@ -161,7 +169,7 @@ const Profile: React.FC = () => {
                     name="name"
                     value={tempProfileData.name}
                     onChange={handleInputChange}
-                    placeholder="Seu nome completo"
+                    placeholder="Nome completo"
                     required
                   />
                 </div>
@@ -173,8 +181,41 @@ const Profile: React.FC = () => {
                     name="email"
                     value={tempProfileData.email}
                     onChange={handleInputChange}
-                    placeholder="Seu email"
+                    placeholder="Email"
                     required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="phone">Telefone</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={tempProfileData.phone}
+                    onChange={handleInputChange}
+                    placeholder="Telefone"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="position">Cargo</label>
+                  <input
+                    type="text"
+                    id="position"
+                    name="position"
+                    value={tempProfileData.position}
+                    onChange={handleInputChange}
+                    placeholder="Cargo"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="department">Departamento</label>
+                  <input
+                    type="text"
+                    id="department"
+                    name="department"
+                    value={tempProfileData.department}
+                    onChange={handleInputChange}
+                    placeholder="Departamento"
                   />
                 </div>
                 <div className="form-actions">
@@ -182,11 +223,11 @@ const Profile: React.FC = () => {
                     type="submit" 
                     className="submit-button"
                   >
-                    Salvar alterações
+                    Salvar
                   </button>
                 </div>
               </form>
-            ) : (
+            ) :
               <div className="profile-details">
                 <div className="detail-row">
                   <span className="detail-label">Nome:</span>
@@ -196,8 +237,20 @@ const Profile: React.FC = () => {
                   <span className="detail-label">Email:</span>
                   <span className="detail-value">{profileData.email}</span>
                 </div>
+                <div className="detail-row">
+                  <span className="detail-label">Telefone:</span>
+                  <span className="detail-value">{profileData.phone}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Cargo:</span>
+                  <span className="detail-value">{profileData.position}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Departamento:</span>
+                  <span className="detail-value">{profileData.department}</span>
+                </div>
               </div>
-            )}
+            }
           </div>
 
           <div className="profile-title-row" style={{ marginTop: '3rem' }}>
@@ -208,7 +261,11 @@ const Profile: React.FC = () => {
 
           {passwordSuccess && (
             <div className="success-message">
-              Senha atualizada com sucesso!
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              Senha atualizada!
             </div>
           )}
 
@@ -222,7 +279,7 @@ const Profile: React.FC = () => {
                   name="currentPassword"
                   value={passwordData.currentPassword}
                   onChange={handlePasswordChange}
-                  placeholder="Digite sua senha atual"
+                  placeholder="Senha atual"
                   required
                 />
               </div>
@@ -234,19 +291,19 @@ const Profile: React.FC = () => {
                   name="newPassword"
                   value={passwordData.newPassword}
                   onChange={handlePasswordChange}
-                  placeholder="Digite a nova senha"
+                  placeholder="Nova senha"
                   required
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="confirmPassword">Confirmar nova senha</label>
+                <label htmlFor="confirmPassword">Confirmar senha</label>
                 <input
                   type="password"
                   id="confirmPassword"
                   name="confirmPassword"
                   value={passwordData.confirmPassword}
                   onChange={handlePasswordChange}
-                  placeholder="Confirme a nova senha"
+                  placeholder="Confirmar senha"
                   required
                 />
               </div>
@@ -255,7 +312,7 @@ const Profile: React.FC = () => {
                   type="submit" 
                   className="submit-button"
                 >
-                  Atualizar senha
+                  Atualizar
                 </button>
               </div>
             </form>

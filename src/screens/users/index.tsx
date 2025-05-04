@@ -151,7 +151,7 @@ const Users: React.FC = () => {
             </div>
             <div className="action-buttons">
               <button 
-                className="action-button"
+                className="action-button new-user"
                 onClick={() => setShowAddUserModal(true)}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -289,7 +289,7 @@ const Users: React.FC = () => {
                 </button>
               )}
               <button 
-                className="action-button" 
+                className="action-button new-user" 
                 style={{ margin: '1rem auto', display: 'flex' }}
                 onClick={() => setShowAddUserModal(true)}
               >

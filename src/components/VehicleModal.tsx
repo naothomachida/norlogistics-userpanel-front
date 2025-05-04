@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VehicleType } from '../store/vehicleTypesSlice';
+import './modal.css';
 
 interface VehicleModalProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ const VehicleModal: React.FC<VehicleModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content modal-content-wide">
         <div className="modal-header">
           <h2>
             {editMode 
@@ -80,73 +81,79 @@ const VehicleModal: React.FC<VehicleModalProps> = ({
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="id">ID do Veículo</label>
-            <input
-              type="text"
-              id="id"
-              name="id"
-              value={vehicle.id}
-              onChange={handleInputChange}
-              placeholder="ex: suv, van, truck_large"
-              disabled={editMode}
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="name">Nome do Veículo</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={vehicle.name}
-              onChange={handleInputChange}
-              placeholder="ex: SUV, Van, Caminhão grande"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="description">Descrição</label>
-            <input
-              type="text"
-              id="description"
-              name="description"
-              value={vehicle.description}
-              onChange={handleInputChange}
-              placeholder="ex: Veículo robusto para até 5 pessoas"
-            />
-          </div>
-          
-          {vehicleType === 'person' ? (
-            <div className="form-group">
-              <label htmlFor="capacity">Capacidade (passageiros)</label>
-              <input
-                type="number"
-                id="capacity"
-                name="capacity"
-                value={vehicle.capacity}
-                onChange={handleInputChange}
-                min="1"
-                placeholder="ex: 5"
-              />
+          <div className="form-column-layout">
+            <div className="form-column">
+              <div className="form-group">
+                <label htmlFor="id">ID do Veículo</label>
+                <input
+                  type="text"
+                  id="id"
+                  name="id"
+                  value={vehicle.id}
+                  onChange={handleInputChange}
+                  placeholder="ex: suv, van, truck_large"
+                  disabled={editMode}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="name">Nome do Veículo</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={vehicle.name}
+                  onChange={handleInputChange}
+                  placeholder="ex: SUV, Van, Caminhão grande"
+                  required
+                />
+              </div>
             </div>
-          ) : (
-            <div className="form-group">
-              <label htmlFor="maxWeight">Capacidade (toneladas)</label>
-              <input
-                type="number"
-                id="maxWeight"
-                name="maxWeight"
-                value={vehicle.maxWeight}
-                onChange={handleInputChange}
-                min="0.1"
-                step="0.1"
-                placeholder="ex: 3.5"
-              />
+            
+            <div className="form-column">
+              <div className="form-group">
+                <label htmlFor="description">Descrição</label>
+                <input
+                  type="text"
+                  id="description"
+                  name="description"
+                  value={vehicle.description}
+                  onChange={handleInputChange}
+                  placeholder="ex: Veículo robusto para até 5 pessoas"
+                />
+              </div>
+              
+              {vehicleType === 'person' ? (
+                <div className="form-group">
+                  <label htmlFor="capacity">Capacidade (passageiros)</label>
+                  <input
+                    type="number"
+                    id="capacity"
+                    name="capacity"
+                    value={vehicle.capacity}
+                    onChange={handleInputChange}
+                    min="1"
+                    placeholder="ex: 5"
+                  />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label htmlFor="maxWeight">Capacidade (toneladas)</label>
+                  <input
+                    type="number"
+                    id="maxWeight"
+                    name="maxWeight"
+                    value={vehicle.maxWeight}
+                    onChange={handleInputChange}
+                    min="0.1"
+                    step="0.1"
+                    placeholder="ex: 3.5"
+                  />
+                </div>
+              )}
             </div>
-          )}
+          </div>
           
           <div className="form-actions">
             <button 

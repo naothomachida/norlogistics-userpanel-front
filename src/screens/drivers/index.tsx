@@ -186,7 +186,7 @@ const Drivers: React.FC = () => {
             </div>
             <div className="action-buttons">
               <button 
-                className="action-button"
+                className="action-button new-driver"
                 onClick={openAddModal}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -342,7 +342,7 @@ const Drivers: React.FC = () => {
                 </button>
               )}
               <button 
-                className="action-button" 
+                className="action-button new-driver" 
                 style={{ margin: '1rem auto', display: 'flex' }}
                 onClick={openAddModal}
               >

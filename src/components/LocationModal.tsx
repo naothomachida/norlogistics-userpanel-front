@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Location } from '../store/locationSlice';
+import './modal.css';
 
 interface LocationModalProps {
   isOpen: boolean;
@@ -75,7 +76,7 @@ const LocationModal: React.FC<LocationModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content modal-content-wide">
         <div className="modal-header">
           <h2>
             {editMode 
@@ -91,96 +92,102 @@ const LocationModal: React.FC<LocationModalProps> = ({
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="id">ID do Local</label>
-            <input
-              type="text"
-              id="id"
-              name="id"
-              value={location.id}
-              onChange={handleInputChange}
-              placeholder="ex: nome-da-localidade"
-              disabled={editMode}
-              required
-            />
-            <small className="form-hint">ID único para identificar este local (sem espaços)</small>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="name">Nome do Local</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={location.name}
-              onChange={handleInputChange}
-              placeholder="ex: Lenovo Sorocaba"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="address">Endereço</label>
-            <input
-              type="text"
-              id="address"
-              name="address"
-              value={location.address}
-              onChange={handleInputChange}
-              placeholder="ex: Av. Principal, 123"
-              required
-            />
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="city">Cidade</label>
-              <input
-                type="text"
-                id="city"
-                name="city"
-                value={location.city}
-                onChange={handleInputChange}
-                placeholder="ex: São Paulo"
-                required
-              />
+          <div className="form-column-layout">
+            <div className="form-column">
+              <div className="form-group">
+                <label htmlFor="id">ID do Local</label>
+                <input
+                  type="text"
+                  id="id"
+                  name="id"
+                  value={location.id}
+                  onChange={handleInputChange}
+                  placeholder="ex: nome-da-localidade"
+                  disabled={editMode}
+                  required
+                />
+                <small className="form-hint">ID único para identificar este local (sem espaços)</small>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="name">Nome do Local</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={location.name}
+                  onChange={handleInputChange}
+                  placeholder="ex: Lenovo Sorocaba"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="zipCode">CEP</label>
+                <input
+                  type="text"
+                  id="zipCode"
+                  name="zipCode"
+                  value={location.zipCode}
+                  onChange={handleInputChange}
+                  placeholder="ex: 00000-000"
+                />
+              </div>
             </div>
             
-            <div className="form-group">
-              <label htmlFor="state">Estado</label>
-              <input
-                type="text"
-                id="state"
-                name="state"
-                value={location.state}
-                onChange={handleInputChange}
-                placeholder="ex: SP"
-                required
-              />
+            <div className="form-column">
+              <div className="form-group">
+                <label htmlFor="address">Endereço</label>
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={location.address}
+                  onChange={handleInputChange}
+                  placeholder="ex: Av. Principal, 123"
+                  required
+                />
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="city">Cidade</label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={location.city}
+                    onChange={handleInputChange}
+                    placeholder="ex: São Paulo"
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="state">Estado</label>
+                  <input
+                    type="text"
+                    id="state"
+                    name="state"
+                    value={location.state}
+                    onChange={handleInputChange}
+                    placeholder="ex: SP"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="form-group checkbox-group">
+                <input
+                  type="checkbox"
+                  id="isCompany"
+                  name="isCompany"
+                  checked={location.isCompany}
+                  onChange={handleInputChange}
+                />
+                <label htmlFor="isCompany">Este é um local da empresa (Lenovo)</label>
+              </div>
             </div>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="zipCode">CEP</label>
-            <input
-              type="text"
-              id="zipCode"
-              name="zipCode"
-              value={location.zipCode}
-              onChange={handleInputChange}
-              placeholder="ex: 00000-000"
-            />
-          </div>
-          
-          <div className="form-group checkbox-group">
-            <input
-              type="checkbox"
-              id="isCompany"
-              name="isCompany"
-              checked={location.isCompany}
-              onChange={handleInputChange}
-            />
-            <label htmlFor="isCompany">Este é um local da empresa (Lenovo)</label>
           </div>
           
           <div className="form-actions">
