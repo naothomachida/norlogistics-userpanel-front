@@ -55,7 +55,7 @@ const CEP_API_CONFIG = {
 
       // Check for successful authentication
       if (tokenResponse.status === 200) {
-        return tokenResponse.data.access_token;
+      return tokenResponse.data.access_token;
       } else {
         throw new Error(`Authentication failed with status ${tokenResponse.status}`);
       }

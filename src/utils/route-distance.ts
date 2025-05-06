@@ -74,7 +74,7 @@ export async function calculateRouteDistance(
           if (status === window.google.maps.DistanceMatrixStatus.OK) {
             const rows = response?.rows || [];
             
-            let totalDistance = 0;
+    let totalDistance = 0;
             const distanceDetails: Array<{
               from: string, 
               to: string, 
@@ -112,10 +112,10 @@ export async function calculateRouteDistance(
             console.log(`   Total Steps: ${result.totalSteps}`);
 
             resolve(result);
-          } else {
+      } else {
             reject(new Error(`Distance matrix calculation failed: ${status}`));
-          }
-        }
+      }
+    }
       );
     })
     .catch(reject);

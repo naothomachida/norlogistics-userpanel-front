@@ -80,29 +80,6 @@ const OrderForm = () => {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null);
 
-  // State for location search
-  const [locationSearch, setLocationSearch] = useState({
-    origin: '',
-    destination: ''
-  });
-
-  // Filtered locations based on search
-  const filteredOriginLocations = useMemo(() => {
-    return locations.filter(loc => 
-      loc.name.toLowerCase().includes(locationSearch.origin.toLowerCase()) ||
-      loc.city.toLowerCase().includes(locationSearch.origin.toLowerCase()) ||
-      loc.state.toLowerCase().includes(locationSearch.origin.toLowerCase())
-    );
-  }, [locations, locationSearch.origin]);
-
-  const filteredDestinationLocations = useMemo(() => {
-    return locations.filter(loc => 
-      loc.name.toLowerCase().includes(locationSearch.destination.toLowerCase()) ||
-      loc.city.toLowerCase().includes(locationSearch.destination.toLowerCase()) ||
-      loc.state.toLowerCase().includes(locationSearch.destination.toLowerCase())
-    );
-  }, [locations, locationSearch.destination]);
-
   // Verificar se há itens válidos para definir o último passageiro como destino
   const hasValidItems = useMemo(() => {
     return formData.items.some(item => item.name && item.address);
@@ -122,10 +99,10 @@ const OrderForm = () => {
     totalDistance: number;
     totalSteps: number;
     distanceDetails: Array<{
-      from: string;
-      to: string;
-      distance: number;
-      duration: number;
+      from: string; 
+      to: string; 
+      distance: number; 
+      duration: number
     }>;
   }
 
@@ -643,6 +620,10 @@ const OrderForm = () => {
                 </div>
               ))}
             </div>
+            <br />
+            <p className="form-hint">
+              Para adicionar mais tipos de veículos, vá até <strong>Configurações</strong>
+            </p>
           </div>
         );
         
@@ -843,21 +824,9 @@ const OrderForm = () => {
             <div className="location-selection-container">
               <div className="location-selection-column">
                 <h3>Local de Origem</h3>
-                <div className="location-search-container">
-                  <input 
-                    type="text"
-                    placeholder="Buscar local de origem"
-                    value={locationSearch.origin}
-                    onChange={(e) => setLocationSearch({
-                      ...locationSearch,
-                      origin: e.target.value
-                    })}
-                    className="location-search-input"
-                  />
-                </div>
                 
                 <div className="location-cards-grid">
-                  {filteredOriginLocations.map((location) => (
+                  {locations.map((location) => (
                     <div 
                       key={location.id}
                       className={`location-card ${formData.originLocationId === location.id ? 'selected' : ''}`}
@@ -874,25 +843,16 @@ const OrderForm = () => {
                     </div>
                   ))}
                 </div>
+                <p className="form-hint">
+                  Para adicionar mais locais, vá até <strong>Configurações</strong>
+                </p>
               </div>
               
               <div className="location-selection-column">
                 <h3>Local de Destino</h3>
-                <div className="location-search-container">
-                  <input 
-                    type="text"
-                    placeholder="Buscar local de destino"
-                    value={locationSearch.destination}
-                    onChange={(e) => setLocationSearch({
-                      ...locationSearch,
-                      destination: e.target.value
-                    })}
-                    className="location-search-input"
-                  />
-                </div>
                 
                 <div className="location-cards-grid">
-                  {filteredDestinationLocations.map((location) => (
+                  {locations.map((location) => (
                     <div 
                       key={location.id}
                       className={`location-card ${formData.destinationLocationId === location.id ? 'selected' : ''}`}
@@ -926,6 +886,9 @@ const OrderForm = () => {
                     </div>
                   )}
                 </div>
+                <p className="form-hint">
+                  Para adicionar mais locais, vá até <strong>Configurações</strong>
+                </p>
               </div>
             </div>
 

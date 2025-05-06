@@ -233,11 +233,38 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
 }
 
 .action-icon:hover {
   color: #555;
+  background-color: #f0f0f0;
+}
+
+.action-icon svg {
+  margin-right: 0.25rem;
+}
+
+.action-icon.view-order {
+  color: #2563eb;
+}
+
+.action-icon.view-order:hover {
+  background-color: #dbeafe;
+}
+
+.action-icon.delete-order {
+  color: #dc2626;
+}
+
+.action-icon.delete-order:hover {
+  background-color: #fee2e2;
 }
 
 @media (max-width: 768px) {
