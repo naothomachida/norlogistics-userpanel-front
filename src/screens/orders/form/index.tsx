@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { addOrder } from '../../../store/ordersSlice';
@@ -6,19 +6,10 @@ import { RootState } from '../../../store';
 import Header from '../../../components/layout/Header';
 import './order-form.css';
 import { Location } from '../../../store/locationSlice';
-
-// Ícones
-const PersonIcon = () => (
-  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="currentColor"/>
-  </svg>
-);
-
-const CargoIcon = () => (
-  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M20 8h-3V4H3C1.9 4 1 4.9 1 6v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 19.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V10.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" fill="currentColor"/>
-  </svg>
-);
+import { MdBusinessCenter } from 'react-icons/md';
+import { FaBox } from 'react-icons/fa';
+import AddressModal, { DetailedAddress } from './AddressModal';
+import { useGoogleMapsLoader } from '../../../hooks/useGoogleMapsLoader';
 
 // Ícone de arrasto
 const DragHandleIcon = () => (
@@ -31,6 +22,7 @@ const DragHandleIcon = () => (
 interface RoutePoint {
   id: string;
   name: string;
+  phone?: string;
   address: string;
   isCompany?: boolean;
   isLastPassenger?: boolean;
@@ -43,7 +35,10 @@ interface RoutePoint {
   };
 }
 
-const OrderForm: React.FC = () => {
+// Define interface for detailed address
+// Interface for detailed address is now imported from AddressModal
+
+const OrderForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
@@ -57,26 +52,20 @@ const OrderForm: React.FC = () => {
   
   // Dados do formulário
   const [formData, setFormData] = useState({
-    // Etapa 1: Tipo de transporte
     transportType: '', // 'person' ou 'cargo'
-    
-    // Etapa 2: Tipo de veículo
     vehicleType: '',
-    
-    // Etapa 3: Detalhes do transporte
     items: [{
       name: '',
+      phone: '',
       address: '',
-      // Para cargas
       weight: '',
       dimensions: {
         length: '',
         width: '',
         height: '',
       },
+      detailedAddress: undefined as DetailedAddress | undefined
     }],
-
-    // Etapa 4: Origem e destino
     originLocationId: '',
     destinationLocationId: '',
   });
@@ -87,10 +76,165 @@ const OrderForm: React.FC = () => {
   // Estado para controlar o arrastar e soltar
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
 
+  // State for address modal
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null);
+
+  // State for location search
+  const [locationSearch, setLocationSearch] = useState({
+    origin: '',
+    destination: ''
+  });
+
+  // Filtered locations based on search
+  const filteredOriginLocations = useMemo(() => {
+    return locations.filter(loc => 
+      loc.name.toLowerCase().includes(locationSearch.origin.toLowerCase()) ||
+      loc.city.toLowerCase().includes(locationSearch.origin.toLowerCase()) ||
+      loc.state.toLowerCase().includes(locationSearch.origin.toLowerCase())
+    );
+  }, [locations, locationSearch.origin]);
+
+  const filteredDestinationLocations = useMemo(() => {
+    return locations.filter(loc => 
+      loc.name.toLowerCase().includes(locationSearch.destination.toLowerCase()) ||
+      loc.city.toLowerCase().includes(locationSearch.destination.toLowerCase()) ||
+      loc.state.toLowerCase().includes(locationSearch.destination.toLowerCase())
+    );
+  }, [locations, locationSearch.destination]);
+
   // Verificar se há itens válidos para definir o último passageiro como destino
   const hasValidItems = useMemo(() => {
     return formData.items.some(item => item.name && item.address);
   }, [formData.items]);
+
+  // New state for route distance
+  const [routeDistance, setRouteDistance] = useState<RouteDistanceResult | null>(null);
+
+  // Add this near the route distance state declaration
+  const [routeDistanceError, setRouteDistanceError] = useState<string | null>(null);
+
+  // Use Google Maps loader hook
+  const { isLoaded, error: mapLoadError } = useGoogleMapsLoader();
+
+  // Define route distance type
+  interface RouteDistanceResult {
+    totalDistance: number;
+    totalSteps: number;
+    distanceDetails: Array<{
+      from: string;
+      to: string;
+      distance: number;
+      duration: number;
+    }>;
+  }
+
+  const handleCalculateDistance = async () => {
+    // Check if Google Maps API is loaded
+    if (!isLoaded) {
+      setRouteDistanceError('Google Maps JavaScript API not loaded');
+      console.error('Google Maps JavaScript API not loaded');
+      return;
+    }
+
+    try {
+      // Extract full addresses from route points
+      const addresses = routePoints.map(point => point.address);
+      
+      // Geocode addresses
+      const geocoder = new window.google.maps.Geocoder();
+      const locations = await Promise.all(
+        addresses.map(address => 
+          new Promise<google.maps.LatLng>((resolve, reject) => {
+            geocoder.geocode({ address: address }, (results, status) => {
+              if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
+                resolve(results[0].geometry.location);
+              } else {
+                reject(new Error(`Geocoding failed for address: ${address}`));
+              }
+            });
+          })
+        )
+      );
+
+      // Calculate distance matrix
+      const service = new window.google.maps.DistanceMatrixService();
+      service.getDistanceMatrix(
+        {
+          origins: locations,
+          destinations: locations.slice(1),
+          travelMode: window.google.maps.TravelMode.DRIVING,
+          unitSystem: window.google.maps.UnitSystem.METRIC
+        },
+        (response, status) => {
+          if (status === window.google.maps.DistanceMatrixStatus.OK) {
+            const rows = response?.rows || [];
+            
+            let totalDistance = 0;
+            const distanceDetails: Array<{
+              from: string, 
+              to: string, 
+              distance: number, 
+              duration: number
+            }> = [];
+
+            rows.forEach((row, index) => {
+              const element = row.elements[0];
+              if (element.status === 'OK') {
+                const distanceInKm = element.distance.value / 1000;
+                totalDistance += distanceInKm;
+
+                distanceDetails.push({
+                  from: addresses[index],
+                  to: addresses[index + 1],
+                  distance: distanceInKm,
+                  duration: element.duration.value / 60 // Convert to minutes
+                });
+
+                console.log(`📍 Segment ${index + 1}: ${addresses[index]} → ${addresses[index + 1]}`);
+                console.log(`   Distance: ${distanceInKm.toFixed(2)} km`);
+                console.log(`   Duration: ${(element.duration.value / 60).toFixed(1)} minutes`);
+              }
+            });
+
+            const result: RouteDistanceResult = {
+              totalDistance: Math.round(totalDistance * 10) / 10,
+              totalSteps: addresses.length,
+              distanceDetails: distanceDetails
+            };
+
+            console.log('🏁 Total Route Summary:');
+            console.log(`   Total Distance: ${result.totalDistance} km`);
+            console.log(`   Total Steps: ${result.totalSteps}`);
+
+            // Set route distance state
+            setRouteDistance(result);
+
+            // Add error handling for insufficient route points
+            if (routePoints.length < 2) {
+              setRouteDistanceError('Adicione pelo menos dois pontos na rota');
+              return;
+            }
+
+            // Clear any previous errors
+            setRouteDistanceError(null);
+          } else {
+            console.error(`Distance matrix calculation failed: ${status}`);
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Failed to calculate route distance:', error);
+      setRouteDistanceError('Falha ao calcular a distância da rota');
+    }
+  };
+
+  // Calculate distance whenever route points change
+  useEffect(() => {
+    if (routePoints.length > 1) {
+      handleCalculateDistance();
+    }
+  }, [routePoints]);
 
   // Manipuladores de eventos
   const handleTransportTypeSelect = (type: string) => {
@@ -135,8 +279,29 @@ const OrderForm: React.FC = () => {
     });
   };
 
+  const formatPhoneNumber = (value: string) => {
+    // Remove non-digit characters
+    const cleaned = value.replace(/\D/g, '');
+    
+    // Apply mask
+    if (cleaned.length <= 2) {
+      return cleaned;
+    } else if (cleaned.length <= 6) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
+    } else if (cleaned.length <= 10) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    } else {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7, 11)}`;
+    }
+  };
+
+  const handlePhoneChange = (index: number, value: string) => {
+    const formattedValue = formatPhoneNumber(value);
+    handleItemChange(index, 'phone', formattedValue);
+  };
+
   const addItem = () => {
-    // Para veículos de passageiros, verificar se não excede a capacidade
+    // For passenger vehicles, check capacity
     if (formData.transportType === 'person') {
       const selectedVehicle = personVehicles.find(v => v.id === formData.vehicleType);
       if (selectedVehicle && formData.items.length >= Number(selectedVehicle.capacity)) {
@@ -151,6 +316,7 @@ const OrderForm: React.FC = () => {
         ...formData.items,
         {
           name: '',
+          phone: '',
           address: '',
           weight: '',
           dimensions: {
@@ -158,6 +324,7 @@ const OrderForm: React.FC = () => {
             width: '',
             height: '',
           },
+          detailedAddress: undefined
         }
       ],
     });
@@ -221,6 +388,7 @@ const OrderForm: React.FC = () => {
       .map((item, index) => ({
         id: `item-${index}`,
         name: item.name,
+        phone: item.phone,
         address: item.address,
         weight: formData.transportType === 'cargo' ? item.weight : undefined,
         dimensions: formData.transportType === 'cargo' ? item.dimensions : undefined
@@ -239,6 +407,7 @@ const OrderForm: React.FC = () => {
         const destinationPoint: RoutePoint = {
           id: lastPassenger.id,
           name: lastPassenger.name,
+          phone: lastPassenger.phone,
           address: lastPassenger.address,
           isLastPassenger: true
         };
@@ -313,6 +482,7 @@ const OrderForm: React.FC = () => {
       .map(point => {
         const processedItem: any = {
           name: point.name,
+          phone: point.phone,
           address: point.address,
         };
         
@@ -335,6 +505,7 @@ const OrderForm: React.FC = () => {
       items: processedItems,
       routePoints: routePoints.map(point => ({
         name: point.name,
+        phone: point.phone,
         address: point.address,
         isCompany: point.isCompany || false,
         isLastPassenger: point.isLastPassenger || false
@@ -350,6 +521,71 @@ const OrderForm: React.FC = () => {
     }
   };
 
+  const navigateToStep = (step: number) => {
+    // Always allow going back to previous steps
+    if (step < currentStep) {
+      setCurrentStep(step);
+      return;
+    }
+
+    // Check if the target step is the next step or has partial data
+    if (step === currentStep + 1 || 
+        (step > currentStep && 
+         ((step === 2 && formData.transportType) ||
+          (step === 3 && formData.vehicleType) ||
+          (step === 4 && formData.items.some(item => item.name || item.address)) ||
+          (step === 5 && (formData.originLocationId || formData.destinationLocationId))
+         )
+        )) {
+      setCurrentStep(step);
+      return;
+    }
+
+    // If trying to jump multiple steps, validate thoroughly
+    if (step > currentStep + 1) {
+      switch (currentStep) {
+        case 1:
+          if (!formData.transportType) return;
+          break;
+        case 2:
+          if (!formData.vehicleType) return;
+          break;
+        case 3:
+          if (!formData.items.some(item => item.name && item.address)) return;
+          break;
+        case 4:
+          if (!formData.originLocationId || !formData.destinationLocationId) return;
+          break;
+      }
+      
+      setCurrentStep(step);
+    }
+  };
+
+  const openAddressModal = (index: number) => {
+    setCurrentItemIndex(index);
+    setIsAddressModalOpen(true);
+  };
+
+  const handleAddressSave = (addressData: DetailedAddress) => {
+    if (currentItemIndex !== null) {
+      const newItems = [...formData.items];
+      newItems[currentItemIndex] = {
+        ...newItems[currentItemIndex],
+        address: addressData.fullAddress,
+        detailedAddress: addressData
+      };
+      
+      setFormData({
+        ...formData,
+        items: newItems
+      });
+      
+      setCurrentItemIndex(null);
+      setIsAddressModalOpen(false);
+    }
+  };
+
   // Renderizar etapas
   const renderStep = () => {
     switch (currentStep) {
@@ -362,19 +598,19 @@ const OrderForm: React.FC = () => {
                 className={`transport-card ${formData.transportType === 'person' ? 'selected' : ''}`}
                 onClick={() => handleTransportTypeSelect('person')}
               >
-                <div className="transport-icon">
-                  <PersonIcon />
+                <div className="transport-icon person-icon">
+                  <MdBusinessCenter />
                 </div>
                 <h3>Pessoas</h3>
-                <p>Transporte de passageiros</p>
+                <p>Transporte de executivos</p>
               </div>
               
               <div 
                 className={`transport-card ${formData.transportType === 'cargo' ? 'selected' : ''}`}
                 onClick={() => handleTransportTypeSelect('cargo')}
               >
-                <div className="transport-icon">
-                  <CargoIcon />
+                <div className="transport-icon box-icon">
+                  <FaBox />
                 </div>
                 <h3>Cargas</h3>
                 <p>Transporte de mercadorias</p>
@@ -434,8 +670,8 @@ const OrderForm: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="form-row">
-                    <div className="form-group">
+                  <div className="name-phone-row">
+                    <div className="form-group name-group">
                       <label htmlFor={`name-${index}`}>
                         {formData.transportType === 'person' ? 'Nome' : 'Descrição da carga'}
                       </label>
@@ -448,19 +684,43 @@ const OrderForm: React.FC = () => {
                         required
                       />
                     </div>
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor={`address-${index}`}>Endereço</label>
+                    
+                    <div className="form-group phone-group">
+                      <label htmlFor={`phone-${index}`}>Telefone</label>
                       <input
-                        type="text"
-                        id={`address-${index}`}
-                        value={item.address}
-                        onChange={(e) => handleItemChange(index, 'address', e.target.value)}
-                        placeholder="Endereço completo"
+                        type="tel"
+                        id={`phone-${index}`}
+                        value={item.phone}
+                        onChange={(e) => handlePhoneChange(index, e.target.value)}
+                        placeholder="Telefone do passageiro"
                         required
                       />
+                    </div>
+                  </div>
+                  
+                  <div className="form-row address-row">
+                    <div className="form-group address-group">
+                      <label htmlFor={`address-${index}`}>Endereço</label>
+                      <div className="address-input-container">
+                        <input
+                          type="text"
+                          id={`address-${index}`}
+                          value={item.address}
+                          onClick={() => openAddressModal(index)}
+                          readOnly
+                          placeholder="Clique para adicionar endereço"
+                          required
+                        />
+                        {item.address && (
+                          <button 
+                            type="button" 
+                            className="edit-address-button"
+                            onClick={() => openAddressModal(index)}
+                          >
+                            Editar
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
@@ -579,53 +839,93 @@ const OrderForm: React.FC = () => {
         return (
           <div className="step-container">
             <h2 className="step-title">Selecione a origem e o destino</h2>
-            <div className="form-row">
-              <div className="form-group location-select-group">
-                <label htmlFor="origin-location">Local de Origem</label>
-                <select
-                  id="origin-location"
-                  value={formData.originLocationId}
-                  onChange={(e) => handleChangeOriginDestination('originLocationId', e.target.value)}
-                  className="settings-input"
-                  required
-                >
-                  <option value="">Selecione a origem</option>
-                  {locations.map((location: Location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name} ({location.city}-{location.state})
-                    </option>
+            
+            <div className="location-selection-container">
+              <div className="location-selection-column">
+                <h3>Local de Origem</h3>
+                <div className="location-search-container">
+                  <input 
+                    type="text"
+                    placeholder="Buscar local de origem"
+                    value={locationSearch.origin}
+                    onChange={(e) => setLocationSearch({
+                      ...locationSearch,
+                      origin: e.target.value
+                    })}
+                    className="location-search-input"
+                  />
+                </div>
+                
+                <div className="location-cards-grid">
+                  {filteredOriginLocations.map((location) => (
+                    <div 
+                      key={location.id}
+                      className={`location-card ${formData.originLocationId === location.id ? 'selected' : ''}`}
+                      onClick={() => handleChangeOriginDestination('originLocationId', location.id)}
+                    >
+                      <div className="location-card-content">
+                        <h4>{location.name}</h4>
+                        <p>{location.address}</p>
+                        <div className="location-card-details">
+                          <span>{location.city} - {location.state}</span>
+                          {location.isCompany && <span className="company-badge">Empresa</span>}
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </select>
+                </div>
               </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group location-select-group">
-                <label htmlFor="destination-location">Local de Destino</label>
-                <select
-                  id="destination-location"
-                  value={formData.destinationLocationId}
-                  onChange={(e) => handleChangeOriginDestination('destinationLocationId', e.target.value)}
-                  className="settings-input"
-                  required
-                >
-                  <option value="">Selecione o destino</option>
-                  {locations.map((location: Location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name} ({location.city}-{location.state})
-                    </option>
+              
+              <div className="location-selection-column">
+                <h3>Local de Destino</h3>
+                <div className="location-search-container">
+                  <input 
+                    type="text"
+                    placeholder="Buscar local de destino"
+                    value={locationSearch.destination}
+                    onChange={(e) => setLocationSearch({
+                      ...locationSearch,
+                      destination: e.target.value
+                    })}
+                    className="location-search-input"
+                  />
+                </div>
+                
+                <div className="location-cards-grid">
+                  {filteredDestinationLocations.map((location) => (
+                    <div 
+                      key={location.id}
+                      className={`location-card ${formData.destinationLocationId === location.id ? 'selected' : ''}`}
+                      onClick={() => handleChangeOriginDestination('destinationLocationId', location.id)}
+                    >
+                      <div className="location-card-content">
+                        <h4>{location.name}</h4>
+                        <p>{location.address}</p>
+                        <div className="location-card-details">
+                          <span>{location.city} - {location.state}</span>
+                          {location.isCompany && <span className="company-badge">Empresa</span>}
+                        </div>
+                      </div>
+                    </div>
                   ))}
+                  
                   {formData.transportType === 'person' && (
-                    <option value="last-passenger" disabled={!hasValidItems}>
-                      Último passageiro
-                    </option>
+                    <div 
+                      className={`location-card ${formData.destinationLocationId === 'last-passenger' ? 'selected' : ''} ${!hasValidItems ? 'disabled' : ''}`}
+                      onClick={() => hasValidItems && handleChangeOriginDestination('destinationLocationId', 'last-passenger')}
+                    >
+                      <div className="location-card-content">
+                        <h4>Último passageiro</h4>
+                        <p>O último passageiro da lista será considerado como destino final</p>
+                        {!hasValidItems && (
+                          <div className="location-card-warning">
+                            Adicione passageiros primeiro
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </select>
-                {formData.destinationLocationId === 'last-passenger' && (
-                  <small className="form-hint">
-                    O último passageiro da lista será considerado como destino final.
-                  </small>
-                )}
+                </div>
               </div>
             </div>
 
@@ -668,6 +968,17 @@ const OrderForm: React.FC = () => {
             <div className="route-instructions">
               <p>Arraste e solte os pontos abaixo para organizar a rota na ordem desejada.</p>
               <p>A rota inicia no local de origem {isLastPassengerDestination ? 'e o último passageiro será considerado como destino final.' : 'e termina no local de destino.'}</p>
+              
+              <div className="route-distance-actions">
+                <button 
+                  type="button" 
+                  className="calculate-distance-button"
+                  onClick={handleCalculateDistance}
+                  disabled={routePoints.length < 2}
+                >
+                  Calcular distância total
+                </button>
+              </div>
             </div>
             
             <div className="route-container">
@@ -701,6 +1012,7 @@ const OrderForm: React.FC = () => {
                     <div className="route-point-content">
                       <h3>{point.name}</h3>
                       <p>{point.address}</p>
+                      {point.phone && <p className="route-point-phone">{point.phone}</p>}
                       {point.isCompany && <span className="company-badge">Empresa</span>}
                       {isOrigin && <span className="origin-badge">Origem</span>}
                       {isDestination && <span className="destination-badge">Destino</span>}
@@ -731,6 +1043,36 @@ const OrderForm: React.FC = () => {
                 </div>
               </div>
             </form>
+
+            {routeDistance && (
+              <div className="route-distance-summary">
+                <h3>Resumo da Rota</h3>
+                <div className="route-distance-details">
+                  <p>Distância Total: {routeDistance.totalDistance} km</p>
+                  <p>Número de Etapas: {routeDistance.totalSteps}</p>
+                  <details>
+                    <summary>Detalhes de cada segmento</summary>
+                    {routeDistance.distanceDetails.map((segment, index) => (
+                      <div key={index} className="route-segment">
+                        <p>
+                          {segment.from} → {segment.to}
+                          <br />
+                          Distância: {segment.distance.toFixed(2)} km
+                          <br />
+                          Duração: {segment.duration.toFixed(1)} minutos
+                        </p>
+                      </div>
+                    ))}
+                  </details>
+                </div>
+              </div>
+            )}
+
+            {routeDistanceError && (
+              <div className="route-distance-error">
+                <p>{routeDistanceError}</p>
+              </div>
+            )}
           </div>
         );
         
@@ -763,27 +1105,47 @@ const OrderForm: React.FC = () => {
           </div>
 
           <div className="steps-indicator">
-            <div className={`step-indicator ${currentStep >= 1 ? 'active' : ''}`}>
+            <div 
+              className={`step-indicator ${currentStep >= 1 ? 'active' : ''}`}
+              onClick={() => navigateToStep(1)}
+              title={currentStep < 1 ? "Complete the previous step to access this" : ""}
+            >
               <div className="step-number">1</div>
               <div className="step-name">Tipo de transporte</div>
             </div>
             <div className="step-line"></div>
-            <div className={`step-indicator ${currentStep >= 2 ? 'active' : ''}`}>
+            <div 
+              className={`step-indicator ${currentStep >= 2 ? 'active' : ''}`}
+              onClick={() => navigateToStep(2)}
+              title={currentStep < 2 ? "Complete the previous step to access this" : ""}
+            >
               <div className="step-number">2</div>
               <div className="step-name">Veículo</div>
             </div>
             <div className="step-line"></div>
-            <div className={`step-indicator ${currentStep >= 3 ? 'active' : ''}`}>
+            <div 
+              className={`step-indicator ${currentStep >= 3 ? 'active' : ''}`}
+              onClick={() => navigateToStep(3)}
+              title={currentStep < 3 ? "Complete the previous step to access this" : ""}
+            >
               <div className="step-number">3</div>
               <div className="step-name">Detalhes</div>
             </div>
             <div className="step-line"></div>
-            <div className={`step-indicator ${currentStep >= 4 ? 'active' : ''}`}>
+            <div 
+              className={`step-indicator ${currentStep >= 4 ? 'active' : ''}`}
+              onClick={() => navigateToStep(4)}
+              title={currentStep < 4 ? "Complete the previous step to access this" : ""}
+            >
               <div className="step-number">4</div>
               <div className="step-name">Origem/Destino</div>
             </div>
             <div className="step-line"></div>
-            <div className={`step-indicator ${currentStep >= 5 ? 'active' : ''}`}>
+            <div 
+              className={`step-indicator ${currentStep >= 5 ? 'active' : ''}`}
+              onClick={() => navigateToStep(5)}
+              title={currentStep < 5 ? "Complete the previous step to access this" : ""}
+            >
               <div className="step-number">5</div>
               <div className="step-name">Organizar rota</div>
             </div>
@@ -792,6 +1154,18 @@ const OrderForm: React.FC = () => {
           {renderStep()}
         </main>
       </div>
+
+      {/* Address Modal */}
+      <AddressModal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        onSave={handleAddressSave}
+        initialAddress={
+          currentItemIndex !== null && formData.items[currentItemIndex].detailedAddress 
+            ? formData.items[currentItemIndex].detailedAddress 
+            : undefined
+        }
+      />
     </div>
   );
 };
