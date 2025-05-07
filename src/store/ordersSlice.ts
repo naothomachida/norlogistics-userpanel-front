@@ -25,8 +25,8 @@ export interface Order {
   carModel: string;
   pickupLocation?: string;
   destination?: string;
-  originLocationId?: string;
-  destinationLocationId?: string;
+  startLocationId?: string;
+  endLocationId?: string;
   driverId?: string;
   items?: OrderItem[];
   routePoints?: RoutePoint[];

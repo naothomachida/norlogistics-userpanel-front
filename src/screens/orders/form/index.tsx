@@ -66,8 +66,8 @@ const OrderForm = () => {
       },
       detailedAddress: undefined as DetailedAddress | undefined
     }],
-    originLocationId: '',
-    destinationLocationId: '',
+    startLocationId: '',
+    endLocationId: '',
   });
 
   // Estado para a rota
@@ -331,12 +331,12 @@ const OrderForm = () => {
 
   const handleProceedToRouteOrganization = () => {
     // Encontrar os locais de origem e destino
-    let originLocation = locations.find(loc => loc.id === formData.originLocationId);
+    let originLocation = locations.find(loc => loc.id === formData.startLocationId);
     let destinationLocation: Location | undefined;
     
     // Caso especial para "último passageiro"
     let useLastPassengerAsDestination = false;
-    if (formData.destinationLocationId === 'last-passenger') {
+    if (formData.endLocationId === 'last-passenger') {
       useLastPassengerAsDestination = true;
       // Verificar se há itens válidos
       if (!hasValidItems) {
@@ -344,7 +344,7 @@ const OrderForm = () => {
         return;
       }
     } else {
-      destinationLocation = locations.find(loc => loc.id === formData.destinationLocationId);
+      destinationLocation = locations.find(loc => loc.id === formData.endLocationId);
     }
     
     if (!originLocation || (!useLastPassengerAsDestination && !destinationLocation)) {
@@ -427,7 +427,7 @@ const OrderForm = () => {
     newRoutePoints.splice(index, 0, draggedItem);
     
     // Se estamos usando o último passageiro como destino, garantir que o último ponto tem a tag isLastPassenger
-    if (formData.destinationLocationId === 'last-passenger') {
+    if (formData.endLocationId === 'last-passenger') {
       // Limpar a flag isLastPassenger de todos os pontos
       newRoutePoints.forEach(point => {
         point.isLastPassenger = false;
@@ -454,8 +454,8 @@ const OrderForm = () => {
     // Preparar dados dos itens para o formato final
     const processedItems = routePoints
       .filter(point => !point.id.includes('lenovo') && 
-                        !point.id.includes(formData.originLocationId) && 
-                        !point.id.includes(formData.destinationLocationId))
+                        !point.id.includes(formData.startLocationId) && 
+                        !point.id.includes(formData.endLocationId))
       .map(point => {
         const processedItem: any = {
           name: point.name,
@@ -477,8 +477,8 @@ const OrderForm = () => {
       transportType: formData.transportType as 'person' | 'cargo',
       vehicleType: formData.vehicleType,
       carModel: formData.vehicleType, // Para manter compatibilidade
-      originLocationId: formData.originLocationId,
-      destinationLocationId: formData.destinationLocationId,
+      startLocationId: formData.startLocationId,
+      endLocationId: formData.endLocationId,
       items: processedItems,
       routePoints: routePoints.map(point => ({
         name: point.name,
@@ -511,7 +511,7 @@ const OrderForm = () => {
          ((step === 2 && formData.transportType) ||
           (step === 3 && formData.vehicleType) ||
           (step === 4 && formData.items.some(item => item.name || item.address)) ||
-          (step === 5 && (formData.originLocationId || formData.destinationLocationId))
+          (step === 5 && (formData.startLocationId || formData.endLocationId))
          )
         )) {
       setCurrentStep(step);
@@ -531,7 +531,7 @@ const OrderForm = () => {
           if (!formData.items.some(item => item.name && item.address)) return;
           break;
         case 4:
-          if (!formData.originLocationId || !formData.destinationLocationId) return;
+          if (!formData.startLocationId || !formData.endLocationId) return;
           break;
       }
       
@@ -666,17 +666,19 @@ const OrderForm = () => {
                       />
                     </div>
                     
-                    <div className="form-group phone-group">
-                      <label htmlFor={`phone-${index}`}>Telefone</label>
-                      <input
-                        type="tel"
-                        id={`phone-${index}`}
-                        value={item.phone}
-                        onChange={(e) => handlePhoneChange(index, e.target.value)}
-                        placeholder="Telefone do passageiro"
-                        required
-                      />
-                    </div>
+                    {formData.transportType === 'person' && (
+                      <div className="form-group phone-group">
+                        <label htmlFor={`phone-${index}`}>Telefone</label>
+                        <input
+                          type="tel"
+                          id={`phone-${index}`}
+                          value={item.phone}
+                          onChange={(e) => handlePhoneChange(index, e.target.value)}
+                          placeholder="Telefone do passageiro"
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
                   
                   <div className="form-row address-row">
@@ -819,18 +821,18 @@ const OrderForm = () => {
       case 4:
         return (
           <div className="step-container">
-            <h2 className="step-title">Selecione a origem e o destino</h2>
+            <h2 className="step-title">Selecione o início e o fim</h2>
             
             <div className="location-selection-container">
               <div className="location-selection-column">
-                <h3>Local de Origem</h3>
+                <h3>Local de Início</h3>
                 
                 <div className="location-cards-grid">
                   {locations.map((location) => (
                     <div 
                       key={location.id}
-                      className={`location-card ${formData.originLocationId === location.id ? 'selected' : ''}`}
-                      onClick={() => handleChangeOriginDestination('originLocationId', location.id)}
+                      className={`location-card ${formData.startLocationId === location.id ? 'selected' : ''}`}
+                      onClick={() => handleChangeOriginDestination('startLocationId', location.id)}
                     >
                       <div className="location-card-content">
                         <h4>{location.name}</h4>
@@ -849,14 +851,14 @@ const OrderForm = () => {
               </div>
               
               <div className="location-selection-column">
-                <h3>Local de Destino</h3>
+                <h3>Local de Fim</h3>
                 
                 <div className="location-cards-grid">
                   {locations.map((location) => (
                     <div 
                       key={location.id}
-                      className={`location-card ${formData.destinationLocationId === location.id ? 'selected' : ''}`}
-                      onClick={() => handleChangeOriginDestination('destinationLocationId', location.id)}
+                      className={`location-card ${formData.endLocationId === location.id ? 'selected' : ''}`}
+                      onClick={() => handleChangeOriginDestination('endLocationId', location.id)}
                     >
                       <div className="location-card-content">
                         <h4>{location.name}</h4>
@@ -871,8 +873,8 @@ const OrderForm = () => {
                   
                   {formData.transportType === 'person' && (
                     <div 
-                      className={`location-card ${formData.destinationLocationId === 'last-passenger' ? 'selected' : ''} ${!hasValidItems ? 'disabled' : ''}`}
-                      onClick={() => hasValidItems && handleChangeOriginDestination('destinationLocationId', 'last-passenger')}
+                      className={`location-card ${formData.endLocationId === 'last-passenger' ? 'selected' : ''} ${!hasValidItems ? 'disabled' : ''}`}
+                      onClick={() => hasValidItems && handleChangeOriginDestination('endLocationId', 'last-passenger')}
                     >
                       <div className="location-card-content">
                         <h4>Último passageiro</h4>
@@ -892,11 +894,11 @@ const OrderForm = () => {
               </div>
             </div>
 
-            {formData.originLocationId === formData.destinationLocationId && 
-             formData.originLocationId && 
-             formData.destinationLocationId !== 'last-passenger' && (
+            {formData.startLocationId === formData.endLocationId && 
+             formData.startLocationId && 
+             formData.endLocationId !== 'last-passenger' && (
               <div className="location-warning">
-                <p>Atenção: origem e destino são o mesmo local.</p>
+                <p>Atenção: início e fim são o mesmo local.</p>
               </div>
             )}
             
@@ -914,7 +916,7 @@ const OrderForm = () => {
                   type="button" 
                   className="continue-button"
                   onClick={handleProceedToRouteOrganization}
-                  disabled={!formData.originLocationId || !formData.destinationLocationId}
+                  disabled={!formData.startLocationId || !formData.endLocationId}
                 >
                   Continuar
                 </button>
@@ -924,7 +926,7 @@ const OrderForm = () => {
         );
         
       case 5:
-        const isLastPassengerDestination = formData.destinationLocationId === 'last-passenger';
+        const isLastPassengerDestination = formData.endLocationId === 'last-passenger';
         return (
           <div className="step-container">
             <h2 className="step-title">Organizar rota de entrega</h2>
@@ -1101,7 +1103,7 @@ const OrderForm = () => {
               title={currentStep < 4 ? "Complete the previous step to access this" : ""}
             >
               <div className="step-number">4</div>
-              <div className="step-name">Origem/Destino</div>
+              <div className="step-name">Início/Fim</div>
             </div>
             <div className="step-line"></div>
             <div 
