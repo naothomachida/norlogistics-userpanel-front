@@ -5,6 +5,22 @@ import { RootState } from '../../../store';
 import Header from '../../../components/layout/Header';
 import './order-detail.css';
 import { assignDriverToOrder } from '../../../store/ordersSlice';
+import { 
+  FaPlane, 
+  FaHotel, 
+  FaMapMarkerAlt, 
+  FaBuilding, 
+  FaHome, 
+  FaCity,
+  FaClock,
+  FaRuler,
+  FaRoute,
+  FaMoneyBillWave,
+  FaDollarSign,
+  FaExchangeAlt,
+  FaFileInvoiceDollar
+} from 'react-icons/fa';
+import { RoutePoint } from '../../../store/ordersSlice';
 
 // Função para obter descrições dos tipos de veículos
 const getVehicleDescription = (type: string | undefined, transportType: string | undefined) => {
@@ -49,6 +65,49 @@ const translateStatus = (status: string) => {
 const translateTransportType = (type: string | undefined) => {
   if (!type) return 'N/A';
   return type === 'person' ? 'Pessoas' : 'Cargas';
+};
+
+// Function to get location icon
+const getLocationIcon = (point: any) => {
+  // Check for custom locations first
+  if (point.id === 'airport') return <FaPlane />;
+  if (point.id === 'hotel') return <FaHotel />;
+  if (point.id === 'other') return <FaMapMarkerAlt />;
+
+  // Check for predefined locations or fallback
+  if (point.isCompany) return <FaBuilding />;
+  if (point.isLastPassenger) return <FaHome />;
+  
+  // Default icon
+  return <FaCity />;
+};
+
+const getLocationTypeLabel = (point: RoutePoint) => {
+  if (point.locationType === 'airport') return 'Aeroporto';
+  if (point.locationType === 'hotel') return 'Hotel';
+  if (point.locationType === 'other') return 'Outro Local';
+  if (point.isCompany) return 'Empresa';
+  if (point.isLastPassenger) return 'Último Passageiro';
+  return 'Local';
+};
+
+// Adicionar novas funções auxiliares para formatar os valores monetários e distâncias
+const formatCurrency = (value: number): string => {
+  return `R$ ${value.toFixed(2)}`;
+};
+
+const formatDistance = (value: number): string => {
+  return `${value.toFixed(2)} km`;
+};
+
+const formatDuration = (value: number): string => {
+  const hours = Math.floor(value / 60);
+  const minutes = Math.round(value % 60);
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}min`;
+  }
+  return `${minutes} minutos`;
 };
 
 const OrderDetail: React.FC = () => {
@@ -216,6 +275,169 @@ const OrderDetail: React.FC = () => {
               </div>
             </div>
 
+            {/* Nova seção resumo da rota com distâncias e tempos */}
+            {order.routeDistance && (
+              <div className="order-detail-section">
+                <h2 className="section-title">Resumo da Rota</h2>
+                <div className="route-summary-container">
+                  <div className="route-summary-info">
+                    <div className="route-summary-card">
+                      <div className="route-summary-icon">
+                        <FaRuler />
+                      </div>
+                      <div className="route-summary-content">
+                        <h3>Distância Total</h3>
+                        <p>{formatDistance(order.routeDistance.totalDistance)}</p>
+                      </div>
+                    </div>
+
+                    <div className="route-summary-card">
+                      <div className="route-summary-icon">
+                        <FaClock />
+                      </div>
+                      <div className="route-summary-content">
+                        <h3>Duração Total</h3>
+                        <p>{formatDuration(order.routeDistance.totalDuration)}</p>
+                      </div>
+                    </div>
+
+                    <div className="route-summary-card">
+                      <div className="route-summary-icon">
+                        <FaRoute />
+                      </div>
+                      <div className="route-summary-content">
+                        <h3>Número de Etapas</h3>
+                        <p>{order.routeDistance.totalSteps}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detalhes dos segmentos com distâncias e tempos */}
+                <div className="route-segments-container">
+                  <h3 className="subsection-title">Detalhes dos Segmentos</h3>
+                  <div className="route-segments-list">
+                    {order.routeDistance.distanceDetails.map((segment, index) => (
+                      <div key={index} className="route-segment-card">
+                        <div className="route-segment-header">
+                          <div className="route-segment-number">
+                            {index + 1}
+                          </div>
+                          <div className="route-segment-locations">
+                            <div className="route-segment-from">
+                              <FaMapMarkerAlt />
+                              <span>{segment.from}</span>
+                            </div>
+                            <div className="route-segment-arrow">
+                              <FaExchangeAlt />
+                            </div>
+                            <div className="route-segment-to">
+                              <FaMapMarkerAlt />
+                              <span>{segment.to}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="route-segment-details">
+                          <div className="route-segment-distance">
+                            <FaRuler />
+                            <span>{formatDistance(segment.distance)}</span>
+                          </div>
+                          <div className="route-segment-duration">
+                            <FaClock />
+                            <span>{formatDuration(segment.duration)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Nova seção de Informações de Preço */}
+            {order.pricing && (
+              <div className="order-detail-section">
+                <h2 className="section-title">Informações de Preço</h2>
+                <div className="price-info-container">
+                  <div className="price-info-cards">
+                    <div className="price-info-card">
+                      <div className="price-info-icon">
+                        <FaDollarSign />
+                      </div>
+                      <div className="price-info-content">
+                        <h3>Preço por KM</h3>
+                        <p>{formatCurrency(order.pricing.kmRate)}</p>
+                      </div>
+                    </div>
+
+                    <div className="price-info-card">
+                      <div className="price-info-icon">
+                        <FaRuler />
+                      </div>
+                      <div className="price-info-content">
+                        <h3>Preço Base</h3>
+                        <p className="price-value">{formatCurrency(order.pricing.kmBasedPrice)}</p>
+                        <p className="price-calculation">
+                          {formatDistance(order.routeDistance?.totalDistance || 0)} × {formatCurrency(order.pricing.kmRate)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {order.pricing.minimumPrice !== null && (
+                      <div className="price-info-card">
+                        <div className="price-info-icon">
+                          <FaMoneyBillWave />
+                        </div>
+                        <div className="price-info-content">
+                          <h3>Preço Mínimo</h3>
+                          <p>{formatCurrency(order.pricing.minimumPrice)}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="price-info-card final-price">
+                      <div className="price-info-icon">
+                        <FaFileInvoiceDollar />
+                      </div>
+                      <div className="price-info-content">
+                        <h3>Preço Final</h3>
+                        <p className="final-price-value">{formatCurrency(order.pricing.finalPrice)}</p>
+                        <p className="price-calculation">
+                          {order.pricing.minimumPrice !== null
+                            ? `Maior valor entre preço base e mínimo`
+                            : `Baseado na distância total`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Texto de explicação do cálculo */}
+                  <div className="price-explanation">
+                    <h3 className="subsection-title">Como o preço foi calculado</h3>
+                    <p>
+                      O preço base é calculado multiplicando a distância total ({formatDistance(order.routeDistance?.totalDistance || 0)})
+                      pelo preço por quilômetro ({formatCurrency(order.pricing.kmRate)}), resultando em {formatCurrency(order.pricing.kmBasedPrice)}.
+                    </p>
+                    
+                    {order.pricing.minimumPrice !== null ? (
+                      <>
+                        <p>
+                          Existe um preço mínimo de {formatCurrency(order.pricing.minimumPrice)} definido para esta rota.
+                        </p>
+                        <p>
+                          O preço final é o maior valor entre o preço base e o preço mínimo: {formatCurrency(order.pricing.finalPrice)}.
+                        </p>
+                      </>
+                    ) : (
+                      <p>
+                        Como não há preço mínimo definido para esta rota, o preço final é igual ao preço base: {formatCurrency(order.pricing.finalPrice)}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="order-detail-section">
               <h2 className="section-title">Rota</h2>
               <div className="route-points-list">
@@ -227,6 +449,9 @@ const OrderDetail: React.FC = () => {
                       ${index === order.routePoints!.length - 1 ? (point.isLastPassenger ? 'last-passenger-point' : 'destination-point') : ''}
                     `}
                   >
+                    <div className="route-point-icon">
+                      {getLocationIcon(point)}
+                    </div>
                     <div className="route-point-number">{index + 1}</div>
                     <div className="route-point-info">
                       <h3>{point.name}</h3>
@@ -236,6 +461,11 @@ const OrderDetail: React.FC = () => {
                         {index === order.routePoints!.length - 1 && !point.isLastPassenger && <span className="point-tag destination-tag">Destino</span>}
                         {point.isLastPassenger && <span className="point-tag last-passenger-tag">Último passageiro</span>}
                         {point.isCompany && <span className="point-tag company-tag">Empresa</span>}
+                        {point.locationType && (
+                          <span className={`point-tag location-type-tag ${point.locationType}`}>
+                            {getLocationTypeLabel(point)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -389,4 +389,22 @@
   .filter-dropdown {
     width: 100%;
   }
+}
+
+.order-route-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+  color: #666;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.order-route-icon svg {
+  width: 16px;
+  height: 16px;
 } 

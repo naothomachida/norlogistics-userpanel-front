@@ -5,6 +5,14 @@ import { updateOrderStatus, removeOrder } from '../../../store/ordersSlice';
 import Header from '../../../components/layout/Header';
 import { useNavigate } from 'react-router-dom';
 import './order-list.css';
+import { 
+  FaPlane, 
+  FaHotel, 
+  FaMapMarkerAlt, 
+  FaBuilding, 
+  FaHome, 
+  FaCity 
+} from 'react-icons/fa';
 
 // Função para obter descrições dos tipos de veículos
 const getVehicleDescription = (type: string | undefined, transportType: string | undefined) => {
@@ -64,6 +72,21 @@ type OrderFilters = {
   type: string; // 'all', 'person' ou 'cargo'
   dateRange: string; // 'all', 'today', 'week', 'month'
   searchQuery: string;
+};
+
+// Function to get location icon
+const getLocationIcon = (point: any) => {
+  // Check for custom locations first
+  if (point.id === 'airport') return <FaPlane />;
+  if (point.id === 'hotel') return <FaHotel />;
+  if (point.id === 'other') return <FaMapMarkerAlt />;
+
+  // Check for predefined locations or fallback
+  if (point.isCompany) return <FaBuilding />;
+  if (point.isLastPassenger) return <FaHome />;
+  
+  // Default icon
+  return <FaCity />;
 };
 
 const OrderList: React.FC = () => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './address-modal.css';
+import { FaSpinner } from 'react-icons/fa';
 
 // Configuration for CEP API
 const CEP_API_CONFIG = {
@@ -146,7 +147,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
   onSave,
   initialAddress = {} 
 }) => {
-  const [address, setAddress] = useState<DetailedAddress>({
+  // Initialize state with a memoized initial address to prevent unnecessary re-renders
+  const [address, setAddress] = useState<DetailedAddress>(() => ({
     cep: initialAddress.cep || '',
     street: initialAddress.street || '',
     number: initialAddress.number || '',
@@ -155,7 +157,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
     state: initialAddress.state || '',
     country: initialAddress.country || 'Brasil',
     fullAddress: initialAddress.fullAddress || ''
-  });
+  }));
 
   const [cepError, setCepError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -257,22 +259,34 @@ const AddressModal: React.FC<AddressModalProps> = ({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    setAddress(prev => {
+      // Only update if the value has actually changed
+      const currentValue = prev[name as keyof DetailedAddress] || '';
+      return currentValue === value 
+        ? prev 
+        : { ...prev, [name]: value };
+    });
+  };
+
   const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
     const formattedCep = formatCEP(inputValue);
-
-    // Update CEP immediately to ensure smooth typing experience
-    setAddress(prev => ({
-      ...prev,
-      cep: formattedCep
-    }));
+    
+    // Update state with the formatted CEP
+    setAddress(prev => {
+      // Only update if the CEP has actually changed
+      return prev.cep === formattedCep 
+        ? prev 
+        : { ...prev, cep: formattedCep };
+    });
 
     // Debounce CEP lookup to reduce unnecessary API calls
     if (formattedCep.length === 9) {
-      // Clear any previous error
       setCepError('');
 
-      // Use a slight delay to allow for smoother input
       const timeoutId = setTimeout(() => {
         fetchCEPDetails(formattedCep);
       }, 300);
@@ -289,14 +303,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
       }));
       setCepError('CEP incompleto');
     }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setAddress(prev => ({
-      ...prev,
-      [name]: value
-    }));
   };
 
   const handleSave = () => {
@@ -336,9 +342,16 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 placeholder="Digite o CEP"
                 maxLength={9}
                 ref={numberInputRef}
-                disabled={isLoading}
+                autoComplete="off"
+                spellCheck={false}
+                className={isLoading ? 'input-loading' : ''}
               />
-              {isLoading && <span className="loading-indicator">Buscando...</span>}
+              {isLoading && (
+                <div className="loading-overlay">
+                  <FaSpinner className="loading-spinner" />
+                  <span className="sr-only">Carregando dados do CEP...</span>
+                </div>
+              )}
             </div>
             {cepError && <div className="error-message">{cepError}</div>}
           </div>
@@ -353,6 +366,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 value={address.street}
                 onChange={handleInputChange}
                 placeholder="Nome da rua"
+                autoComplete="off"
+                spellCheck={false}
                 required
               />
             </div>
@@ -366,6 +381,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 value={address.number}
                 onChange={handleInputChange}
                 placeholder="Número"
+                autoComplete="off"
+                spellCheck={false}
                 required
               />
             </div>
@@ -380,6 +397,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
               value={address.complement}
               onChange={handleInputChange}
               placeholder="Apartamento, bloco, etc."
+              autoComplete="off"
+              spellCheck={false}
             />
           </div>
 
@@ -393,6 +412,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 value={address.city}
                 onChange={handleInputChange}
                 placeholder="Cidade"
+                autoComplete="off"
+                spellCheck={false}
                 required
               />
             </div>
@@ -405,6 +426,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 value={address.state}
                 onChange={handleInputChange}
                 placeholder="Estado"
+                autoComplete="off"
+                spellCheck={false}
                 required
               />
             </div>

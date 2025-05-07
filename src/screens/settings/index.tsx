@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Header from '../../components/layout/Header';
 import VehicleModal from '../../components/VehicleModal';
 import LocationModal from '../../components/LocationModal';
+import CityPairModal from '../../components/CityPairModal';
 import { 
   addPersonVehicleType, 
   addCargoVehicleType, 
@@ -18,12 +19,19 @@ import {
   removeLocation,
   Location
 } from '../../store/locationSlice';
+import {
+  setKmRate,
+  addCityPair,
+  updateCityPair,
+  removeCityPair,
+  CityPair
+} from '../../store/pricingSlice';
 import { RootState } from '../../store';
 import './settings.css';
 
 const Settings: React.FC = () => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState<'general' | 'vehicles' | 'locations'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'vehicles' | 'locations' | 'pricing'>('general');
   const [activeVehicleTab, setActiveVehicleTab] = useState<'person' | 'cargo'>('person');
   const [activeLocationTab, setActiveLocationTab] = useState<'company' | 'custom'>('company');
   
@@ -31,6 +39,7 @@ const Settings: React.FC = () => {
   const personVehicles = useSelector((state: RootState) => state.vehicleTypes.person);
   const cargoVehicles = useSelector((state: RootState) => state.vehicleTypes.cargo);
   const locations = useSelector((state: RootState) => state.locations.locations);
+  const pricing = useSelector((state: RootState) => state.pricing);
   
   // Estado para o modal de veículos
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
@@ -41,6 +50,11 @@ const Settings: React.FC = () => {
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [editLocationMode, setEditLocationMode] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<Location | undefined>(undefined);
+  
+  // Estado para o modal de pares de cidades
+  const [cityPairModalOpen, setCityPairModalOpen] = useState(false);
+  const [editCityPairMode, setEditCityPairMode] = useState(false);
+  const [currentCityPair, setCurrentCityPair] = useState<CityPair | undefined>(undefined);
   
   // Manipuladores para veículos
   const handleOpenVehicleModal = (mode: 'add' | 'edit', vehicle?: VehicleType) => {
@@ -107,6 +121,41 @@ const Settings: React.FC = () => {
   const handleDeleteLocation = (id: string) => {
     if (window.confirm("Tem certeza que deseja remover este local?")) {
       dispatch(removeLocation(id));
+    }
+  };
+  
+  // Manipuladores para pares de cidades
+  const handleOpenCityPairModal = (mode: 'add' | 'edit', cityPair?: CityPair) => {
+    setCurrentCityPair(cityPair);
+    setEditCityPairMode(mode === 'edit');
+    setCityPairModalOpen(true);
+  };
+  
+  const handleCloseCityPairModal = () => {
+    setCityPairModalOpen(false);
+    setCurrentCityPair(undefined);
+  };
+  
+  const handleSaveCityPair = (cityPairData: Omit<CityPair, 'id'>) => {
+    if (editCityPairMode && currentCityPair) {
+      dispatch(updateCityPair({ id: currentCityPair.id, updates: cityPairData }));
+    } else {
+      dispatch(addCityPair(cityPairData));
+    }
+    
+    handleCloseCityPairModal();
+  };
+  
+  const handleDeleteCityPair = (id: string) => {
+    if (window.confirm("Tem certeza que deseja remover esta rota?")) {
+      dispatch(removeCityPair(id));
+    }
+  };
+  
+  const handleKmRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newRate = parseFloat(e.target.value);
+    if (!isNaN(newRate) && newRate >= 0) {
+      dispatch(setKmRate(newRate));
     }
   };
   
@@ -430,6 +479,107 @@ const Settings: React.FC = () => {
           </div>
         );
       
+      case 'pricing':
+        return (
+          <div className="settings-card">
+            <div className="settings-section">
+              <h2 className="settings-section-title">
+                <span className="settings-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" fill="currentColor"/>
+                  </svg>
+                </span>
+                Preços
+              </h2>
+              
+              <div className="settings-form-group">
+                <label htmlFor="km-rate">
+                  <span className="settings-label-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  Taxa por quilômetro (R$)
+                </label>
+                <input
+                  type="number"
+                  id="km-rate"
+                  className="settings-input"
+                  value={pricing.kmRate}
+                  onChange={handleKmRateChange}
+                  min="0"
+                  step="0.01"
+                />
+                <p className="settings-description">Taxa por quilômetro para cálculo de fretes</p>
+              </div>
+
+              <div className="settings-section-divider"></div>
+              
+              <h3 className="settings-subsection-title">
+                <span className="settings-label-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17.12 4.83l-2.59-2.59C14.17 1.89 13.67 1.67 13.16 1.5h-6.2c-1.11 0-1.99.89-1.99 2l.01 16c0 1.11.89 2 1.99 2h10.04c1.11 0 2-.89 2-2V6.83c-.16-.5-.4-1.01-.77-1.38l-1.12-1.12zM13 3.5v3.94l3.94 3.94H13V7.83l-3.59-3.59L13 3.5zm3 14.5H8v-2h8v2zm0-4H8v-2h8v2z" fill="currentColor"/>
+                  </svg>
+                </span>
+                Tabela de Preços Mínimos
+              </h3>
+              
+              <div className="settings-section-actions">
+                <button 
+                  className="add-button"
+                  onClick={() => handleOpenCityPairModal('add')}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/>
+                  </svg>
+                  Adicionar Rota
+                </button>
+              </div>
+              
+              <div className="city-pairs-list">
+                {pricing.cityPairs.length > 0 ? (
+                  pricing.cityPairs.map(cityPair => (
+                    <div key={cityPair.id} className="city-pair-item">
+                      <div className="city-pair-details">
+                        <div className="city-pair-route">
+                          <span className="city-label">{cityPair.fromCity}-{cityPair.fromState}</span>
+                          <span className="route-arrow">→</span>
+                          <span className="city-label">{cityPair.toCity}-{cityPair.toState}</span>
+                        </div>
+                        <div className="city-pair-price">
+                          R$ {cityPair.minimumPrice.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="city-pair-actions">
+                        <button 
+                          className="action-button edit-button"
+                          onClick={() => handleOpenCityPairModal('edit', cityPair)}
+                          aria-label="Editar"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+                          </svg>
+                        </button>
+                        <button 
+                          className="action-button delete-button"
+                          onClick={() => handleDeleteCityPair(cityPair.id)}
+                          aria-label="Excluir"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="empty-message">Nenhuma rota cadastrada</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      
       default:
         return null;
     }
@@ -466,6 +616,15 @@ const Settings: React.FC = () => {
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
             </svg>
             <span>Locais</span>
+          </div>
+          <div 
+            className={`settings-tab ${activeTab === 'pricing' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pricing')}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" fill="currentColor"/>
+            </svg>
+            <span>Preços</span>
           </div>
         </div>
       </div>
@@ -505,6 +664,16 @@ const Settings: React.FC = () => {
           onSave={handleAddLocation}
           initialData={currentLocation}
           editMode={editLocationMode}
+        />
+      )}
+      
+      {cityPairModalOpen && (
+        <CityPairModal 
+          isOpen={cityPairModalOpen}
+          onClose={handleCloseCityPairModal}
+          onSave={handleSaveCityPair}
+          initialData={currentCityPair}
+          editMode={editCityPairMode}
         />
       )}
     </div>

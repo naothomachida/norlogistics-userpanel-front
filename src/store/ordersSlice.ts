@@ -11,26 +11,64 @@ interface OrderItem {
   };
 }
 
-interface RoutePoint {
+export interface RoutePoint {
+  id: string;
   name: string;
   address: string;
-  isCompany: boolean;
+  city?: string;
+  state?: string;
+  fullAddress?: string;
+  isCompany?: boolean;
   isLastPassenger?: boolean;
+  locationType?: 'airport' | 'hotel' | 'other';
+  weight?: string;
+  dimensions?: {
+    length: string;
+    width: string;
+    height: string;
+  };
+  phone?: string;
 }
 
 export interface Order {
   id: string;
-  transportType?: 'person' | 'cargo';
-  vehicleType?: string;
-  carModel: string;
-  pickupLocation?: string;
-  destination?: string;
-  startLocationId?: string;
-  endLocationId?: string;
+  transportType: 'person' | 'cargo';
+  vehicleType: string;
+  carModel?: string;
+  pickupLocation: string;
+  destination: string;
+  startLocationId: string;
+  endLocationId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   driverId?: string;
-  items?: OrderItem[];
+  items: {
+    name: string;
+    address: string;
+    weight?: string;
+    dimensions?: {
+      length: string;
+      width: string;
+      height: string;
+    };
+  }[];
   routePoints?: RoutePoint[];
-  status: 'pending' | 'in_progress' | 'en_route' | 'completed' | 'cancelled';
+  routeDistance?: {
+    totalDistance: number;
+    totalDuration: number;
+    totalSteps: number;
+    distanceDetails: {
+      from: string;
+      to: string;
+      distance: number;
+      duration: number;
+    }[];
+  };
+  pricing?: {
+    kmRate: number;
+    kmBasedPrice: number;
+    minimumPrice: number | null;
+    finalPrice: number;
+  };
 }
 
 interface OrdersState {

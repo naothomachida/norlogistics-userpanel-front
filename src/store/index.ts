@@ -3,13 +3,15 @@ import ordersReducer from './ordersSlice';
 import vehicleTypesReducer from './vehicleTypesSlice';
 import locationReducer from './locationSlice';
 import driversReducer from './driversSlice';
+import pricingReducer from './pricingSlice';
 
 export const store = configureStore({
   reducer: {
     orders: ordersReducer,
     vehicleTypes: vehicleTypesReducer,
     locations: locationReducer,
-    drivers: driversReducer
+    drivers: driversReducer,
+    pricing: pricingReducer
   },
 });
 

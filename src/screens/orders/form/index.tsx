@@ -1,15 +1,17 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { addOrder } from '../../../store/ordersSlice';
+import { addOrder, RoutePoint, Order } from '../../../store/ordersSlice';
 import { RootState } from '../../../store';
 import Header from '../../../components/layout/Header';
 import './order-form.css';
 import { Location } from '../../../store/locationSlice';
 import { MdBusinessCenter } from 'react-icons/md';
-import { FaBox } from 'react-icons/fa';
+import { FaBox, FaHotel, FaPlane, FaMapMarkerAlt, FaBuilding, FaWarehouse, FaHome, FaSpinner } from 'react-icons/fa';
 import AddressModal, { DetailedAddress } from './AddressModal';
 import { useGoogleMapsLoader } from '../../../hooks/useGoogleMapsLoader';
+import { MdLocationCity } from 'react-icons/md';
+import { calculateRouteDistance, RouteDistanceResult } from '../../../utils/mapbox-route-distance';
 
 // Ícone de arrasto
 const DragHandleIcon = () => (
@@ -18,27 +20,22 @@ const DragHandleIcon = () => (
   </svg>
 );
 
-// Interface para ponto de rota
-interface RoutePoint {
-  id: string;
-  name: string;
-  phone?: string;
-  address: string;
-  isCompany?: boolean;
-  isLastPassenger?: boolean;
-  // Outros campos para cargas
-  weight?: string;
-  dimensions?: {
-    length: string;
-    width: string;
-    height: string;
-  };
-}
-
 // Define interface for detailed address
 // Interface for detailed address is now imported from AddressModal
 
-const OrderForm = () => {
+// Define steps as an enum to ensure type safety
+enum OrderFormStep {
+  TransportType = 1,
+  VehicleType = 2,
+  Details = 3,
+  StartEnd = 4,
+  RouteOrganization = 5,
+  RouteDetails = 6
+}
+
+interface OrderFormProps {} // Empty props interface
+
+const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
@@ -46,9 +43,10 @@ const OrderForm = () => {
   const personVehicles = useSelector((state: RootState) => state.vehicleTypes.person);
   const cargoVehicles = useSelector((state: RootState) => state.vehicleTypes.cargo);
   const locations = useSelector((state: RootState) => state.locations.locations);
+  const pricing = useSelector((state: RootState) => state.pricing);
 
   // Controles de etapas
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState<OrderFormStep>(OrderFormStep.TransportType);
   
   // Dados do formulário
   const [formData, setFormData] = useState({
@@ -80,6 +78,9 @@ const OrderForm = () => {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null);
 
+  // Add state for custom location address modal
+  const [isCustomLocationAddressModalOpen, setIsCustomLocationAddressModalOpen] = useState(false);
+
   // Verificar se há itens válidos para definir o último passageiro como destino
   const hasValidItems = useMemo(() => {
     return formData.items.some(item => item.name && item.address);
@@ -90,128 +91,117 @@ const OrderForm = () => {
 
   // Add this near the route distance state declaration
   const [routeDistanceError, setRouteDistanceError] = useState<string | null>(null);
+  
+  // Estado para preços
+  const [routePrice, setRoutePrice] = useState<{
+    kmBasedPrice: number;
+    minimumPrice: number | null;
+    finalPrice: number;
+  } | null>(null);
 
   // Use Google Maps loader hook
-  const { isLoaded, error: mapLoadError } = useGoogleMapsLoader();
+  const { isLoaded } = useGoogleMapsLoader();
 
-  // Define route distance type
-  interface RouteDistanceResult {
-    totalDistance: number;
-    totalSteps: number;
-    distanceDetails: Array<{
-      from: string; 
-      to: string; 
-      distance: number; 
-      duration: number
-    }>;
-  }
+  // Modify custom location state to have separate start and end locations
+  const [customStartLocation, setCustomStartLocation] = useState({
+    type: '',
+    address: ''
+  });
 
-  const handleCalculateDistance = async () => {
-    // Check if Google Maps API is loaded
-    if (!isLoaded) {
-      setRouteDistanceError('Google Maps JavaScript API not loaded');
-      console.error('Google Maps JavaScript API not loaded');
-      return;
+  const [customEndLocation, setCustomEndLocation] = useState({
+    type: '',
+    address: ''
+  });
+
+  // Update the custom location modal type state
+  const [customLocationModalType, setCustomLocationModalType] = useState<'start' | 'end'>('start');
+
+  // Add loading state near other state declarations
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+
+  const handleCustomLocationAddressSave = (addressData: DetailedAddress) => {
+    // Update custom location based on the current modal type (start or end)
+    if (customLocationModalType === 'start') {
+      setCustomStartLocation(prev => ({
+        ...prev,
+        address: addressData.fullAddress || ''
+      }));
+    } else {
+      setCustomEndLocation(prev => ({
+        ...prev, 
+        address: addressData.fullAddress || ''
+      }));
     }
-
-    try {
-      // Extract full addresses from route points
-      const addresses = routePoints.map(point => point.address);
-      
-      // Geocode addresses
-      const geocoder = new window.google.maps.Geocoder();
-      const locations = await Promise.all(
-        addresses.map(address => 
-          new Promise<google.maps.LatLng>((resolve, reject) => {
-            geocoder.geocode({ address: address }, (results, status) => {
-              if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
-                resolve(results[0].geometry.location);
-              } else {
-                reject(new Error(`Geocoding failed for address: ${address}`));
-              }
-            });
-          })
-        )
-      );
-
-      // Calculate distance matrix
-      const service = new window.google.maps.DistanceMatrixService();
-      service.getDistanceMatrix(
-        {
-          origins: locations,
-          destinations: locations.slice(1),
-          travelMode: window.google.maps.TravelMode.DRIVING,
-          unitSystem: window.google.maps.UnitSystem.METRIC
-        },
-        (response, status) => {
-          if (status === window.google.maps.DistanceMatrixStatus.OK) {
-            const rows = response?.rows || [];
-            
-            let totalDistance = 0;
-            const distanceDetails: Array<{
-              from: string, 
-              to: string, 
-              distance: number, 
-              duration: number
-            }> = [];
-
-            rows.forEach((row, index) => {
-              const element = row.elements[0];
-              if (element.status === 'OK') {
-                const distanceInKm = element.distance.value / 1000;
-                totalDistance += distanceInKm;
-
-                distanceDetails.push({
-                  from: addresses[index],
-                  to: addresses[index + 1],
-                  distance: distanceInKm,
-                  duration: element.duration.value / 60 // Convert to minutes
-                });
-
-                console.log(`📍 Segment ${index + 1}: ${addresses[index]} → ${addresses[index + 1]}`);
-                console.log(`   Distance: ${distanceInKm.toFixed(2)} km`);
-                console.log(`   Duration: ${(element.duration.value / 60).toFixed(1)} minutes`);
-              }
-            });
-
-            const result: RouteDistanceResult = {
-              totalDistance: Math.round(totalDistance * 10) / 10,
-              totalSteps: addresses.length,
-              distanceDetails: distanceDetails
-            };
-
-            console.log('🏁 Total Route Summary:');
-            console.log(`   Total Distance: ${result.totalDistance} km`);
-            console.log(`   Total Steps: ${result.totalSteps}`);
-
-            // Set route distance state
-            setRouteDistance(result);
-
-            // Add error handling for insufficient route points
-            if (routePoints.length < 2) {
-              setRouteDistanceError('Adicione pelo menos dois pontos na rota');
-              return;
-            }
-
-            // Clear any previous errors
-            setRouteDistanceError(null);
-          } else {
-            console.error(`Distance matrix calculation failed: ${status}`);
-          }
-        }
-      );
-    } catch (error) {
-      console.error('Failed to calculate route distance:', error);
-      setRouteDistanceError('Falha ao calcular a distância da rota');
-    }
+    
+    // Close the modal
+    setIsCustomLocationAddressModalOpen(false);
   };
 
-  // Calculate distance whenever route points change
-  useEffect(() => {
-    if (routePoints.length > 1) {
-      handleCalculateDistance();
+  const handleCalculateDistance = async () => {
+    try {
+      // Extract full addresses from route points, using a fallback
+      const addresses = routePoints.map(point => 
+        point.fullAddress || 
+        `${point.address}, ${point.city || ''} ${point.state || ''}`.trim()
+      );
+      
+      // Calculate route distance using Mapbox
+      const result = await calculateRouteDistance(addresses);
+
+      // Set route distance state
+      setRouteDistance(result);
+
+      // Calculate the price based on the route distance
+      if (pricing) {
+        const priceResult = calculateRoutePrice(result);
+        setRoutePrice(priceResult);
+        if (priceResult) {
+          console.log('💸 Valor total calculado: R$ ' + priceResult.finalPrice.toFixed(2));
+        }
+      }
+
+      // Clear any previous errors
+      setRouteDistanceError(null);
+
+      // Optional: Log the results
+      console.log('🏁 Total Route Summary:');
+      console.log(`   Total Distance: ${result.totalDistance.toFixed(2)} km`);
+      console.log(`   Total Duration: ${result.totalDuration.toFixed(1)} minutes`);
+      console.log(`   Total Steps: ${result.totalSteps}`);
+
+      // Log distance details
+      result.distanceDetails.forEach((segment, index) => {
+        console.log(`📍 Segment ${index + 1}: ${segment.from} → ${segment.to}`);
+        console.log(`   Distance: ${segment.distance.toFixed(2)} km`);
+        console.log(`   Duration: ${segment.duration.toFixed(1)} minutes`);
+      });
+
+      // Set the current step to RouteDetails directly instead of calling handleProceedToRouteDetails
+      setCurrentStep(OrderFormStep.RouteDetails);
+
+    } catch (error) {
+      console.error('Failed to calculate route distance:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        switch (error.message) {
+          case 'Could not geocode enough addresses to calculate route':
+            setRouteDistanceError('Não foi possível encontrar as localizações de alguns endereços. Verifique os detalhes dos pontos da rota.');
+            break;
+          case 'At least two addresses are required':
+            setRouteDistanceError('É necessário ter pelo menos dois endereços para calcular a rota.');
+            break;
+          case 'No routes found':
+            setRouteDistanceError('Não foi possível calcular a rota entre os endereços fornecidos.');
+            break;
+          default:
+            setRouteDistanceError('Falha ao calcular a distância da rota. Verifique sua conexão de internet e os endereços.');
+        }
+      } else {
+        setRouteDistanceError('Falha ao calcular a distância da rota. Tente novamente.');
+      }
     }
-  }, [routePoints]);
+  };
 
   // Manipuladores de eventos
   const handleTransportTypeSelect = (type: string) => {
@@ -219,7 +209,7 @@ const OrderForm = () => {
       ...formData,
       transportType: type,
     });
-    setCurrentStep(2);
+    setCurrentStep(OrderFormStep.VehicleType);
   };
 
   const handleVehicleTypeSelect = (type: string) => {
@@ -227,7 +217,7 @@ const OrderForm = () => {
       ...formData,
       vehicleType: type,
     });
-    setCurrentStep(3);
+    setCurrentStep(OrderFormStep.Details);
   };
 
   const handleItemChange = (index: number, field: string, value: string) => {
@@ -326,7 +316,7 @@ const OrderForm = () => {
   };
 
   const handleProceedToLocationSelection = () => {
-    setCurrentStep(4);
+    setCurrentStep(OrderFormStep.StartEnd);
   };
 
   const handleProceedToRouteOrganization = () => {
@@ -347,57 +337,109 @@ const OrderForm = () => {
       destinationLocation = locations.find(loc => loc.id === formData.endLocationId);
     }
     
-    if (!originLocation || (!useLastPassengerAsDestination && !destinationLocation)) {
-      alert('Por favor, selecione a origem e o destino.');
-      return;
-    }
-    
     // Preparar pontos de rota a partir dos itens do formulário
-    const originPoint: RoutePoint = {
-      id: originLocation.id,
-      name: originLocation.name,
-      address: `${originLocation.address}, ${originLocation.city}-${originLocation.state}`,
-      isCompany: originLocation.isCompany || false
-    };
-    
     const itemPoints: RoutePoint[] = formData.items
       .filter(item => item.name && item.address) // Filtra apenas itens com dados válidos
-      .map((item, index) => ({
+      .map((item, index) => {
+        const basePoint: RoutePoint = {
         id: `item-${index}`,
         name: item.name,
-        phone: item.phone,
         address: item.address,
-        weight: formData.transportType === 'cargo' ? item.weight : undefined,
-        dimensions: formData.transportType === 'cargo' ? item.dimensions : undefined
-      }));
+          ...(index === 0 ? { isFirstPassenger: true } : {}),
+          ...(index === formData.items.length - 1 ? { isLastPassenger: true } : {})
+        };
+
+        // Adicionar detalhes específicos para passageiros ou cargas
+        if (formData.transportType === 'person') {
+          basePoint.phone = item.phone;
+        } else if (formData.transportType === 'cargo') {
+          basePoint.weight = item.weight;
+          basePoint.dimensions = item.dimensions;
+        }
+
+        return basePoint;
+      });
     
     if (itemPoints.length === 0) {
       alert('É necessário adicionar pelo menos um passageiro ou carga com dados válidos.');
       return;
     }
     
-    // Se usar último passageiro como destino, converter o último item para destino
-    let routePointsArray: RoutePoint[] = [];
+    // Preparar ponto de origem
+    let originPoint: RoutePoint;
+    
+    if (['airport', 'hotel', 'other'].includes(formData.startLocationId)) {
+      // Use custom location for start
+      originPoint = {
+        id: formData.startLocationId,
+        name: customStartLocation.type || 'Local personalizado',
+        address: customStartLocation.address,
+        ...(formData.startLocationId === 'airport' ? { locationType: 'airport' } :
+            formData.startLocationId === 'hotel' ? { locationType: 'hotel' } :
+            formData.startLocationId === 'other' ? { locationType: 'other' } : {})
+      };
+    } else if (originLocation) {
+      // Use predefined location
+      originPoint = {
+        id: originLocation.id,
+        name: originLocation.name,
+        address: `${originLocation.address}, ${originLocation.city}-${originLocation.state}`,
+        ...(originLocation.isCompany ? { isCompany: true } : {})
+      };
+    } else if (itemPoints.length > 0) {
+      // Fallback to first passenger's address
+      originPoint = {
+        id: 'first-passenger',
+        name: itemPoints[0].name,
+        address: itemPoints[0].address
+      };
+    } else {
+      alert('Não foi possível determinar o local de origem.');
+      return;
+    }
+    
+    // Preparar ponto de destino
+    let destinationPoint: RoutePoint;
+    
     if (useLastPassengerAsDestination) {
-      if (itemPoints.length > 0) {
-        const lastPassenger = itemPoints.pop()!; // Remove o último item
-        const destinationPoint: RoutePoint = {
+      // Last passenger as destination
+      const lastPassenger = itemPoints[itemPoints.length - 1];
+      destinationPoint = {
           id: lastPassenger.id,
           name: lastPassenger.name,
-          phone: lastPassenger.phone,
           address: lastPassenger.address,
           isLastPassenger: true
         };
-        routePointsArray = [originPoint, ...itemPoints, destinationPoint];
-      }
-    } else {
-      // Destino é um local selecionado
-      const destinationPoint: RoutePoint = {
-        id: destinationLocation!.id,
-        name: destinationLocation!.name,
-        address: `${destinationLocation!.address}, ${destinationLocation!.city}-${destinationLocation!.state}`,
-        isCompany: destinationLocation!.isCompany || false
+    } else if (['airport', 'hotel', 'other'].includes(formData.endLocationId)) {
+      // Use custom location for end
+      destinationPoint = {
+        id: formData.endLocationId,
+        name: customEndLocation.type || 'Local personalizado',
+        address: customEndLocation.address,
+        ...(formData.endLocationId === 'airport' ? { locationType: 'airport' } :
+            formData.endLocationId === 'hotel' ? { locationType: 'hotel' } :
+            formData.endLocationId === 'other' ? { locationType: 'other' } : {})
       };
+    } else if (destinationLocation) {
+      // Use predefined location
+      destinationPoint = {
+        id: destinationLocation.id,
+        name: destinationLocation.name,
+        address: `${destinationLocation.address}, ${destinationLocation.city}-${destinationLocation.state}`,
+        ...(destinationLocation.isCompany ? { isCompany: true } : {})
+      };
+    } else {
+      alert('Não foi possível determinar o local de destino.');
+      return;
+    }
+
+    // Construir array de pontos de rota
+    let routePointsArray: RoutePoint[];
+    if (useLastPassengerAsDestination) {
+      // Remove last passenger from intermediate points
+      const intermediatePoints = itemPoints.slice(0, -1);
+      routePointsArray = [originPoint, ...intermediatePoints, destinationPoint];
+    } else {
       routePointsArray = [originPoint, ...itemPoints, destinationPoint];
     }
     
@@ -405,7 +447,7 @@ const OrderForm = () => {
     setRoutePoints(routePointsArray);
     
     // Avançar para a próxima etapa
-    setCurrentStep(5);
+    setCurrentStep(OrderFormStep.RouteOrganization);
   };
 
   const handleDragStart = (index: number) => {
@@ -448,57 +490,183 @@ const OrderForm = () => {
     setDraggedItemIndex(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Preparar dados dos itens para o formato final
-    const processedItems = routePoints
-      .filter(point => !point.id.includes('lenovo') && 
-                        !point.id.includes(formData.startLocationId) && 
-                        !point.id.includes(formData.endLocationId))
-      .map(point => {
-        const processedItem: any = {
-          name: point.name,
-          phone: point.phone,
-          address: point.address,
-        };
-        
-        // Adicionar campos específicos para cargas
-        if (formData.transportType === 'cargo') {
-          processedItem.weight = point.weight;
-          processedItem.dimensions = point.dimensions;
-        }
-        
-        return processedItem;
-      });
-    
-    // Enviar para o store
-    dispatch(addOrder({
-      transportType: formData.transportType as 'person' | 'cargo',
-      vehicleType: formData.vehicleType,
-      carModel: formData.vehicleType, // Para manter compatibilidade
-      startLocationId: formData.startLocationId,
-      endLocationId: formData.endLocationId,
-      items: processedItems,
-      routePoints: routePoints.map(point => ({
-        name: point.name,
-        phone: point.phone,
-        address: point.address,
-        isCompany: point.isCompany || false,
-        isLastPassenger: point.isLastPassenger || false
-      }))
-    }));
-    
-    navigate('/orders');
+  const handleSubmit = async (e?: React.FormEvent) => {
+    // Prevent default form submission if event is provided
+    if (e) {
+      e.preventDefault();
+    }
+
+    // Validate all required data
+    if (!formData.transportType) {
+      alert('Por favor, selecione o tipo de transporte.');
+      return;
+    }
+
+    if (!formData.vehicleType) {
+      alert('Por favor, selecione o tipo de veículo.');
+      return;
+    }
+
+    if (!formData.items || formData.items.length === 0) {
+      alert('Por favor, adicione detalhes dos passageiros/cargas.');
+      return;
+    }
+
+    if (!formData.startLocationId || !formData.endLocationId) {
+      alert('Por favor, selecione os locais de início e fim.');
+      return;
+    }
+
+    if (!routePoints || routePoints.length < 2) {
+      alert('Por favor, organize a rota com pelo menos dois pontos.');
+      return;
+    }
+
+    if (!routeDistance) {
+      alert('Por favor, calcule a distância da rota.');
+      return;
+    }
+
+    try {
+      // Prepare order data for submission
+      const orderData: Omit<Order, 'id' | 'status'> = {
+        transportType: (formData.transportType === 'person' || formData.transportType === 'cargo') 
+          ? formData.transportType 
+          : 'person', // Default to 'person' if type is invalid
+        vehicleType: formData.vehicleType,
+        carModel: '', // TODO: Add car model selection
+        pickupLocation: formData.startLocationId,
+        destination: formData.endLocationId,
+        startLocationId: formData.startLocationId,
+        endLocationId: formData.endLocationId,
+        items: formData.items.map(item => ({
+          name: item.name,
+          address: item.address,
+          weight: item.weight,
+          dimensions: item.dimensions
+        })),
+        routePoints: routePoints,
+        // Adicionar dados de distância da rota
+        routeDistance: {
+          totalDistance: routeDistance.totalDistance,
+          totalDuration: routeDistance.totalDuration,
+          totalSteps: routeDistance.totalSteps,
+          distanceDetails: routeDistance.distanceDetails.map(segment => ({
+            from: segment.from,
+            to: segment.to,
+            distance: segment.distance,
+            duration: segment.duration
+          }))
+        },
+        // Adicionar dados de preço
+        pricing: routePrice ? {
+          kmRate: pricing.kmRate,
+          kmBasedPrice: routePrice.kmBasedPrice,
+          minimumPrice: routePrice.minimumPrice,
+          finalPrice: routePrice.finalPrice
+        } : undefined
+      };
+
+      // Registrar no console os dados que estão sendo enviados
+      console.log('📦 Dados completos da ordem sendo enviada:', orderData);
+      console.log('💰 Informações de preço:', orderData.pricing);
+      console.log('🛣️ Informações de rota:', orderData.routeDistance);
+
+      // Dispatch order creation action
+      dispatch(addOrder(orderData));
+
+      // Navigate to orders list
+      navigate('/orders');
+    } catch (error) {
+      console.error('Order submission error:', error);
+      alert('Erro ao submeter ordem. Por favor, tente novamente.');
+    }
   };
 
   const goToPreviousStep = () => {
-    if (currentStep > 1) {
+    if (currentStep > OrderFormStep.TransportType) {
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const navigateToStep = (step: number) => {
+  const handleProceedToRouteDetails = async () => {
+    // Validate route points
+    if (routePoints.length < 2) {
+      alert('Por favor, adicione pelo menos dois pontos na rota.');
+      return;
+    }
+
+    // Set loading state
+    setIsCalculatingRoute(true);
+
+    try {
+      // Extract full addresses from route points, using a fallback
+      const addresses = routePoints.map(point => 
+        point.fullAddress || 
+        `${point.address}, ${point.city || ''} ${point.state || ''}`.trim()
+      );
+      
+      // Calculate route distance using Mapbox
+      const result = await calculateRouteDistance(addresses);
+
+      // Set route distance state
+      setRouteDistance(result);
+
+      // Now calculate the price based on the route distance
+      if (pricing) {
+        const priceResult = calculateRoutePrice(result);
+        setRoutePrice(priceResult);
+        if (priceResult) {
+          console.log('💸 Valor total calculado: R$ ' + priceResult.finalPrice.toFixed(2));
+        }
+      }
+
+      // Clear any previous errors
+      setRouteDistanceError(null);
+
+      // Optional: Log the results
+      console.log('🏁 Total Route Summary:');
+      console.log(`   Total Distance: ${result.totalDistance.toFixed(2)} km`);
+      console.log(`   Total Duration: ${result.totalDuration.toFixed(1)} minutes`);
+      console.log(`   Total Steps: ${result.totalSteps}`);
+
+      // Log distance details
+      result.distanceDetails.forEach((segment, index) => {
+        console.log(`📍 Segment ${index + 1}: ${segment.from} → ${segment.to}`);
+        console.log(`   Distance: ${segment.distance.toFixed(2)} km`);
+        console.log(`   Duration: ${segment.duration.toFixed(1)} minutes`);
+      });
+
+      // Set the current step to RouteDetails
+      setCurrentStep(OrderFormStep.RouteDetails);
+    } catch (error) {
+      console.error('Failed to calculate route distance:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        switch (error.message) {
+          case 'Could not geocode enough addresses to calculate route':
+            setRouteDistanceError('Não foi possível encontrar as localizações de alguns endereços. Verifique os detalhes dos pontos da rota.');
+            break;
+          case 'At least two addresses are required':
+            setRouteDistanceError('É necessário ter pelo menos dois endereços para calcular a rota.');
+            break;
+          case 'No routes found':
+            setRouteDistanceError('Não foi possível calcular a rota entre os endereços fornecidos.');
+            break;
+          default:
+            setRouteDistanceError('Falha ao calcular a distância da rota. Verifique sua conexão de internet e os endereços.');
+        }
+      } else {
+        setRouteDistanceError('Falha ao calcular a distância da rota. Tente novamente.');
+      }
+    } finally {
+      // Always reset loading state
+      setIsCalculatingRoute(false);
+    }
+  };
+
+  const navigateToStep = (step: OrderFormStep) => {
     // Always allow going back to previous steps
     if (step < currentStep) {
       setCurrentStep(step);
@@ -508,10 +676,11 @@ const OrderForm = () => {
     // Check if the target step is the next step or has partial data
     if (step === currentStep + 1 || 
         (step > currentStep && 
-         ((step === 2 && formData.transportType) ||
-          (step === 3 && formData.vehicleType) ||
-          (step === 4 && formData.items.some(item => item.name || item.address)) ||
-          (step === 5 && (formData.startLocationId || formData.endLocationId))
+         ((step === OrderFormStep.VehicleType && formData.transportType) ||
+          (step === OrderFormStep.Details && formData.vehicleType) ||
+          (step === OrderFormStep.StartEnd && formData.items.some(item => item.name || item.address)) ||
+          (step === OrderFormStep.RouteOrganization && (formData.startLocationId || formData.endLocationId)) ||
+          (step === OrderFormStep.RouteDetails && routeDistance)
          )
         )) {
       setCurrentStep(step);
@@ -521,17 +690,20 @@ const OrderForm = () => {
     // If trying to jump multiple steps, validate thoroughly
     if (step > currentStep + 1) {
       switch (currentStep) {
-        case 1:
+        case OrderFormStep.TransportType:
           if (!formData.transportType) return;
           break;
-        case 2:
+        case OrderFormStep.VehicleType:
           if (!formData.vehicleType) return;
           break;
-        case 3:
+        case OrderFormStep.Details:
           if (!formData.items.some(item => item.name && item.address)) return;
           break;
-        case 4:
+        case OrderFormStep.StartEnd:
           if (!formData.startLocationId || !formData.endLocationId) return;
+          break;
+        case OrderFormStep.RouteOrganization:
+          if (!routeDistance) return;
           break;
       }
       
@@ -563,10 +735,96 @@ const OrderForm = () => {
     }
   };
 
-  // Renderizar etapas
+  // Update the calculateRoutePrice function to accept a routeDistance parameter
+  const calculateRoutePrice = (distanceResult?: RouteDistanceResult | null) => {
+    // Use the provided route distance or fall back to the state
+    const distance = distanceResult || routeDistance;
+    
+    if (!distance || !pricing) return null;
+
+    // Obter cidades de origem e destino a partir dos pontos da rota
+    const startPoint = routePoints[0];
+    const endPoint = routePoints[routePoints.length - 1];
+
+    const startCity = startPoint?.city || '';
+    const startState = startPoint?.state || '';
+    const endCity = endPoint?.city || '';
+    const endState = endPoint?.state || '';
+
+    // Calcular preço baseado em km
+    const kmBasedPrice = distance.totalDistance * pricing.kmRate;
+
+    // Procurar por preço mínimo entre cidades
+    let minimumPrice = null;
+    
+    // Verificar se existe preço mínimo para o par de cidades (em ambas as direções)
+    const cityPair = pricing.cityPairs.find(
+      pair => 
+        // Verificar se existe par origem -> destino
+        (pair.fromCity.toLowerCase() === startCity.toLowerCase() && 
+         pair.fromState === startState && 
+         pair.toCity.toLowerCase() === endCity.toLowerCase() && 
+         pair.toState === endState) ||
+        // Verificar se existe par destino -> origem (preço vale para ambas direções)
+        (pair.fromCity.toLowerCase() === endCity.toLowerCase() && 
+         pair.fromState === endState && 
+         pair.toCity.toLowerCase() === startCity.toLowerCase() && 
+         pair.toState === startState)
+    );
+
+    if (cityPair) {
+      minimumPrice = cityPair.minimumPrice;
+    }
+
+    // Determinar o preço final (o maior entre o preço por km e o preço mínimo)
+    const finalPrice = minimumPrice !== null ? Math.max(kmBasedPrice, minimumPrice) : kmBasedPrice;
+
+    // Log detalhado do cálculo do preço em reais
+    console.log('💰 Detalhes do cálculo de preço:');
+    console.log(`   Distância total: ${distance.totalDistance.toFixed(2)} km`);
+    console.log(`   Preço por km: R$ ${pricing.kmRate.toFixed(2)}`);
+    console.log(`   Preço base (distância × taxa por km): R$ ${kmBasedPrice.toFixed(2)}`);
+    
+    if (minimumPrice !== null) {
+      console.log(`   Preço mínimo para rota ${startCity}-${endCity}: R$ ${minimumPrice.toFixed(2)}`);
+      console.log(`   Preço final (maior entre preço base e mínimo): R$ ${finalPrice.toFixed(2)}`);
+    } else {
+      console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
+    }
+
+    return {
+      kmBasedPrice,
+      minimumPrice,
+      finalPrice
+    };
+  };
+
+  // Helper function to get icon for location type
+  const getLocationIcon = (type: string, isCompany?: boolean) => {
+    switch (type) {
+      case 'airport':
+        return <FaPlane />;
+      case 'hotel':
+        return <FaHotel />;
+      case 'other':
+        return <FaMapMarkerAlt />;
+      case 'first-passenger':
+        return <FaHome />;
+      case 'last-passenger':
+        return <FaHome />;
+      default:
+        // For predefined locations
+        if (isCompany) {
+          return <FaBuilding />;
+        }
+        return <MdLocationCity />;
+    }
+  };
+
+  // Replace the entire renderStep function to fix all JSX structure issues
   const renderStep = () => {
     switch (currentStep) {
-      case 1:
+      case OrderFormStep.TransportType:
         return (
           <div className="step-container">
             <h2 className="step-title">O que você deseja transportar?</h2>
@@ -595,8 +853,8 @@ const OrderForm = () => {
             </div>
           </div>
         );
-        
-      case 2:
+      
+      case OrderFormStep.VehicleType:
         const vehicles = formData.transportType === 'person' 
           ? personVehicles 
           : cargoVehicles;
@@ -626,8 +884,8 @@ const OrderForm = () => {
             </p>
           </div>
         );
-        
-      case 3:
+      
+      case OrderFormStep.Details:
         return (
           <div className="step-container">
             <h2 className="step-title">
@@ -667,17 +925,17 @@ const OrderForm = () => {
                     </div>
                     
                     {formData.transportType === 'person' && (
-                      <div className="form-group phone-group">
-                        <label htmlFor={`phone-${index}`}>Telefone</label>
-                        <input
-                          type="tel"
-                          id={`phone-${index}`}
-                          value={item.phone}
-                          onChange={(e) => handlePhoneChange(index, e.target.value)}
-                          placeholder="Telefone do passageiro"
-                          required
-                        />
-                      </div>
+                    <div className="form-group phone-group">
+                      <label htmlFor={`phone-${index}`}>Telefone</label>
+                      <input
+                        type="tel"
+                        id={`phone-${index}`}
+                        value={item.phone}
+                        onChange={(e) => handlePhoneChange(index, e.target.value)}
+                        placeholder="Telefone do passageiro"
+                        required
+                      />
+                    </div>
                     )}
                   </div>
                   
@@ -818,7 +1076,8 @@ const OrderForm = () => {
           </div>
         );
       
-      case 4:
+      case OrderFormStep.StartEnd:
+        // StartEnd step
         return (
           <div className="step-container">
             <h2 className="step-title">Selecione o início e o fim</h2>
@@ -828,69 +1087,278 @@ const OrderForm = () => {
                 <h3>Local de Início</h3>
                 
                 <div className="location-cards-grid">
-                  {locations.map((location) => (
+                  {/* First passenger option */}
+                  {formData.transportType === 'person' && formData.items.length > 0 && (
                     <div 
-                      key={location.id}
-                      className={`location-card ${formData.startLocationId === location.id ? 'selected' : ''}`}
-                      onClick={() => handleChangeOriginDestination('startLocationId', location.id)}
+                      id={`start-first-passenger-card`}
+                      key="first-passenger"
+                      className={`location-card first-last-passenger-card ${formData.startLocationId === 'first-passenger' ? 'selected' : ''}`}
+                      onClick={() => {
+                        handleChangeOriginDestination('startLocationId', 'first-passenger');
+                        setCustomStartLocation({ type: '', address: '' });
+                      }}
+                    >
+                      <h4>Primeiro Passageiro</h4>
+                      <div className="passenger-name">{formData.items[0].name}</div>
+                      <div className="passenger-address">{formData.items[0].address}</div>
+                    </div>
+                  )}
+
+                  {/* New custom location options */}
+                  {['airport', 'hotel', 'other'].map((type) => (
+                    <div 
+                      id={`start-${type}-location-card`}
+                      key={`start-${type}`}
+                      className={`location-card ${
+                        (formData.startLocationId === type)
+                          ? 'selected' 
+                          : ''
+                      }`}
+                      onClick={() => {
+                        handleChangeOriginDestination('startLocationId', type);
+                      }}
                     >
                       <div className="location-card-content">
+                        <div className="location-card-icon">
+                          {getLocationIcon(type)}
+                        </div>
+                        <div className="location-card-text">
+                          <h4>{
+                            type === 'airport' 
+                              ? 'Aeroporto' 
+                              : type === 'hotel' 
+                                ? 'Hotel' 
+                                : 'Outro Local'
+                          }</h4>
+                          {formData.startLocationId === type && (
+                            <div className="item-details custom-location-input">
+                              <div className="form-group name-group">
+                                <label htmlFor={`start-${type}-location-name`}>
+                                  Nome do local
+                                </label>
+                  <input 
+                    type="text"
+                                  id={`start-${type}-location-name`}
+                                  placeholder="Digite o nome do local"
+                                  value={customStartLocation.type}
+                                  onChange={(e) => setCustomStartLocation(prev => ({
+                                    ...prev, 
+                                    type: e.target.value
+                                  }))}
+                                  onClick={(e) => e.stopPropagation()}
+                                  required
+                  />
+                </div>
+                
+                              <div className="form-group address-group">
+                                <label htmlFor={`start-${type}-location-address`}>
+                                  Endereço completo
+                                </label>
+                                <div className="address-input-container">
+                                  <input
+                                    type="text"
+                                    id={`start-${type}-location-address`}
+                                    value={customStartLocation.address}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCustomLocationModalType('start');
+                                      setIsCustomLocationAddressModalOpen(true);
+                                    }}
+                                    readOnly
+                                    placeholder="Clique para adicionar endereço"
+                                    required
+                                  />
+                                  {customStartLocation.address && (
+                                    <button 
+                                      type="button" 
+                                      className="edit-address-button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCustomLocationModalType('start');
+                                        setIsCustomLocationAddressModalOpen(true);
+                                      }}
+                                    >
+                                      Editar
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Existing locations */}
+                  {locations.map((location) => (
+                    <div 
+                      id={`start-location-card-${location.id}`}
+                      key={`start-${location.id}`}
+                      className={`location-card ${formData.startLocationId === location.id ? 'selected' : ''}`}
+                      onClick={() => {
+                        handleChangeOriginDestination('startLocationId', location.id);
+                        setCustomStartLocation({ type: '', address: '' });
+                      }}
+                    >
+                      <div className="location-card-content">
+                        <div className="location-card-icon">
+                          {getLocationIcon(
+                            location.id, 
+                            location.isCompany
+                          )}
+                        </div>
+                        <div className="location-card-text">
                         <h4>{location.name}</h4>
                         <p>{location.address}</p>
                         <div className="location-card-details">
                           <span>{location.city} - {location.state}</span>
                           {location.isCompany && <span className="company-badge">Empresa</span>}
+                          </div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="form-hint">
-                  Para adicionar mais locais, vá até <strong>Configurações</strong>
-                </p>
               </div>
               
               <div className="location-selection-column">
                 <h3>Local de Fim</h3>
                 
                 <div className="location-cards-grid">
-                  {locations.map((location) => (
+                  {/* Last passenger option */}
+                  {formData.transportType === 'person' && formData.items.length > 0 && (
                     <div 
-                      key={location.id}
-                      className={`location-card ${formData.endLocationId === location.id ? 'selected' : ''}`}
-                      onClick={() => handleChangeOriginDestination('endLocationId', location.id)}
+                      id={`end-first-passenger-card`}
+                      key="last-passenger"
+                      className={`location-card first-last-passenger-card ${formData.endLocationId === 'last-passenger' ? 'selected' : ''}`}
+                      onClick={() => {
+                        handleChangeOriginDestination('endLocationId', 'last-passenger');
+                        setCustomEndLocation({ type: '', address: '' });
+                      }}
+                    >
+                      <h4>Último Passageiro</h4>
+                      <div className="passenger-name">{formData.items[formData.items.length - 1].name}</div>
+                      <div className="passenger-address">{formData.items[formData.items.length - 1].address}</div>
+                    </div>
+                  )}
+
+                  {/* New custom location options */}
+                  {['airport', 'hotel', 'other'].map((type) => (
+                    <div 
+                      id={`end-${type}-location-card`}
+                      key={`end-${type}`}
+                      className={`location-card ${
+                        (formData.endLocationId === type)
+                          ? 'selected' 
+                          : ''
+                      }`}
+                      onClick={() => {
+                        handleChangeOriginDestination('endLocationId', type);
+                      }}
                     >
                       <div className="location-card-content">
-                        <h4>{location.name}</h4>
-                        <p>{location.address}</p>
-                        <div className="location-card-details">
-                          <span>{location.city} - {location.state}</span>
-                          {location.isCompany && <span className="company-badge">Empresa</span>}
+                        <div className="location-card-icon">
+                          {getLocationIcon(type)}
+                        </div>
+                        <div className="location-card-text">
+                          <h4>{
+                            type === 'airport' 
+                              ? 'Aeroporto' 
+                              : type === 'hotel' 
+                                ? 'Hotel' 
+                                : 'Outro Local'
+                          }</h4>
+                          {formData.endLocationId === type && (
+                            <div className="item-details custom-location-input">
+                              <div className="form-group name-group">
+                                <label htmlFor={`end-${type}-location-name`}>
+                                  Nome do local
+                                </label>
+                  <input 
+                    type="text"
+                                  id={`end-${type}-location-name`}
+                                  placeholder="Digite o nome do local"
+                                  value={customEndLocation.type}
+                                  onChange={(e) => setCustomEndLocation(prev => ({
+                                    ...prev, 
+                                    type: e.target.value
+                                  }))}
+                                  onClick={(e) => e.stopPropagation()}
+                                  required
+                  />
+                </div>
+                
+                              <div className="form-group address-group">
+                                <label htmlFor={`end-${type}-location-address`}>
+                                  Endereço completo
+                                </label>
+                                <div className="address-input-container">
+                                  <input
+                                    type="text"
+                                    id={`end-${type}-location-address`}
+                                    value={customEndLocation.address}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCustomLocationModalType('end');
+                                      setIsCustomLocationAddressModalOpen(true);
+                                    }}
+                                    readOnly
+                                    placeholder="Clique para adicionar endereço"
+                                    required
+                                  />
+                                  {customEndLocation.address && (
+                                    <button 
+                                      type="button" 
+                                      className="edit-address-button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCustomLocationModalType('end');
+                                        setIsCustomLocationAddressModalOpen(true);
+                                      }}
+                                    >
+                                      Editar
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
                   
-                  {formData.transportType === 'person' && (
+                  {/* Existing locations */}
+                  {locations.map((location) => (
                     <div 
-                      className={`location-card ${formData.endLocationId === 'last-passenger' ? 'selected' : ''} ${!hasValidItems ? 'disabled' : ''}`}
-                      onClick={() => hasValidItems && handleChangeOriginDestination('endLocationId', 'last-passenger')}
+                      id={`end-location-card-${location.id}`}
+                      key={`end-${location.id}`}
+                      className={`location-card ${formData.endLocationId === location.id ? 'selected' : ''}`}
+                      onClick={() => {
+                        handleChangeOriginDestination('endLocationId', location.id);
+                        setCustomEndLocation({ type: '', address: '' });
+                      }}
                     >
                       <div className="location-card-content">
-                        <h4>Último passageiro</h4>
-                        <p>O último passageiro da lista será considerado como destino final</p>
-                        {!hasValidItems && (
-                          <div className="location-card-warning">
-                            Adicione passageiros primeiro
-                          </div>
+                        <div className="location-card-icon">
+                          {getLocationIcon(
+                            location.id, 
+                            location.isCompany
                         )}
                       </div>
+                        <div className="location-card-text">
+                        <h4>{location.name}</h4>
+                        <p>{location.address}</p>
+                        <div className="location-card-details">
+                          <span>{location.city} - {location.state}</span>
+                          {location.isCompany && <span className="company-badge">Empresa</span>}
                     </div>
-                  )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <p className="form-hint">
-                  Para adicionar mais locais, vá até <strong>Configurações</strong>
-                </p>
               </div>
             </div>
 
@@ -915,7 +1383,22 @@ const OrderForm = () => {
                 <button 
                   type="button" 
                   className="continue-button"
-                  onClick={handleProceedToRouteOrganization}
+                  onClick={() => {
+                    // Validate custom locations if selected
+                    if (['airport', 'hotel', 'other'].includes(formData.startLocationId)) {
+                      if (!customStartLocation.address) {
+                        alert('Por favor, preencha o endereço do local de início.');
+                        return;
+                      }
+                    }
+                    if (['airport', 'hotel', 'other'].includes(formData.endLocationId)) {
+                      if (!customEndLocation.address) {
+                        alert('Por favor, preencha o endereço do local de fim.');
+                        return;
+                      }
+                    }
+                    handleProceedToRouteOrganization();
+                  }}
                   disabled={!formData.startLocationId || !formData.endLocationId}
                 >
                   Continuar
@@ -924,71 +1407,265 @@ const OrderForm = () => {
             </div>
           </div>
         );
-        
-      case 5:
-        const isLastPassengerDestination = formData.endLocationId === 'last-passenger';
+      
+      case OrderFormStep.RouteOrganization:
         return (
           <div className="step-container">
-            <h2 className="step-title">Organizar rota de entrega</h2>
-            <div className="route-instructions">
-              <p>Arraste e solte os pontos abaixo para organizar a rota na ordem desejada.</p>
-              <p>A rota inicia no local de origem {isLastPassengerDestination ? 'e o último passageiro será considerado como destino final.' : 'e termina no local de destino.'}</p>
+            <div className="route-container">
+              {routePoints.map((point, index) => (
+                <div 
+                  key={point.id}
+                  className={`route-point ${draggedItemIndex === index ? 'dragging' : ''}`}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="route-point-handle">
+                    <DragHandleIcon />
+                  </div>
+                  <div className="route-point-number">{index + 1}</div>
+                  <div className="route-point-content">
+                    <div className="route-point-header">
+                      <div className="route-point-icon">
+                        {getLocationIcon(point.locationType || '', point.isCompany)}
+                      </div>
+                      <h3>{point.name}</h3>
+                    </div>
+                    <p>{point.address}</p>
+                    {point.locationType && (
+                      <span className="location-type-badge">
+                        {point.locationType === 'airport' ? 'Aeroporto' :
+                         point.locationType === 'hotel' ? 'Hotel' :
+                         point.locationType === 'other' ? 'Outro Local' : ''}
+                      </span>
+                    )}
+                    {point.isCompany && <span className="company-badge">Empresa</span>}
+                    {index === 0 && <span className="origin-badge">Origem</span>}
+                    {index === routePoints.length - 1 && point.isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
+                    {index === routePoints.length - 1 && !point.isLastPassenger && <span className="destination-badge">Destino</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="form-actions all-buttons">
+              <button 
+                type="button"
+                onClick={goToPreviousStep}
+                className="back-button"
+              >
+                Voltar etapa
+              </button>
               
-              <div className="route-distance-actions">
+              <div className="right-actions">
                 <button 
                   type="button" 
-                  className="calculate-distance-button"
-                  onClick={handleCalculateDistance}
-                  disabled={routePoints.length < 2}
+                  className="continue-button"
+                  onClick={handleProceedToRouteDetails}
+                  disabled={isCalculatingRoute}
                 >
-                  Calcular distância total
+                  {isCalculatingRoute ? (
+                    <div className="loading-overlay">
+                      <FaSpinner className="loading-spinner" />
+                      <span className="sr-only">Calculando rota...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        style={{ marginRight: '0.5rem' }}
+                      >
+                        <path d="M13 17l5-5-5-5"/>
+                        <path d="M6 17l5-5-5-5"/>
+                      </svg>
+                      Avançar para cálculo
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-            
-            <div className="route-container">
-              {routePoints.map((point, index) => {
-                // Determinar se o ponto é origem, destino ou ponto intermediário
-                const isOrigin = index === 0;
-                const isDestination = !isLastPassengerDestination && index === routePoints.length - 1;
-                const isLastPassenger = point.isLastPassenger;
-                
-                // Determinar se o ponto pode ser arrastado
-                const canDrag = !isOrigin && (!isDestination || isLastPassengerDestination);
-                
-                return (
-                  <div 
-                    key={point.id}
-                    className={`route-point 
-                      ${isOrigin ? 'origin-point' : ''} 
-                      ${isDestination ? 'destination-point' : ''} 
-                      ${isLastPassenger ? 'last-passenger-point' : ''} 
-                      ${point.isCompany ? 'company-point' : ''} 
-                      ${draggedItemIndex === index ? 'dragging' : ''}`}
-                    draggable={canDrag}
-                    onDragStart={() => canDrag && handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <div className="route-point-handle">
-                      {canDrag && <DragHandleIcon />}
+          </div>
+        );
+      
+      case OrderFormStep.RouteDetails:
+        return (
+          <div className="route-details-page">
+            <div className="route-details-header">
+              <h2 className="step-title">Resumo da Ordem</h2>
+              
+              {routeDistance && (
+                <>
+                  <div className="route-distance-summary">
+                    <div className="route-distance-details">
+                      <div className="route-summary-card">
+                        <div className="route-summary-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 12h18"/>
+                            <path d="M12 3l3 6l3 -6"/>
+                            <path d="M12 21l3 -6l3 6"/>
+                          </svg>
+                        </div>
+                        <div className="route-summary-content">
+                          <h3>Distância Total</h3>
+                          <p>{routeDistance.totalDistance.toFixed(2)} km</p>
+                        </div>
+                      </div>
+
+                      <div className="route-summary-card">
+                        <div className="route-summary-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                          </svg>
+                        </div>
+                        <div className="route-summary-content">
+                          <h3>Duração Total</h3>
+                          <p>{routeDistance.totalDuration.toFixed(1)} minutos</p>
+                        </div>
+                      </div>
+
+                      <div className="route-summary-card">
+                        <div className="route-summary-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 3l18 18"/>
+                            <path d="M6 6l12 12"/>
+                            <path d="M10 6l6 12"/>
+                          </svg>
+                        </div>
+                        <div className="route-summary-content">
+                          <h3>Número de Etapas</h3>
+                          <p>{routeDistance.totalSteps}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="route-point-number">{index + 1}</div>
-                    <div className="route-point-content">
-                      <h3>{point.name}</h3>
-                      <p>{point.address}</p>
-                      {point.phone && <p className="route-point-phone">{point.phone}</p>}
-                      {point.isCompany && <span className="company-badge">Empresa</span>}
-                      {isOrigin && <span className="origin-badge">Origem</span>}
-                      {isDestination && <span className="destination-badge">Destino</span>}
-                      {isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
+
+                    <div className="route-segments-container">
+                      <h3>Detalhes dos Segmentos</h3>
+                      {routeDistance.distanceDetails.map((segment, index) => (
+                        <div key={index} className="route-segment-card">
+                          <div className="route-segment-header">
+                            <div className="route-segment-number">
+                              {index + 1}
+                            </div>
+                            <div className="route-segment-locations">
+                              <div className="route-segment-from">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+                                  <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
+                                </svg>
+                                <span>{segment.from}</span>
+                              </div>
+                              <div className="route-segment-arrow">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M5 12l14 0"/>
+                                  <path d="M15 16l4 -4"/>
+                                  <path d="M15 8l4 4"/>
+                                </svg>
+                              </div>
+                              <div className="route-segment-to">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+                                  <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
+                                </svg>
+                                <span>{segment.to}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="route-segment-details">
+                            <div className="route-segment-distance">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 12h18"/>
+                                <path d="M12 3l3 6l3 -6"/>
+                                <path d="M12 21l3 -6l3 6"/>
+                              </svg>
+                              <span>{segment.distance.toFixed(2)} km</span>
+                            </div>
+                            <div className="route-segment-duration">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>
+                                <path d="M12 7l0 5l3 3"/>
+                              </svg>
+                              <span>{segment.duration.toFixed(1)} minutos</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Seção de preço - Após os detalhes dos segmentos */}
+                    <div className="route-price-container">
+                      <h3>Informações de Preço</h3>
+                      <div className="route-price-summary">
+                        <div className="route-price-card">
+                          <div className="route-price-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 1v22m5-18H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                          </div>
+                          <div className="route-price-content">
+                            <h3>Preço por KM</h3>
+                            <p>R$ {pricing?.kmRate.toFixed(2) || '0.00'}</p>
+                          </div>
+                        </div>
+
+                        <div className="route-price-card">
+                          <div className="route-price-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3" />
+                              <path d="M8 7V3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V7" />
+                              <path d="M12 12v4" />
+                              <path d="M8 12h8" />
+                            </svg>
+                          </div>
+                          <div className="route-price-content">
+                            <h3>Preço Base</h3>
+                            <p>R$ {routePrice ? routePrice.kmBasedPrice.toFixed(2) : '0.00'}</p>
+                          </div>
+                        </div>
+
+                        {routePrice && routePrice.minimumPrice !== null && (
+                          <div className="route-price-card">
+                            <div className="route-price-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+                              </svg>
+                            </div>
+                            <div className="route-price-content">
+                              <h3>Preço Mínimo</h3>
+                              <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="route-price-card final-price">
+                          <div className="route-price-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" />
+                              <path d="m9.7 16.3 4.6-4.6" />
+                              <path d="M15.5 11.2v-1.7h-1.7" />
+                              <path d="M9.8 12.5v1.7h1.7" />
+                            </svg>
+                          </div>
+                          <div className="route-price-content">
+                            <h3>Preço Final</h3>
+                            <p className="final-price-value">R$ {routePrice ? routePrice.finalPrice.toFixed(2) : '0.00'}</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            
-            <form onSubmit={handleSubmit}>
+                </>
+              )}
+
               <div className="form-actions all-buttons">
                 <button 
                   type="button"
@@ -1000,49 +1677,20 @@ const OrderForm = () => {
                 
                 <div className="right-actions">
                   <button 
-                    type="submit" 
-                    className="submit-button"
+                    type="button" 
+                    className="continue-button"
+                    onClick={handleSubmit}
                   >
                     Finalizar ordem
                   </button>
                 </div>
               </div>
-            </form>
-
-            {routeDistance && (
-              <div className="route-distance-summary">
-                <h3>Resumo da Rota</h3>
-                <div className="route-distance-details">
-                  <p>Distância Total: {routeDistance.totalDistance} km</p>
-                  <p>Número de Etapas: {routeDistance.totalSteps}</p>
-                  <details>
-                    <summary>Detalhes de cada segmento</summary>
-                    {routeDistance.distanceDetails.map((segment, index) => (
-                      <div key={index} className="route-segment">
-                        <p>
-                          {segment.from} → {segment.to}
-                          <br />
-                          Distância: {segment.distance.toFixed(2)} km
-                          <br />
-                          Duração: {segment.duration.toFixed(1)} minutos
-                        </p>
-                      </div>
-                    ))}
-                  </details>
-                </div>
-              </div>
-            )}
-
-            {routeDistanceError && (
-              <div className="route-distance-error">
-                <p>{routeDistanceError}</p>
-              </div>
-            )}
+            </div>
           </div>
         );
-        
+      
       default:
-        return <div>Etapa não encontrada</div>;
+        return null;
     }
   };
 
@@ -1072,7 +1720,7 @@ const OrderForm = () => {
           <div className="steps-indicator">
             <div 
               className={`step-indicator ${currentStep >= 1 ? 'active' : ''}`}
-              onClick={() => navigateToStep(1)}
+              onClick={() => navigateToStep(OrderFormStep.TransportType)}
               title={currentStep < 1 ? "Complete the previous step to access this" : ""}
             >
               <div className="step-number">1</div>
@@ -1081,7 +1729,7 @@ const OrderForm = () => {
             <div className="step-line"></div>
             <div 
               className={`step-indicator ${currentStep >= 2 ? 'active' : ''}`}
-              onClick={() => navigateToStep(2)}
+              onClick={() => navigateToStep(OrderFormStep.VehicleType)}
               title={currentStep < 2 ? "Complete the previous step to access this" : ""}
             >
               <div className="step-number">2</div>
@@ -1090,7 +1738,7 @@ const OrderForm = () => {
             <div className="step-line"></div>
             <div 
               className={`step-indicator ${currentStep >= 3 ? 'active' : ''}`}
-              onClick={() => navigateToStep(3)}
+              onClick={() => navigateToStep(OrderFormStep.Details)}
               title={currentStep < 3 ? "Complete the previous step to access this" : ""}
             >
               <div className="step-number">3</div>
@@ -1099,7 +1747,7 @@ const OrderForm = () => {
             <div className="step-line"></div>
             <div 
               className={`step-indicator ${currentStep >= 4 ? 'active' : ''}`}
-              onClick={() => navigateToStep(4)}
+              onClick={() => navigateToStep(OrderFormStep.StartEnd)}
               title={currentStep < 4 ? "Complete the previous step to access this" : ""}
             >
               <div className="step-number">4</div>
@@ -1108,11 +1756,20 @@ const OrderForm = () => {
             <div className="step-line"></div>
             <div 
               className={`step-indicator ${currentStep >= 5 ? 'active' : ''}`}
-              onClick={() => navigateToStep(5)}
+              onClick={() => navigateToStep(OrderFormStep.RouteOrganization)}
               title={currentStep < 5 ? "Complete the previous step to access this" : ""}
             >
               <div className="step-number">5</div>
               <div className="step-name">Organizar rota</div>
+            </div>
+            <div className="step-line"></div>
+            <div 
+              className={`step-indicator ${currentStep >= 6 ? 'active' : ''}`}
+              onClick={() => navigateToStep(OrderFormStep.RouteDetails)}
+              title={currentStep < 6 ? "Complete the previous step to access this" : ""}
+            >
+              <div className="step-number">6</div>
+              <div className="step-name">Detalhes da rota</div>
             </div>
           </div>
 
@@ -1131,8 +1788,18 @@ const OrderForm = () => {
             : undefined
         }
       />
+
+      {/* Add the address modal for custom locations */}
+      <AddressModal
+        isOpen={isCustomLocationAddressModalOpen}
+        onClose={() => setIsCustomLocationAddressModalOpen(false)}
+        onSave={handleCustomLocationAddressSave}
+        initialAddress={customStartLocation.address ? {
+          fullAddress: customStartLocation.address
+        } : undefined}
+      />
     </div>
   );
 };
 
-export default OrderForm; 
+export default OrderForm;

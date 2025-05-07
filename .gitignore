@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 .env
 
-pnpm-lock.yaml
+pnpm-lock.yaml.env

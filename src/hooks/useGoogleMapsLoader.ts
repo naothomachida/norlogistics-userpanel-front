@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_KEY = 'AIzaSyB2DImKHfFUTwXMi5I_CTDxn_JQgDpi93c';
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 export function useGoogleMapsLoader() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -13,6 +13,17 @@ export function useGoogleMapsLoader() {
       return;
     }
 
+    // Prevent multiple script loads
+    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+      return;
+    }
+
+    // Validate API key
+    if (!API_KEY) {
+      setError(new Error('Google Maps API key is missing'));
+      return;
+    }
+
     // Create script element
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`;
@@ -21,7 +32,18 @@ export function useGoogleMapsLoader() {
 
     // Handle successful script loading
     script.onload = () => {
-      setIsLoaded(true);
+      // Additional check to ensure Google Maps is actually loaded
+      const checkGoogleMapsLoaded = () => {
+        if (window.google?.maps) {
+          setIsLoaded(true);
+        } else {
+          // If not loaded after a delay, set an error
+          setError(new Error('Google Maps script loaded but API not available'));
+        }
+      };
+
+      // Wait a short time to ensure script is fully processed
+      setTimeout(checkGoogleMapsLoaded, 500);
     };
 
     // Handle script loading error
