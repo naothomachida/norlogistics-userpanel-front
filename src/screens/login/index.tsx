@@ -15,7 +15,6 @@ const Login: React.FC = () => {
     email: '',
     password: '',
   });
-  const [rememberMe, setRememberMe] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [showLoginInfo, setShowLoginInfo] = useState(true);
 
@@ -64,14 +63,7 @@ const Login: React.FC = () => {
 
     try {
       // Use a action do Redux para fazer login (vai simular o login para qualquer credencial)
-      const result = await dispatch(loginUser(credentials) as any);
-      
-      if (result.success) {
-        // Armazenar informação de login
-        if (rememberMe) {
-          localStorage.setItem('userEmail', credentials.email);
-        }
-      }
+      await dispatch(loginUser(credentials) as any);
     } catch (err) {
       setLocalError('Erro ao tentar fazer login. Tente novamente mais tarde.');
     }
@@ -141,10 +133,7 @@ const Login: React.FC = () => {
             </div>
             
             <div className="form-group">
-              <div className="password-label-row">
-                <label htmlFor="password">Senha</label>
-                <a href="#" className="forgot-password">Esqueceu a senha?</a>
-              </div>
+              <label htmlFor="password">Senha</label>
               <input
                 type="password"
                 id="password"
@@ -157,16 +146,6 @@ const Login: React.FC = () => {
             </div>
             
             <div className="login-options">
-              <div className="remember-me">
-                <input
-                  type="checkbox"
-                  id="remember-me"
-                  checked={rememberMe}
-                  onChange={() => setRememberMe(!rememberMe)}
-                />
-                <label htmlFor="remember-me">Lembrar-me</label>
-              </div>
-              
               {!showLoginInfo && (
                 <button 
                   type="button"

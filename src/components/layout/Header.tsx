@@ -124,12 +124,6 @@ const Header: React.FC = () => {
             Lista de usuários
           </Link>
           <Link 
-            to="/drivers" 
-            className={`header-nav-link ${isActive('/drivers') ? 'active' : ''}`}
-          >
-            Motoristas
-          </Link>
-          <Link 
             to="/settings" 
             className={`header-nav-link ${isActive('/settings') ? 'active' : ''}`}
           >
