@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { mockOrders } from '../data/mockOrders';
 
 interface OrderItem {
   name: string;
@@ -39,8 +40,13 @@ export interface Order {
   destination: string;
   startLocationId: string;
   endLocationId: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'en_route' | 'completed' | 'cancelled';
+  userId: string;
   driverId?: string;
+  driverPayment?: {
+    amount: number;
+    percentage?: number;
+  };
   items: {
     name: string;
     address: string;
@@ -76,14 +82,14 @@ interface OrdersState {
 }
 
 const initialState: OrdersState = {
-  orders: [],
+  orders: mockOrders,
 };
 
 const ordersSlice = createSlice({
   name: 'orders',
   initialState,
   reducers: {
-    addOrder: (state, action: PayloadAction<Omit<Order, 'id' | 'status'>>) => {
+    addOrder: (state, action: PayloadAction<Omit<Order, 'id' | 'status'> & { userId: string }>) => {
       const newOrder: Order = {
         ...action.payload,
         id: Date.now().toString(),
@@ -103,11 +109,27 @@ const ordersSlice = createSlice({
         order.driverId = action.payload.driverId;
       }
     },
+    updateDriverPayment: (state, action: PayloadAction<{ orderId: string, amount: number }>) => {
+      const order = state.orders.find(order => order.id === action.payload.orderId);
+      if (order && order.pricing) {
+        const percentage = (action.payload.amount / order.pricing.finalPrice) * 100;
+        order.driverPayment = {
+          amount: action.payload.amount,
+          percentage: Number(percentage.toFixed(2))
+        };
+      }
+    },
     removeOrder: (state, action: PayloadAction<string>) => {
       state.orders = state.orders.filter(order => order.id !== action.payload);
     }
   }
 });
 
-export const { addOrder, updateOrderStatus, assignDriverToOrder, removeOrder } = ordersSlice.actions;
+export const { 
+  addOrder, 
+  updateOrderStatus, 
+  assignDriverToOrder, 
+  updateDriverPayment, 
+  removeOrder 
+} = ordersSlice.actions;
 export default ordersSlice.reducer; 

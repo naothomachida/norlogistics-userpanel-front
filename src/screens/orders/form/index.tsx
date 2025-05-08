@@ -45,6 +45,9 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const locations = useSelector((state: RootState) => state.locations.locations);
   const pricing = useSelector((state: RootState) => state.pricing);
 
+  // Obter o perfil do usuário para pegar o ID do criador da ordem
+  const { userProfile } = useSelector((state: RootState) => state.auth);
+
   // Controles de etapas
   const [currentStep, setCurrentStep] = useState<OrderFormStep>(OrderFormStep.TransportType);
   
@@ -128,7 +131,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       }));
     } else {
       setCustomEndLocation(prev => ({
-        ...prev, 
+        ...prev,
         address: addressData.fullAddress || ''
       }));
     }
@@ -164,10 +167,10 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       setRouteDistanceError(null);
 
       // Optional: Log the results
-      console.log('🏁 Total Route Summary:');
+            console.log('🏁 Total Route Summary:');
       console.log(`   Total Distance: ${result.totalDistance.toFixed(2)} km`);
       console.log(`   Total Duration: ${result.totalDuration.toFixed(1)} minutes`);
-      console.log(`   Total Steps: ${result.totalSteps}`);
+            console.log(`   Total Steps: ${result.totalSteps}`);
 
       // Log distance details
       result.distanceDetails.forEach((segment, index) => {
@@ -493,7 +496,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const handleSubmit = async (e?: React.FormEvent) => {
     // Prevent default form submission if event is provided
     if (e) {
-      e.preventDefault();
+    e.preventDefault();
     }
 
     // Validate all required data
@@ -533,12 +536,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         transportType: (formData.transportType === 'person' || formData.transportType === 'cargo') 
           ? formData.transportType 
           : 'person', // Default to 'person' if type is invalid
-        vehicleType: formData.vehicleType,
+      vehicleType: formData.vehicleType,
         carModel: '', // TODO: Add car model selection
         pickupLocation: formData.startLocationId,
         destination: formData.endLocationId,
-        startLocationId: formData.startLocationId,
-        endLocationId: formData.endLocationId,
+      startLocationId: formData.startLocationId,
+      endLocationId: formData.endLocationId,
+        userId: userProfile?.id || '', // ID do usuário que está criando a ordem
         items: formData.items.map(item => ({
           name: item.name,
           address: item.address,
@@ -576,7 +580,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       dispatch(addOrder(orderData));
 
       // Navigate to orders list
-      navigate('/orders');
+    navigate('/orders');
     } catch (error) {
       console.error('Order submission error:', error);
       alert('Erro ao submeter ordem. Por favor, tente novamente.');
@@ -853,7 +857,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
             </div>
           </div>
         );
-      
+        
       case OrderFormStep.VehicleType:
         const vehicles = formData.transportType === 'person' 
           ? personVehicles 
@@ -884,7 +888,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
             </p>
           </div>
         );
-      
+        
       case OrderFormStep.Details:
         return (
           <div className="step-container">
@@ -1407,59 +1411,59 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
             </div>
           </div>
         );
-      
+        
       case OrderFormStep.RouteOrganization:
         return (
           <div className="step-container">
             <div className="route-container">
               {routePoints.map((point, index) => (
-                <div 
-                  key={point.id}
+                  <div 
+                    key={point.id}
                   className={`route-point ${draggedItemIndex === index ? 'dragging' : ''}`}
                   draggable
                   onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                >
-                  <div className="route-point-handle">
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="route-point-handle">
                     <DragHandleIcon />
-                  </div>
-                  <div className="route-point-number">{index + 1}</div>
-                  <div className="route-point-content">
-                    <div className="route-point-header">
-                      <div className="route-point-icon">
-                        {getLocationIcon(point.locationType || '', point.isCompany)}
-                      </div>
-                      <h3>{point.name}</h3>
                     </div>
-                    <p>{point.address}</p>
+                    <div className="route-point-number">{index + 1}</div>
+                    <div className="route-point-content">
+                      <div className="route-point-header">
+                        <div className="route-point-icon">
+                        {getLocationIcon(point.locationType || '', point.isCompany)}
+                        </div>
+                      <h3>{point.name}</h3>
+                      </div>
+                      <p>{point.address}</p>
                     {point.locationType && (
-                      <span className="location-type-badge">
+                        <span className="location-type-badge">
                         {point.locationType === 'airport' ? 'Aeroporto' :
                          point.locationType === 'hotel' ? 'Hotel' :
                          point.locationType === 'other' ? 'Outro Local' : ''}
-                      </span>
-                    )}
-                    {point.isCompany && <span className="company-badge">Empresa</span>}
+                        </span>
+                      )}
+                      {point.isCompany && <span className="company-badge">Empresa</span>}
                     {index === 0 && <span className="origin-badge">Origem</span>}
                     {index === routePoints.length - 1 && point.isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
                     {index === routePoints.length - 1 && !point.isLastPassenger && <span className="destination-badge">Destino</span>}
+                    </div>
                   </div>
-                </div>
               ))}
             </div>
             
-            <div className="form-actions all-buttons">
-              <button 
-                type="button"
-                onClick={goToPreviousStep}
-                className="back-button"
-              >
-                Voltar etapa
-              </button>
-              
-              <div className="right-actions">
+              <div className="form-actions all-buttons">
                 <button 
+                  type="button"
+                  onClick={goToPreviousStep}
+                  className="back-button"
+                >
+                  Voltar etapa
+                </button>
+                
+                <div className="right-actions">
+                  <button 
                   type="button" 
                   className="continue-button"
                   onClick={handleProceedToRouteDetails}
@@ -1490,9 +1494,9 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                       Avançar para cálculo
                     </>
                   )}
-                </button>
+                  </button>
+                </div>
               </div>
-            </div>
           </div>
         );
       
@@ -1501,11 +1505,11 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
           <div className="route-details-page">
             <div className="route-details-header">
               <h2 className="step-title">Resumo da Ordem</h2>
-              
-              {routeDistance && (
+
+            {routeDistance && (
                 <>
-                  <div className="route-distance-summary">
-                    <div className="route-distance-details">
+              <div className="route-distance-summary">
+                <div className="route-distance-details">
                       <div className="route-summary-card">
                         <div className="route-summary-icon">
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1550,7 +1554,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
                     <div className="route-segments-container">
                       <h3>Detalhes dos Segmentos</h3>
-                      {routeDistance.distanceDetails.map((segment, index) => (
+                    {routeDistance.distanceDetails.map((segment, index) => (
                         <div key={index} className="route-segment-card">
                           <div className="route-segment-header">
                             <div className="route-segment-number">
@@ -1597,8 +1601,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                               <span>{segment.duration.toFixed(1)} minutos</span>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                      </div>
+                    ))}
                     </div>
 
                     {/* Seção de preço - Após os detalhes dos segmentos */}
@@ -1642,9 +1646,9 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                             <div className="route-price-content">
                               <h3>Preço Mínimo</h3>
                               <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
-                            </div>
-                          </div>
-                        )}
+                </div>
+              </div>
+            )}
 
                         <div className="route-price-card final-price">
                           <div className="route-price-icon">
@@ -1654,7 +1658,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                               <path d="M15.5 11.2v-1.7h-1.7" />
                               <path d="M9.8 12.5v1.7h1.7" />
                             </svg>
-                          </div>
+              </div>
                           <div className="route-price-content">
                             <h3>Preço Final</h3>
                             <p className="final-price-value">R$ {routePrice ? routePrice.finalPrice.toFixed(2) : '0.00'}</p>
@@ -1688,7 +1692,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
             </div>
           </div>
         );
-      
+        
       default:
         return null;
     }

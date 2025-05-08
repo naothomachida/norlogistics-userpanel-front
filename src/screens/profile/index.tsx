@@ -1,15 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import Header from '../../components/layout/Header';
 import './profile.css';
 
 const Profile: React.FC = () => {
+  const userProfile = useSelector((state: RootState) => state.auth.userProfile);
+  
+  // Dados iniciais do perfil
   const [profileData, setProfileData] = useState({
-    name: 'João Silva',
-    email: 'joao.silva@example.com',
-    phone: '(11) 98765-4321',
-    position: 'Gerente de Transportes',
-    department: 'Logística',
-    photo: 'https://randomuser.me/api/portraits/men/32.jpg',
+    name: '',
+    email: '',
+    phone: '',
+    position: '',
+    department: '',
+    photo: '',
+    role: '',
+    driverInfo: {
+      licenseType: '',
+      licenseNumber: '',
+      experience: 0,
+      observations: ''
+    },
+    managedUsers: []
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -25,6 +38,62 @@ const Profile: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
+  // Atualizar dados do perfil quando o userProfile mudar
+  useEffect(() => {
+    if (userProfile) {
+      setProfileData({
+        name: userProfile.name || '',
+        email: userProfile.email || '',
+        phone: userProfile.phone || '',  // Agora considera o telefone do perfil se existir
+        position: getRoleDisplay(userProfile.role),
+        department: 'Logística',
+        photo: userProfile.avatarUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userProfile.name),
+        role: userProfile.role,
+        driverInfo: userProfile.driverInfo || {
+          licenseType: '',
+          licenseNumber: '',
+          experience: 0,
+          observations: ''
+        },
+        managedUsers: userProfile.managedUsers || []
+      });
+      
+      // Atualizar também os dados temporários
+      setTempProfileData({
+        name: userProfile.name || '',
+        email: userProfile.email || '',
+        phone: userProfile.phone || '',
+        position: getRoleDisplay(userProfile.role),
+        department: 'Logística',
+        photo: userProfile.avatarUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userProfile.name),
+        role: userProfile.role,
+        driverInfo: userProfile.driverInfo || {
+          licenseType: '',
+          licenseNumber: '',
+          experience: 0,
+          observations: ''
+        },
+        managedUsers: userProfile.managedUsers || []
+      });
+    }
+  }, [userProfile]);
+
+  // Função para obter o nome formatado do cargo com base na role
+  const getRoleDisplay = (role?: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Administrador';
+      case 'manager':
+        return 'Gerente';
+      case 'driver':
+        return 'Motorista';
+      case 'user':
+        return 'Usuário';
+      default:
+        return 'Não definido';
+    }
+  };
+  
   const handleEditToggle = () => {
     if (editMode) {
       // Cancel edit
@@ -34,12 +103,25 @@ const Profile: React.FC = () => {
     setEditMode(!editMode);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setTempProfileData({
-      ...tempProfileData,
-      [name]: value,
-    });
+    
+    // Verifica se o nome do campo contém ponto, indicando um campo aninhado
+    if (name.includes('.')) {
+      const [parentField, childField] = name.split('.');
+      setTempProfileData({
+        ...tempProfileData,
+        [parentField]: {
+          ...tempProfileData[parentField as keyof typeof tempProfileData],
+          [childField]: value
+        }
+      });
+    } else {
+      setTempProfileData({
+        ...tempProfileData,
+        [name]: value,
+      });
+    }
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,6 +183,25 @@ const Profile: React.FC = () => {
       setPasswordSuccess(false);
     }, 3000);
   };
+
+  // Se não houver usuário logado, não renderizar a página
+  if (!userProfile) {
+    return (
+      <div className="profile-page">
+        <Header />
+        <div className="profile-content">
+          <main className="profile-main">
+            <div className="profile-title-row">
+              <h1 className="profile-title">Perfil</h1>
+            </div>
+            <div className="profile-card">
+              <p>Usuário não encontrado. Por favor, faça login novamente.</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page">
@@ -205,6 +306,7 @@ const Profile: React.FC = () => {
                     value={tempProfileData.position}
                     onChange={handleInputChange}
                     placeholder="Cargo"
+                    disabled={true}
                   />
                 </div>
                 <div className="form-group">
@@ -218,6 +320,64 @@ const Profile: React.FC = () => {
                     placeholder="Departamento"
                   />
                 </div>
+                
+                {/* Campos adicionais específicos para motoristas */}
+                {userProfile.role === 'driver' && (
+                  <>
+                    <h3 className="detail-section-title">Informações do Motorista</h3>
+                    
+                    <div className="form-group">
+                      <label htmlFor="driverInfo.licenseType">Tipo de CNH</label>
+                      <input
+                        type="text"
+                        id="driverInfo.licenseType"
+                        name="driverInfo.licenseType"
+                        value={tempProfileData.driverInfo?.licenseType}
+                        onChange={handleInputChange}
+                        placeholder="Tipo da CNH"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="driverInfo.licenseNumber">Número da CNH</label>
+                      <input
+                        type="text"
+                        id="driverInfo.licenseNumber"
+                        name="driverInfo.licenseNumber"
+                        value={tempProfileData.driverInfo?.licenseNumber}
+                        onChange={handleInputChange}
+                        placeholder="Número da CNH"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="driverInfo.experience">Anos de Experiência</label>
+                      <input
+                        type="number"
+                        id="driverInfo.experience"
+                        name="driverInfo.experience"
+                        value={tempProfileData.driverInfo?.experience}
+                        onChange={handleInputChange}
+                        placeholder="Anos de experiência"
+                        min="0"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="driverInfo.observations">Observações</label>
+                      <textarea
+                        id="driverInfo.observations"
+                        name="driverInfo.observations"
+                        value={tempProfileData.driverInfo?.observations}
+                        onChange={handleInputChange}
+                        placeholder="Informações adicionais"
+                        className="profile-textarea"
+                        rows={4}
+                      />
+                    </div>
+                  </>
+                )}
+                
                 <div className="form-actions">
                   <button 
                     type="submit" 
@@ -227,7 +387,7 @@ const Profile: React.FC = () => {
                   </button>
                 </div>
               </form>
-            ) :
+            ) : (
               <div className="profile-details">
                 <div className="detail-row">
                   <span className="detail-label">Nome:</span>
@@ -239,7 +399,7 @@ const Profile: React.FC = () => {
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Telefone:</span>
-                  <span className="detail-value">{profileData.phone}</span>
+                  <span className="detail-value">{profileData.phone || 'Não informado'}</span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Cargo:</span>
@@ -249,70 +409,157 @@ const Profile: React.FC = () => {
                   <span className="detail-label">Departamento:</span>
                   <span className="detail-value">{profileData.department}</span>
                 </div>
+                
+                {/* Informações adicionais específicas de perfil */}
+                {userProfile.role === 'driver' && userProfile.driverInfo && (
+                  <>
+                    <div className="detail-divider"></div>
+                    <h3 className="detail-section-title">Informações do Motorista</h3>
+                    
+                    <div className="detail-row">
+                      <span className="detail-label">CNH:</span>
+                      <span className="detail-value">
+                        {userProfile.driverInfo.licenseType || '-'} 
+                        {userProfile.driverInfo.licenseNumber ? ` - ${userProfile.driverInfo.licenseNumber}` : ''}
+                      </span>
+                    </div>
+                    
+                    {userProfile.driverInfo.experience && (
+                      <div className="detail-row">
+                        <span className="detail-label">Experiência:</span>
+                        <span className="detail-value">
+                          {userProfile.driverInfo.experience} {userProfile.driverInfo.experience === 1 ? 'ano' : 'anos'}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {userProfile.driverInfo.observations && (
+                      <div className="detail-row">
+                        <span className="detail-label">Observações:</span>
+                        <span className="detail-value">{userProfile.driverInfo.observations}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {userProfile.role === 'manager' && userProfile.managedUsers && (
+                  <>
+                    <div className="detail-divider"></div>
+                    <h3 className="detail-section-title">Informações do Gerente</h3>
+                    
+                    <div className="detail-row">
+                      <span className="detail-label">Equipe:</span>
+                      <span className="detail-value">
+                        {userProfile.managedUsers.length} {userProfile.managedUsers.length === 1 ? 'membro' : 'membros'}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
-            }
+            )}
           </div>
 
-          <div className="profile-title-row" style={{ marginTop: '3rem' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <h2 className="profile-section-title">Alterar senha</h2>
-            </div>
-          </div>
+          <div className="password-card">
+            <h2 className="card-title">Alterar Senha</h2>
+            
+            {passwordSuccess && (
+              <div className="success-message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Senha atualizada!
+              </div>
+            )}
+            
+            <form onSubmit={handlePasswordSubmit} className="password-form">
+              <div className="password-section">
+                <h3 className="password-section-title">Verificação de Identidade</h3>
+                <p className="password-section-description">
+                  Digite sua senha atual para confirmar sua identidade
+                </p>
+                <div className="form-group current-password-group">
+                  <label htmlFor="currentPassword">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 11H5V21H19V11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M17 9V8C17 5.23858 14.7614 3 12 3C9.23858 3 7 5.23858 7 8V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12 16.5C12.8284 16.5 13.5 15.8284 13.5 15C13.5 14.1716 12.8284 13.5 12 13.5C11.1716 13.5 10.5 14.1716 10.5 15C10.5 15.8284 11.1716 16.5 12 16.5Z" fill="currentColor"/>
+                    </svg>
+                    Senha Atual
+                  </label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Digite sua senha atual"
+                    required
+                    className="current-password-input"
+                  />
+                </div>
+              </div>
 
-          {passwordSuccess && (
-            <div className="success-message">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              Senha atualizada!
-            </div>
-          )}
-
-          <div className="profile-card">
-            <form onSubmit={handlePasswordSubmit} className="profile-form">
-              <div className="form-group">
-                <label htmlFor="currentPassword">Senha atual</label>
-                <input
-                  type="password"
-                  id="currentPassword"
-                  name="currentPassword"
-                  value={passwordData.currentPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Senha atual"
-                  required
-                />
+              <div className="password-section">
+                <h3 className="password-section-title">Nova Senha</h3>
+                <p className="password-section-description">
+                  Defina uma nova senha forte para sua conta
+                </p>
+                <div className="form-group">
+                  <label htmlFor="newPassword">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 11H5V21H19V11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M17 7V8C17 5.23858 14.7614 3 12 3C9.23858 3 7 5.23858 7 8V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="16" r="2" fill="currentColor"/>
+                      <path d="M12 16V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Nova Senha
+                  </label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Digite a nova senha"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Confirmar Senha
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Confirme a nova senha"
+                    required
+                  />
+                  {passwordData.newPassword && passwordData.confirmPassword && 
+                   passwordData.newPassword !== passwordData.confirmPassword && (
+                    <div className="password-mismatch">
+                      As senhas não conferem
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="form-group">
-                <label htmlFor="newPassword">Nova senha</label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  name="newPassword"
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Nova senha"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirmar senha</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={passwordData.confirmPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Confirmar senha"
-                  required
-                />
-              </div>
+              
               <div className="form-actions">
                 <button 
                   type="submit" 
                   className="submit-button"
+                  disabled={!passwordData.currentPassword || !passwordData.newPassword || passwordData.newPassword !== passwordData.confirmPassword}
                 >
-                  Atualizar
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: "8px" }}>
+                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Atualizar Senha
                 </button>
               </div>
             </form>

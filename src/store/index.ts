@@ -1,19 +1,25 @@
 import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './authSlice';
 import ordersReducer from './ordersSlice';
-import vehicleTypesReducer from './vehicleTypesSlice';
-import locationReducer from './locationSlice';
-import driversReducer from './driversSlice';
 import pricingReducer from './pricingSlice';
+import locationsReducer from './locationSlice';
+import vehicleTypesReducer from './vehicleTypesSlice';
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     orders: ordersReducer,
+    pricing: pricingReducer,
+    locations: locationsReducer,
     vehicleTypes: vehicleTypesReducer,
-    locations: locationReducer,
-    drivers: driversReducer,
-    pricing: pricingReducer
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch; 
+export type AppDispatch = typeof store.dispatch;
+
+export default store; 

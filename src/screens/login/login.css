@@ -117,8 +117,8 @@
 
 .login-options {
   display: flex;
-  justify-content: flex-start;
-  margin-bottom: 1.5rem;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .remember-me {
@@ -212,4 +212,142 @@
   .login-card h2 {
     font-size: 1.5rem;
   }
+}
+
+.login-test-credentials {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.login-test-credentials p {
+  color: #666;
+  margin: 0;
+  font-size: 14px;
+}
+
+.login-test-credentials small {
+  background-color: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px dashed #ccc;
+}
+
+/* Estilos para o painel de informações de login */
+.login-info-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 350px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.login-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #7036d3;
+  color: white;
+}
+
+.login-info-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  transform: scale(1.1);
+}
+
+.login-info-content {
+  padding: 16px;
+}
+
+.login-info-content p {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #555;
+  font-size: 14px;
+}
+
+.login-info-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.login-info-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.login-info-card:hover {
+  background-color: #f0f0ff;
+  border-color: #7036d3;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-info-card h4 {
+  margin: 0 0 8px 0;
+  color: #7036d3;
+  font-size: 16px;
+}
+
+.login-info-card p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #444;
+}
+
+.show-credentials-button {
+  background: none;
+  border: none;
+  color: #7036d3;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.show-credentials-button:hover {
+  color: #5024a5;
 } 

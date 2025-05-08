@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../../store';
-import { updateOrderStatus, removeOrder } from '../../../store/ordersSlice';
+import { removeOrder } from '../../../store/ordersSlice';
 import Header from '../../../components/layout/Header';
 import { useNavigate } from 'react-router-dom';
 import './order-list.css';
@@ -91,6 +91,7 @@ const getLocationIcon = (point: any) => {
 
 const OrderList: React.FC = () => {
   const orders = useSelector((state: RootState) => state.orders.orders);
+  const { userProfile, users } = useSelector((state: RootState) => state.auth);
   const dispatch: AppDispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -161,9 +162,45 @@ const OrderList: React.FC = () => {
     return null;
   };
 
-  // Filtragem dos pedidos
+  // Primeiro filtramos as ordens com base na role do usuário
+  const roleFilteredOrders = useMemo(() => {
+    if (!userProfile) return [];
+
+    // Para admin, mostrar todas as ordens
+    if (userProfile.role === 'admin') {
+      return orders;
+    }
+
+    // Para user, mostrar apenas ordens criadas por esse usuário
+    if (userProfile.role === 'user') {
+      return orders.filter(order => order.userId === userProfile.id);
+    }
+
+    // Para manager, mostrar ordens criadas pelo gerente ou por usuários gerenciados por ele
+    if (userProfile.role === 'manager') {
+      // Identificar IDs de usuários gerenciados por este gerente
+      const managedUserIds = userProfile.managedUsers || [];
+      
+      return orders.filter(order => 
+        // Ordens criadas pelo próprio gerente
+        order.userId === userProfile.id || 
+        // Ordens criadas por usuários gerenciados pelo gerente
+        managedUserIds.includes(order.userId)
+      );
+    }
+
+    // Para motoristas (driver), mostrar apenas ordens em que ele está atribuído
+    if (userProfile.role === 'driver') {
+      return orders.filter(order => order.driverId === userProfile.id);
+    }
+
+    // Para outros roles, mostrar apenas suas próprias ordens
+    return orders.filter(order => order.userId === userProfile.id);
+  }, [orders, userProfile]);
+
+  // Depois aplicamos os filtros adicionais
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
+    return roleFilteredOrders.filter(order => {
       // Filtro por status
       if (filters.status !== 'all' && order.status !== filters.status) {
         return false;
@@ -201,11 +238,7 @@ const OrderList: React.FC = () => {
       
       return true;
     });
-  }, [orders, filters]);
-
-  const handleStatusChange = (id: string, newStatus: 'pending' | 'in_progress' | 'en_route' | 'completed' | 'cancelled') => {
-    dispatch(updateOrderStatus({ id, status: newStatus }));
-  };
+  }, [roleFilteredOrders, filters]);
 
   const handleRemoveOrder = (id: string) => {
     if (window.confirm('Tem certeza que deseja remover esta solicitação?')) {
@@ -218,7 +251,7 @@ const OrderList: React.FC = () => {
     const translations: Record<string, string> = {
       'all': 'Todos',
       'pending': 'Pendente',
-      'in_progress': 'Em andamento',
+      'in_progress': 'Aprovado',
       'en_route': 'Em rota',
       'completed': 'Concluído',
       'cancelled': 'Cancelado'
@@ -244,6 +277,29 @@ const OrderList: React.FC = () => {
     return translations[range] || range;
   };
 
+  // Obter mensagem baseada na role do usuário
+  const roleMessage = useMemo(() => {
+    if (!userProfile) return '';
+
+    switch (userProfile.role) {
+      case 'admin':
+        return 'Visualizando todas as solicitações como Administrador';
+      case 'user':
+        return 'Visualizando apenas suas solicitações';
+      case 'manager':
+        return 'Visualizando suas solicitações e as de seus usuários gerenciados';
+      case 'driver':
+        return 'Visualizando apenas solicitações atribuídas a você como motorista';
+      default:
+        return '';
+    }
+  }, [userProfile]);
+
+  // Verificar se o usuário tem permissão para excluir solicitações
+  const canDeleteOrders = useMemo(() => {
+    return userProfile?.role === 'admin' || userProfile?.role === 'manager';
+  }, [userProfile]);
+
   return (
     <div className="orders-page">
       <Header />
@@ -255,15 +311,17 @@ const OrderList: React.FC = () => {
               <span className="orders-title-count">{filteredOrders.length}</span>
             </div>
             <div className="action-buttons">
-              <button 
-                className="action-button new-order"
-                onClick={() => navigate('/orders/new')}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-                </svg>
-                Nova solicitação
-              </button>
+              {(userProfile?.role === 'admin' || userProfile?.role === 'user') && (
+                <button 
+                  className="action-button new-order"
+                  onClick={() => navigate('/orders/new')}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+                  </svg>
+                  Nova solicitação
+                </button>
+              )}
               <button className="action-button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor" />
@@ -272,6 +330,12 @@ const OrderList: React.FC = () => {
               </button>
             </div>
           </div>
+          
+          {roleMessage && (
+            <div className="role-filter-info">
+              {roleMessage}
+            </div>
+          )}
 
           <div className="orders-filters">
             <div className="filter-group filter-dropdown">
@@ -306,7 +370,7 @@ const OrderList: React.FC = () => {
                     className={`filter-option ${filters.status === 'in_progress' ? 'selected' : ''}`} 
                     onClick={() => updateFilter('status', 'in_progress')}
                   >
-                    Em andamento
+                    Aprovado
                   </div>
                   <div 
                     className={`filter-option ${filters.status === 'en_route' ? 'selected' : ''}`} 
@@ -454,16 +518,18 @@ const OrderList: React.FC = () => {
                   Limpar filtros
                 </button>
               )}
-              <button 
-                className="action-button" 
-                style={{ margin: '1rem auto', display: 'flex' }}
-                onClick={() => navigate('/orders/new')}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-                </svg>
-                Nova solicitação
-              </button>
+              {(userProfile?.role === 'admin' || userProfile?.role === 'user') && (
+                <button 
+                  className="action-button" 
+                  style={{ margin: '1rem auto', display: 'flex' }}
+                  onClick={() => navigate('/orders/new')}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+                  </svg>
+                  Nova solicitação
+                </button>
+              )}
             </div>
           ) : (
             <div className="orders-table-container">
@@ -476,12 +542,13 @@ const OrderList: React.FC = () => {
                     <th>Destino</th>
                     <th>Paradas</th>
                     <th>Status</th>
+                    {userProfile?.role !== 'driver' && <th>Motorista</th>}
                     <th style={{textAlign: 'center'}}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOrders.map((order) => (
-                    <tr key={order.id}>
+                    <tr key={order.id} className={order.driverId ? 'has-driver' : ''}>
                       <td className="transport-type-cell">
                         <span className={`transport-badge ${order.transportType || 'unknown'}`}>
                           {translateTransportType(order.transportType)}
@@ -500,20 +567,29 @@ const OrderList: React.FC = () => {
                       </td>
                       <td>{order.routePoints?.length || 0}</td>
                       <td>
-                        <div className="status-select">
-                          <select 
-                            value={order.status}
-                            onChange={(e) => handleStatusChange(order.id, e.target.value as any)}
-                            className={`status-${order.status}`}
-                          >
-                            <option value="pending">Pendente</option>
-                            <option value="in_progress">Em andamento</option>
-                            <option value="en_route">Em rota</option>
-                            <option value="completed">Concluído</option>
-                            <option value="cancelled">Cancelado</option>
-                          </select>
-                        </div>
+                        <span className={`status-${order.status}`}>
+                          {translateStatus(order.status)}
+                        </span>
                       </td>
+                      {userProfile?.role !== 'driver' && (
+                        <td>
+                          {order.driverId ? (
+                            <span className="driver-assigned">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#16a34a"/>
+                              </svg>
+                              {users.find(u => u.id === order.driverId)?.name || 'Motorista atribuído'}
+                            </span>
+                          ) : (
+                            <span className="no-driver">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z" fill="#ef4444"/>
+                              </svg>
+                              Sem motorista
+                            </span>
+                          )}
+                        </td>
+                      )}
                       <td>
                         <div className="action-icons">
                           <button 
@@ -526,16 +602,18 @@ const OrderList: React.FC = () => {
                             </svg>
                             Ver Ordem
                           </button>
-                          <button 
-                            className="action-icon delete-order"
-                            onClick={() => handleRemoveOrder(order.id)}
-                            title="Excluir ordem"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4zM8 12v8h8v-8H8z" fill="currentColor"/>
-                            </svg>
-                            Excluir
-                          </button>
+                          {canDeleteOrders && (
+                            <button 
+                              className="action-icon delete-order"
+                              onClick={() => handleRemoveOrder(order.id)}
+                              title="Excluir ordem"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4zM8 12v8h8v-8H8z" fill="currentColor"/>
+                              </svg>
+                              Excluir
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

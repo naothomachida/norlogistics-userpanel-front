@@ -35,7 +35,7 @@ export function useGoogleMapsLoader() {
       // Additional check to ensure Google Maps is actually loaded
       const checkGoogleMapsLoaded = () => {
         if (window.google?.maps) {
-          setIsLoaded(true);
+      setIsLoaded(true);
         } else {
           // If not loaded after a delay, set an error
           setError(new Error('Google Maps script loaded but API not available'));
