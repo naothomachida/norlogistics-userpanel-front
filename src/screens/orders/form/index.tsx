@@ -147,7 +147,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         point.fullAddress || 
         `${point.address}, ${point.city || ''} ${point.state || ''}`.trim()
       );
-      
+
       // Calculate route distance using Mapbox
       const result = await calculateRouteDistance(addresses);
 
@@ -160,7 +160,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         setRoutePrice(priceResult);
         if (priceResult) {
           console.log('💸 Valor total calculado: R$ ' + priceResult.finalPrice.toFixed(2));
-        }
+              }
       }
 
       // Clear any previous errors
@@ -199,7 +199,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
             break;
           default:
             setRouteDistanceError('Falha ao calcular a distância da rota. Verifique sua conexão de internet e os endereços.');
-        }
+    }
       } else {
         setRouteDistanceError('Falha ao calcular a distância da rota. Tente novamente.');
       }

@@ -15,14 +15,7 @@ const Profile: React.FC = () => {
     position: '',
     department: '',
     photo: '',
-    role: '',
-    driverInfo: {
-      licenseType: '',
-      licenseNumber: '',
-      experience: 0,
-      observations: ''
-    },
-    managedUsers: []
+    role: ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -44,36 +37,22 @@ const Profile: React.FC = () => {
       setProfileData({
         name: userProfile.name || '',
         email: userProfile.email || '',
-        phone: userProfile.phone || '',  // Agora considera o telefone do perfil se existir
+        phone: '',  // Propriedade não existe no userProfile, usando valor padrão
         position: getRoleDisplay(userProfile.role),
         department: 'Logística',
         photo: userProfile.avatarUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userProfile.name),
-        role: userProfile.role,
-        driverInfo: userProfile.driverInfo || {
-          licenseType: '',
-          licenseNumber: '',
-          experience: 0,
-          observations: ''
-        },
-        managedUsers: userProfile.managedUsers || []
+        role: userProfile.role
       });
       
       // Atualizar também os dados temporários
       setTempProfileData({
         name: userProfile.name || '',
         email: userProfile.email || '',
-        phone: userProfile.phone || '',
+        phone: '',  // Propriedade não existe no userProfile, usando valor padrão
         position: getRoleDisplay(userProfile.role),
         department: 'Logística',
         photo: userProfile.avatarUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userProfile.name),
-        role: userProfile.role,
-        driverInfo: userProfile.driverInfo || {
-          licenseType: '',
-          licenseNumber: '',
-          experience: 0,
-          observations: ''
-        },
-        managedUsers: userProfile.managedUsers || []
+        role: userProfile.role
       });
     }
   }, [userProfile]);
@@ -103,25 +82,12 @@ const Profile: React.FC = () => {
     setEditMode(!editMode);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
-    // Verifica se o nome do campo contém ponto, indicando um campo aninhado
-    if (name.includes('.')) {
-      const [parentField, childField] = name.split('.');
-      setTempProfileData({
-        ...tempProfileData,
-        [parentField]: {
-          ...tempProfileData[parentField as keyof typeof tempProfileData],
-          [childField]: value
-        }
-      });
-    } else {
-      setTempProfileData({
-        ...tempProfileData,
-        [name]: value,
-      });
-    }
+    setTempProfileData({
+      ...tempProfileData,
+      [name]: value,
+    });
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,64 +286,6 @@ const Profile: React.FC = () => {
                     placeholder="Departamento"
                   />
                 </div>
-                
-                {/* Campos adicionais específicos para motoristas */}
-                {userProfile.role === 'driver' && (
-                  <>
-                    <h3 className="detail-section-title">Informações do Motorista</h3>
-                    
-                    <div className="form-group">
-                      <label htmlFor="driverInfo.licenseType">Tipo de CNH</label>
-                      <input
-                        type="text"
-                        id="driverInfo.licenseType"
-                        name="driverInfo.licenseType"
-                        value={tempProfileData.driverInfo?.licenseType}
-                        onChange={handleInputChange}
-                        placeholder="Tipo da CNH"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="driverInfo.licenseNumber">Número da CNH</label>
-                      <input
-                        type="text"
-                        id="driverInfo.licenseNumber"
-                        name="driverInfo.licenseNumber"
-                        value={tempProfileData.driverInfo?.licenseNumber}
-                        onChange={handleInputChange}
-                        placeholder="Número da CNH"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="driverInfo.experience">Anos de Experiência</label>
-                      <input
-                        type="number"
-                        id="driverInfo.experience"
-                        name="driverInfo.experience"
-                        value={tempProfileData.driverInfo?.experience}
-                        onChange={handleInputChange}
-                        placeholder="Anos de experiência"
-                        min="0"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="driverInfo.observations">Observações</label>
-                      <textarea
-                        id="driverInfo.observations"
-                        name="driverInfo.observations"
-                        value={tempProfileData.driverInfo?.observations}
-                        onChange={handleInputChange}
-                        placeholder="Informações adicionais"
-                        className="profile-textarea"
-                        rows={4}
-                      />
-                    </div>
-                  </>
-                )}
-                
                 <div className="form-actions">
                   <button 
                     type="submit" 
