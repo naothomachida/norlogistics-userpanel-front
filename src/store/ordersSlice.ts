@@ -29,6 +29,8 @@ export interface RoutePoint {
     height: string;
   };
   phone?: string;
+  isToll?: boolean;
+  tollValue?: number;
 }
 
 export interface Order {
@@ -40,13 +42,20 @@ export interface Order {
   destination: string;
   startLocationId: string;
   endLocationId: string;
-  status: 'pending' | 'in_progress' | 'en_route' | 'completed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'en_route' | 'completed' | 'cancelled' | 'approved';
   userId: string;
   driverId?: string;
+  approvedBy?: string;
   driverPayment?: {
     amount: number;
     percentage?: number;
   };
+  extraFinancialEntries?: {
+    id: string;
+    description: string;
+    amount: number;
+    type: 'increase' | 'decrease';
+  }[];
   items: {
     name: string;
     address: string;
@@ -74,6 +83,7 @@ export interface Order {
     kmBasedPrice: number;
     minimumPrice: number | null;
     finalPrice: number;
+    tollsTotal?: number;
   };
 }
 
@@ -89,11 +99,11 @@ const ordersSlice = createSlice({
   name: 'orders',
   initialState,
   reducers: {
-    addOrder: (state, action: PayloadAction<Omit<Order, 'id' | 'status'> & { userId: string }>) => {
+    addOrder: (state, action: PayloadAction<Omit<Order, 'id'> & { userId: string, status?: Order['status'], approvedBy?: string }>) => {
       const newOrder: Order = {
         ...action.payload,
         id: Date.now().toString(),
-        status: 'pending'
+        status: action.payload.status || 'pending'
       };
       state.orders.push(newOrder);
     },
@@ -121,6 +131,37 @@ const ordersSlice = createSlice({
     },
     removeOrder: (state, action: PayloadAction<string>) => {
       state.orders = state.orders.filter(order => order.id !== action.payload);
+    },
+    addExtraFinancialEntry: (state, action: PayloadAction<{ 
+      orderId: string, 
+      entry: { 
+        description: string, 
+        amount: number, 
+        type: 'increase' | 'decrease' 
+      } 
+    }>) => {
+      const order = state.orders.find(order => order.id === action.payload.orderId);
+      if (order) {
+        if (!order.extraFinancialEntries) {
+          order.extraFinancialEntries = [];
+        }
+        
+        order.extraFinancialEntries.push({
+          id: Date.now().toString(),
+          ...action.payload.entry
+        });
+      }
+    },
+    removeExtraFinancialEntry: (state, action: PayloadAction<{ 
+      orderId: string, 
+      entryId: string 
+    }>) => {
+      const order = state.orders.find(order => order.id === action.payload.orderId);
+      if (order && order.extraFinancialEntries) {
+        order.extraFinancialEntries = order.extraFinancialEntries.filter(
+          entry => entry.id !== action.payload.entryId
+        );
+      }
     }
   }
 });
@@ -130,6 +171,8 @@ export const {
   updateOrderStatus, 
   assignDriverToOrder, 
   updateDriverPayment, 
-  removeOrder 
+  removeOrder,
+  addExtraFinancialEntry,
+  removeExtraFinancialEntry
 } = ordersSlice.actions;
 export default ordersSlice.reducer; 

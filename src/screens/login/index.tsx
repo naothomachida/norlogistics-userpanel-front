@@ -133,7 +133,7 @@ const Login: React.FC = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="password">Senha</label>
+                <label htmlFor="password">Senha</label>
               <input
                 type="password"
                 id="password"

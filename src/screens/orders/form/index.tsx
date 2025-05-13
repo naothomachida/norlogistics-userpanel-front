@@ -84,6 +84,11 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   // Add state for custom location address modal
   const [isCustomLocationAddressModalOpen, setIsCustomLocationAddressModalOpen] = useState(false);
 
+  // Estado para o modal de pedágio
+  const [isTollModalOpen, setIsTollModalOpen] = useState(false);
+  const [tollValue, setTollValue] = useState<string>('');
+  const [tollPosition, setTollPosition] = useState<number | null>(null);
+
   // Verificar se há itens válidos para definir o último passageiro como destino
   const hasValidItems = useMemo(() => {
     return formData.items.some(item => item.name && item.address);
@@ -100,6 +105,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     kmBasedPrice: number;
     minimumPrice: number | null;
     finalPrice: number;
+    tollsTotal?: number;
   } | null>(null);
 
   // Use Google Maps loader hook
@@ -121,6 +127,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
   // Add loading state near other state declarations
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+
+  // Estado para controlar o modal de aprovação
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [approvalData, setApprovalData] = useState({
+    approvalType: 'manager', // 'direct' para aprovação direta ou 'manager' para aprovação via gestor
+    approvedBy: '',
+  });
 
   const handleCustomLocationAddressSave = (addressData: DetailedAddress) => {
     // Update custom location based on the current modal type (start or end)
@@ -493,10 +506,65 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     setDraggedItemIndex(null);
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  // Função para abrir o modal de pedágio
+  const openTollModal = (position: number) => {
+    setTollPosition(position);
+    setTollValue('');
+    setIsTollModalOpen(true);
+  };
+
+  // Função para fechar o modal de pedágio
+  const closeTollModal = () => {
+    setIsTollModalOpen(false);
+    setTollPosition(null);
+  };
+
+  // Função para adicionar um pedágio
+  const addToll = () => {
+    if (tollPosition === null || !tollValue || isNaN(parseFloat(tollValue)) || parseFloat(tollValue) <= 0) {
+      alert('Por favor, insira um valor válido para o pedágio.');
+      return;
+    }
+
+    const tollValueNumber = parseFloat(tollValue);
+    
+    // Criar um novo ponto de rota para o pedágio
+    const newTollPoint: RoutePoint = {
+      id: `toll-${Date.now()}`,
+      name: `Pedágio R$ ${tollValueNumber.toFixed(2)}`,
+      address: `Entre ${routePoints[tollPosition].name} e ${routePoints[tollPosition + 1]?.name || 'destino'}`,
+      isToll: true,
+      tollValue: tollValueNumber
+    };
+    
+    // Inserir o pedágio na posição correta
+    const newRoutePoints = [...routePoints];
+    newRoutePoints.splice(tollPosition + 1, 0, newTollPoint);
+    
+    // Atualizar os pontos da rota
+    setRoutePoints(newRoutePoints);
+    
+    // Fechar o modal
+    closeTollModal();
+  };
+
+  // Função para remover um pedágio
+  const removeToll = (index: number) => {
+    const newRoutePoints = routePoints.filter((_, i) => i !== index);
+    setRoutePoints(newRoutePoints);
+  };
+
+  // Função para calcular o total de pedágios
+  const calculateTollsTotal = (): number => {
+    return routePoints
+      .filter(point => point.isToll && point.tollValue)
+      .reduce((total, point) => total + (point.tollValue || 0), 0);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent, status?: Order['status'], approvedBy?: string) => {
     // Prevent default form submission if event is provided
     if (e) {
-    e.preventDefault();
+      e.preventDefault();
     }
 
     // Validate all required data
@@ -532,17 +600,19 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
     try {
       // Prepare order data for submission
-      const orderData: Omit<Order, 'id' | 'status'> = {
+      const orderData: Omit<Order, 'id'> = {
         transportType: (formData.transportType === 'person' || formData.transportType === 'cargo') 
           ? formData.transportType 
           : 'person', // Default to 'person' if type is invalid
-      vehicleType: formData.vehicleType,
+        vehicleType: formData.vehicleType,
         carModel: '', // TODO: Add car model selection
         pickupLocation: formData.startLocationId,
         destination: formData.endLocationId,
-      startLocationId: formData.startLocationId,
-      endLocationId: formData.endLocationId,
+        startLocationId: formData.startLocationId,
+        endLocationId: formData.endLocationId,
         userId: userProfile?.id || '', // ID do usuário que está criando a ordem
+        status: status || 'pending',
+        approvedBy: approvedBy || undefined,
         items: formData.items.map(item => ({
           name: item.name,
           address: item.address,
@@ -567,7 +637,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
           kmRate: pricing.kmRate,
           kmBasedPrice: routePrice.kmBasedPrice,
           minimumPrice: routePrice.minimumPrice,
-          finalPrice: routePrice.finalPrice
+          finalPrice: routePrice.finalPrice,
+          tollsTotal: routePrice.tollsTotal
         } : undefined
       };
 
@@ -580,7 +651,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       dispatch(addOrder(orderData));
 
       // Navigate to orders list
-    navigate('/orders');
+      navigate('/orders');
     } catch (error) {
       console.error('Order submission error:', error);
       alert('Erro ao submeter ordem. Por favor, tente novamente.');
@@ -780,8 +851,12 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       minimumPrice = cityPair.minimumPrice;
     }
 
-    // Determinar o preço final (o maior entre o preço por km e o preço mínimo)
-    const finalPrice = minimumPrice !== null ? Math.max(kmBasedPrice, minimumPrice) : kmBasedPrice;
+    // Calcular o total de pedágios
+    const tollsTotal = calculateTollsTotal();
+
+    // Determinar o preço final (o maior entre o preço por km e o preço mínimo) + pedágios
+    const basePrice = minimumPrice !== null ? Math.max(kmBasedPrice, minimumPrice) : kmBasedPrice;
+    const finalPrice = basePrice + tollsTotal;
 
     // Log detalhado do cálculo do preço em reais
     console.log('💰 Detalhes do cálculo de preço:');
@@ -791,15 +866,22 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     
     if (minimumPrice !== null) {
       console.log(`   Preço mínimo para rota ${startCity}-${endCity}: R$ ${minimumPrice.toFixed(2)}`);
-      console.log(`   Preço final (maior entre preço base e mínimo): R$ ${finalPrice.toFixed(2)}`);
+      console.log(`   Preço base (maior entre preço por km e mínimo): R$ ${basePrice.toFixed(2)}`);
     } else {
-      console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
+      console.log(`   Preço base: R$ ${basePrice.toFixed(2)}`);
     }
+
+    if (tollsTotal > 0) {
+      console.log(`   Total de pedágios: R$ ${tollsTotal.toFixed(2)}`);
+    }
+    
+    console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
 
     return {
       kmBasedPrice,
       minimumPrice,
-      finalPrice
+      finalPrice,
+      tollsTotal
     };
   };
 
@@ -823,6 +905,75 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         }
         return <MdLocationCity />;
     }
+  };
+
+  // Função para abrir o modal de aprovação
+  const openApprovalModal = () => {
+    // Validar todos os dados antes de abrir o modal
+    if (!formData.transportType) {
+      alert('Por favor, selecione o tipo de transporte.');
+      return;
+    }
+
+    if (!formData.vehicleType) {
+      alert('Por favor, selecione o tipo de veículo.');
+      return;
+    }
+
+    if (!formData.items || formData.items.length === 0) {
+      alert('Por favor, adicione detalhes dos passageiros/cargas.');
+      return;
+    }
+
+    if (!formData.startLocationId || !formData.endLocationId) {
+      alert('Por favor, selecione os locais de início e fim.');
+      return;
+    }
+
+    if (!routePoints || routePoints.length < 2) {
+      alert('Por favor, organize a rota com pelo menos dois pontos.');
+      return;
+    }
+
+    if (!routeDistance) {
+      alert('Por favor, calcule a distância da rota.');
+      return;
+    }
+    
+    setIsApprovalModalOpen(true);
+  };
+  
+  // Função para fechar o modal de aprovação
+  const closeApprovalModal = () => {
+    setIsApprovalModalOpen(false);
+  };
+  
+  // Função para lidar com a mudança no tipo de aprovação
+  const handleApprovalTypeChange = (type: 'direct' | 'manager') => {
+    setApprovalData({
+      ...approvalData,
+      approvalType: type
+    });
+  };
+  
+  // Função para lidar com a mudança no campo de aprovado por
+  const handleApprovedByChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setApprovalData({
+      ...approvalData,
+      approvedBy: e.target.value
+    });
+  };
+  
+  // Função para finalizar a ordem com base no tipo de aprovação
+  const finalizeOrder = () => {
+    // Definir o status com base no tipo de aprovação
+    const status = approvalData.approvalType === 'direct' ? 'approved' : 'pending';
+    
+    // Chamar handleSubmit com os dados de aprovação
+    handleSubmit(undefined, status, approvalData.approvedBy);
+    
+    // Fechar o modal
+    closeApprovalModal();
   };
 
   // Replace the entire renderStep function to fix all JSX structure issues
@@ -1038,7 +1189,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                 </button>
                 
                 <div className="right-actions">
-                  <button
+                  <button 
                     type="button"
                     className="add-item-button"
                     onClick={addItem}
@@ -1417,86 +1568,134 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
           <div className="step-container">
             <div className="route-container">
               {routePoints.map((point, index) => (
+                <React.Fragment key={`route-point-${index}`}>
                   <div 
-                    key={point.id}
-                  className={`route-point ${draggedItemIndex === index ? 'dragging' : ''}`}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
+                    className={`route-point ${draggedItemIndex === index ? 'dragging' : ''} ${point.isToll ? 'toll-point' : ''}`}
+                    draggable={!point.isToll}
+                    onDragStart={() => !point.isToll && handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
                   >
-                    <div className="route-point-handle">
-                    <DragHandleIcon />
-                    </div>
-                    <div className="route-point-number">{index + 1}</div>
-                    <div className="route-point-content">
-                      <div className="route-point-header">
-                        <div className="route-point-icon">
-                        {getLocationIcon(point.locationType || '', point.isCompany)}
+                    {!point.isToll ? (
+                      <>
+                        <div className="route-point-handle">
+                          <DragHandleIcon />
                         </div>
-                      <h3>{point.name}</h3>
-                      </div>
-                      <p>{point.address}</p>
-                    {point.locationType && (
-                        <span className="location-type-badge">
-                        {point.locationType === 'airport' ? 'Aeroporto' :
-                         point.locationType === 'hotel' ? 'Hotel' :
-                         point.locationType === 'other' ? 'Outro Local' : ''}
-                        </span>
-                      )}
-                      {point.isCompany && <span className="company-badge">Empresa</span>}
-                    {index === 0 && <span className="origin-badge">Origem</span>}
-                    {index === routePoints.length - 1 && point.isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
-                    {index === routePoints.length - 1 && !point.isLastPassenger && <span className="destination-badge">Destino</span>}
-                    </div>
+                        <div className="route-point-number">{index + 1}</div>
+                        <div className="route-point-content">
+                          <div className="route-point-header">
+                            <div className="route-point-icon">
+                              {getLocationIcon(point.locationType || '', point.isCompany)}
+                            </div>
+                            <h3>{point.name}</h3>
+                          </div>
+                          <p>{point.address}</p>
+                          {point.locationType && (
+                            <span className="location-type-badge">
+                              {point.locationType === 'airport' ? 'Aeroporto' :
+                               point.locationType === 'hotel' ? 'Hotel' :
+                               point.locationType === 'other' ? 'Outro Local' : ''}
+                            </span>
+                          )}
+                          {point.isCompany && <span className="company-badge">Empresa</span>}
+                          {index === 0 && <span className="origin-badge">Origem</span>}
+                          {index === routePoints.length - 1 && point.isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
+                          {index === routePoints.length - 1 && !point.isLastPassenger && <span className="destination-badge">Destino</span>}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="toll-point-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="16" rx="2" />
+                            <line x1="12" y1="4" x2="12" y2="20" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                          </svg>
+                        </div>
+                        <div className="toll-point-content">
+                          <h3>{point.name}</h3>
+                          <p>{point.address}</p>
+                        </div>
+                        <div className="toll-point-actions">
+                          <button 
+                            className="remove-toll-button"
+                            onClick={() => removeToll(index)}
+                            title="Remover pedágio"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6L6 18" />
+                              <path d="M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
+                  
+                  {/* Add toll button between route points, but not after the last one */}
+                  {!point.isToll && index < routePoints.length - 1 && !routePoints[index + 1]?.isToll && (
+                    <div className="add-toll-container">
+                      <button 
+                        className="add-toll-button"
+                        onClick={() => openTollModal(index)}
+                        title="Adicionar pedágio"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 5v14" />
+                          <path d="M5 12h14" />
+                        </svg>
+                        Adicionar Pedágio
+                      </button>
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
             
-              <div className="form-actions all-buttons">
+            <div className="form-actions all-buttons">
+              <button 
+                type="button"
+                onClick={goToPreviousStep}
+                className="back-button"
+              >
+                Voltar etapa
+              </button>
+              
+              <div className="right-actions">
                 <button 
-                  type="button"
-                  onClick={goToPreviousStep}
-                  className="back-button"
-                >
-                  Voltar etapa
+                type="button" 
+                className="continue-button"
+                onClick={handleProceedToRouteDetails}
+                disabled={isCalculatingRoute}
+              >
+                {isCalculatingRoute ? (
+                  <div className="loading-overlay">
+                    <FaSpinner className="loading-spinner" />
+                    <span className="sr-only">Calculando rota...</span>
+                  </div>
+                ) : (
+                  <>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      style={{ marginRight: '0.5rem' }}
+                    >
+                      <path d="M13 17l5-5-5-5"/>
+                      <path d="M6 17l5-5-5-5"/>
+                    </svg>
+                    Avançar para cálculo
+                  </>
+                )}
                 </button>
-                
-                <div className="right-actions">
-                  <button 
-                  type="button" 
-                  className="continue-button"
-                  onClick={handleProceedToRouteDetails}
-                  disabled={isCalculatingRoute}
-                >
-                  {isCalculatingRoute ? (
-                    <div className="loading-overlay">
-                      <FaSpinner className="loading-spinner" />
-                      <span className="sr-only">Calculando rota...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                        style={{ marginRight: '0.5rem' }}
-                      >
-                        <path d="M13 17l5-5-5-5"/>
-                        <path d="M6 17l5-5-5-5"/>
-                      </svg>
-                      Avançar para cálculo
-                    </>
-                  )}
-                  </button>
-                </div>
               </div>
+            </div>
           </div>
         );
       
@@ -1646,9 +1845,26 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                             <div className="route-price-content">
                               <h3>Preço Mínimo</h3>
                               <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
-                </div>
-              </div>
-            )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Adicionar card para mostrar o total de pedágios */}
+                        {routePrice && routePrice.tollsTotal && routePrice.tollsTotal > 0 && (
+                          <div className="route-price-card toll-card">
+                            <div className="route-price-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="4" width="18" height="16" rx="2" />
+                                <line x1="12" y1="4" x2="12" y2="20" />
+                                <line x1="3" y1="12" x2="21" y2="12" />
+                              </svg>
+                            </div>
+                            <div className="route-price-content">
+                              <h3>Total de Pedágios</h3>
+                              <p>R$ {routePrice.tollsTotal.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="route-price-card final-price">
                           <div className="route-price-icon">
@@ -1683,7 +1899,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   <button 
                     type="button" 
                     className="continue-button"
-                    onClick={handleSubmit}
+                    onClick={openApprovalModal}
                   >
                     Finalizar ordem
                   </button>
@@ -1696,6 +1912,147 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       default:
         return null;
     }
+  };
+
+  // Componente do modal de aprovação
+  const renderApprovalModal = () => {
+    if (!isApprovalModalOpen) return null;
+    
+    return (
+      <div className="modal-overlay">
+        <div className="modal-container">
+          <div className="modal-header">
+            <h2>Finalizar Solicitação</h2>
+            <button 
+              className="modal-close-button"
+              onClick={closeApprovalModal}
+            >
+              ×
+            </button>
+          </div>
+          <div className="modal-content">
+            <p>Escolha como deseja processar esta solicitação:</p>
+            
+            <div className="approval-options">
+              <div 
+                className={`type-card ${approvalData.approvalType === 'direct' ? 'selected' : ''}`}
+                onClick={() => handleApprovalTypeChange('direct')}
+              >
+                <div className="type-icon increase">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </div>
+                <div className="type-label">Aprovação Direta</div>
+                <div className="type-description">
+                  A solicitação será aprovada imediatamente
+                </div>
+              </div>
+              
+              <div 
+                className={`type-card ${approvalData.approvalType === 'manager' ? 'selected' : ''}`}
+                onClick={() => handleApprovalTypeChange('manager')}
+              >
+                <div className="type-icon decrease">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <polyline points="17 11 19 13 23 9"></polyline>
+                  </svg>
+                </div>
+                <div className="type-label">Aprovação via Gestor</div>
+                <div className="type-description">
+                  A solicitação ficará pendente para aprovação do gestor
+                </div>
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="approvedBy">Aprovado por:</label>
+              <input
+                type="text"
+                id="approvedBy"
+                name="approvedBy"
+                value={approvalData.approvedBy}
+                onChange={handleApprovedByChange}
+                placeholder="Nome do responsável pela aprovação"
+              />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button 
+              className="modal-cancel-button"
+              onClick={closeApprovalModal}
+            >
+              Cancelar
+            </button>
+            <button 
+              className="modal-confirm-button"
+              onClick={finalizeOrder}
+            >
+              Finalizar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Componente do modal de pedágio
+  const renderTollModal = () => {
+    if (!isTollModalOpen) return null;
+    
+    return (
+      <div className="modal-overlay">
+        <div className="modal-container toll-modal">
+          <div className="modal-header">
+            <h2>Adicionar Pedágio</h2>
+            <button 
+              className="modal-close-button"
+              onClick={closeTollModal}
+            >
+              ×
+            </button>
+          </div>
+          <div className="modal-content">
+            <p>Informe o valor do pedágio:</p>
+            
+            <div className="form-group">
+              <label htmlFor="tollValue">Valor (R$):</label>
+              <div className="toll-input-container">
+                <span className="toll-currency-symbol">R$</span>
+                <input
+                  type="number"
+                  id="tollValue"
+                  name="tollValue"
+                  value={tollValue}
+                  onChange={(e) => setTollValue(e.target.value)}
+                  placeholder="0,00"
+                  step="0.01"
+                  min="0.01"
+                  autoFocus
+                />
+              </div>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button 
+              className="modal-cancel-button"
+              onClick={closeTollModal}
+            >
+              Cancelar
+            </button>
+            <button 
+              className="modal-confirm-button"
+              onClick={addToll}
+            >
+              Adicionar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1780,6 +2137,12 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
           {renderStep()}
         </main>
       </div>
+
+      {/* Renderizar o modal de aprovação */}
+      {renderApprovalModal()}
+      
+      {/* Renderizar o modal de pedágio */}
+      {renderTollModal()}
 
       {/* Address Modal */}
       <AddressModal

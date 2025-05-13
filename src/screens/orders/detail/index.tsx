@@ -8,27 +8,26 @@ import {
   FaPlane, 
   FaHotel, 
   FaMapMarkerAlt, 
-  FaBuilding, 
-  FaHome, 
-  FaCity,
+  FaBuilding,
   FaClock,
   FaRuler,
   FaRoute,
   FaMoneyBillWave,
-  FaDollarSign,
   FaExchangeAlt,
   FaFileInvoiceDollar,
-  FaPercentage,
   FaUserAlt,
   FaChartPie,
-  FaCalculator
+  FaPlusCircle,
+  FaMinusCircle,
+  FaTrash
 } from 'react-icons/fa';
 import { 
   updateOrderStatus, 
   assignDriverToOrder, 
   updateDriverPayment,
-  Order,
-  RoutePoint
+  addExtraFinancialEntry,
+  removeExtraFinancialEntry,
+  Order
 } from '../../../store/ordersSlice';
 
 // Função para obter descrições dos tipos de veículos
@@ -66,10 +65,11 @@ const getVehicleDescription = (type: string | undefined, transportType: string |
 const translateStatus = (status: string) => {
   const translations: Record<string, string> = {
     'pending': 'Pendente',
-    'in_progress': 'Aprovado',
+    'in_progress': 'Em andamento',
     'en_route': 'Em rota',
     'completed': 'Concluído',
-    'cancelled': 'Cancelado'
+    'cancelled': 'Cancelado',
+    'approved': 'Aprovado'
   };
   return translations[status] || status;
 };
@@ -92,19 +92,6 @@ const getLocationIcon = (point: any) => {
       return <span className="location-icon hotel"><FaHotel /></span>;
     default:
       return <span className="location-icon other"><FaMapMarkerAlt /></span>;
-  }
-};
-
-const getLocationTypeLabel = (point: RoutePoint) => {
-  if (point.isCompany) return 'Empresa';
-  
-  switch (point.locationType) {
-    case 'airport':
-      return 'Aeroporto';
-    case 'hotel':
-      return 'Hotel';
-    default:
-      return 'Endereço';
   }
 };
 
@@ -149,6 +136,15 @@ const OrderDetail: React.FC = () => {
   );
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
 
+  // Estado para o modal de lançamento financeiro extra
+  const [showExtraFinancialModal, setShowExtraFinancialModal] = useState(false);
+  const [extraFinancialEntry, setExtraFinancialEntry] = useState({
+    description: '',
+    amount: '',
+    type: 'increase' as 'increase' | 'decrease'
+  });
+  const [showExtraFinancialSuccess, setShowExtraFinancialSuccess] = useState(false);
+
   // Filtrar apenas usuários com role="driver" e status="active"
   const activeDrivers = useMemo(() => {
     return users.filter(user => user.role === 'driver' && user.status === 'active');
@@ -165,12 +161,30 @@ const OrderDetail: React.FC = () => {
     
     const totalOrderValue = order.pricing.finalPrice;
     const driverPayment = order.driverPayment?.amount || 0;
-    const profit = totalOrderValue - driverPayment;
+    
+    // Calcular o total de entradas financeiras extras
+    let extraEntriesTotal = 0;
+    if (order.extraFinancialEntries && order.extraFinancialEntries.length > 0) {
+      extraEntriesTotal = order.extraFinancialEntries.reduce((total, entry) => {
+        return entry.type === 'increase' 
+          ? total + entry.amount 
+          : total - entry.amount;
+      }, 0);
+    }
+    
+    // Valor total com os extras
+    const totalWithExtras = totalOrderValue + extraEntriesTotal;
+    
+    // O lucro é calculado subtraindo o pagamento do motorista do valor total com extras
+    const profit = totalWithExtras - driverPayment;
+    
     const driverPercentage = driverPayment > 0 ? (driverPayment / totalOrderValue) * 100 : 0;
     const profitPercentage = 100 - driverPercentage;
     
     return {
       totalOrderValue,
+      totalWithExtras,
+      extraEntriesTotal,
       driverPayment,
       profit,
       driverPercentage: Number(driverPercentage.toFixed(2)),
@@ -257,6 +271,149 @@ const OrderDetail: React.FC = () => {
     return null;
   };
 
+  const handleExtraFinancialInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'amount') {
+      // Validar que é um número positivo
+      if (value === '' || (/^\d*\.?\d*$/.test(value) && parseFloat(value) >= 0)) {
+        setExtraFinancialEntry({
+          ...extraFinancialEntry,
+          [name]: value
+        });
+      }
+    } else {
+      setExtraFinancialEntry({
+        ...extraFinancialEntry,
+        [name]: value
+      });
+    }
+  };
+
+  const addExtraFinancial = () => {
+    if (id && extraFinancialEntry.description && extraFinancialEntry.amount) {
+      const amount = parseFloat(extraFinancialEntry.amount);
+      
+      dispatch(addExtraFinancialEntry({
+        orderId: id,
+        entry: {
+          description: extraFinancialEntry.description,
+          amount,
+          type: extraFinancialEntry.type
+        }
+      }));
+      
+      // Limpar o formulário e fechar o modal
+      setExtraFinancialEntry({
+        description: '',
+        amount: '',
+        type: 'increase'
+      });
+      setShowExtraFinancialModal(false);
+      
+      // Mostrar mensagem de sucesso
+      setShowExtraFinancialSuccess(true);
+      setTimeout(() => setShowExtraFinancialSuccess(false), 3000);
+    }
+  };
+
+  const handleRemoveExtraEntry = (entryId: string) => {
+    if (id && window.confirm('Tem certeza que deseja remover este lançamento?')) {
+      dispatch(removeExtraFinancialEntry({
+        orderId: id,
+        entryId
+      }));
+    }
+  };
+
+  // Adicionar o modal de lançamento financeiro extra
+  const renderExtraFinancialModal = () => {
+    if (!showExtraFinancialModal) return null;
+    
+    return (
+      <div className="modal-overlay">
+        <div className="modal-container">
+          <div className="modal-header">
+            <h2>Adicionar Lançamento Financeiro Extra</h2>
+            <button 
+              className="modal-close-button"
+              onClick={() => setShowExtraFinancialModal(false)}
+            >
+              ×
+            </button>
+          </div>
+          <div className="modal-content">
+            <div className="form-group">
+              <label htmlFor="description">Descrição:</label>
+              <input
+                type="text"
+                id="description"
+                name="description"
+                value={extraFinancialEntry.description}
+                onChange={handleExtraFinancialInputChange}
+                placeholder="Ex: Taxa extra, Desconto, etc."
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="amount">Valor (R$):</label>
+              <input
+                type="text"
+                id="amount"
+                name="amount"
+                value={extraFinancialEntry.amount}
+                onChange={handleExtraFinancialInputChange}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="type">Tipo:</label>
+              <div className="type-selection">
+                <div 
+                  className={`type-card ${extraFinancialEntry.type === 'increase' ? 'selected' : ''}`}
+                  onClick={() => setExtraFinancialEntry({...extraFinancialEntry, type: 'increase'})}
+                >
+                  <div className="type-icon increase">
+                    <FaPlusCircle size={20} />
+                  </div>
+                  <div className="type-label">Aumentar valor</div>
+                </div>
+                
+                <div 
+                  className={`type-card ${extraFinancialEntry.type === 'decrease' ? 'selected' : ''}`}
+                  onClick={() => setExtraFinancialEntry({...extraFinancialEntry, type: 'decrease'})}
+                >
+                  <div className="type-icon decrease">
+                    <FaMinusCircle size={20} />
+                  </div>
+                  <div className="type-label">Reduzir valor</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button 
+              className="modal-cancel-button"
+              onClick={() => setShowExtraFinancialModal(false)}
+            >
+              Cancelar
+            </button>
+            <button 
+              className="modal-confirm-button"
+              onClick={addExtraFinancial}
+              disabled={!extraFinancialEntry.description || !extraFinancialEntry.amount}
+            >
+              Adicionar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!order) {
     return (
       <div className="order-detail-page">
@@ -332,6 +489,12 @@ const OrderDetail: React.FC = () => {
             </div>
           )}
 
+          {showExtraFinancialSuccess && (
+            <div className="success-message">
+              Lançamento financeiro extra adicionado com sucesso!
+            </div>
+          )}
+
           <div className="order-detail-sections">
             <div className="order-detail-section">
               <h2 className="section-title">Informações Gerais</h2>
@@ -346,6 +509,11 @@ const OrderDetail: React.FC = () => {
                     <h3>Status</h3>
                     <div className="status-badge-wrapper">
                       <div className={`status-badge status-${order.status}`}>{translateStatus(order.status)}</div>
+                      {order.approvedBy && (
+                        <div className="approved-by">
+                          Aprovado por: {order.approvedBy}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -563,8 +731,19 @@ const OrderDetail: React.FC = () => {
                       margin: '0', 
                       color: '#333' 
                     }}>
-                      R$ {paymentCalculations.totalOrderValue.toFixed(2)}
+                      R$ {paymentCalculations?.totalWithExtras.toFixed(2)}
                     </p>
+                    {paymentCalculations?.extraEntriesTotal !== 0 && (
+                      <p style={{ 
+                        fontSize: '14px', 
+                        margin: '5px 0 0 0', 
+                        color: '#666' 
+                      }}>
+                        Base: R$ {paymentCalculations?.totalOrderValue.toFixed(2)}
+                        {paymentCalculations?.extraEntriesTotal > 0 ? ' + ' : ' - '}
+                        R$ {Math.abs(paymentCalculations?.extraEntriesTotal || 0).toFixed(2)} (extras)
+                      </p>
+                    )}
                   </div>
                   
                   <div style={{ 
@@ -648,7 +827,92 @@ const OrderDetail: React.FC = () => {
                       </span>
                     </p>
                   </div>
+
+                  {canManageOrder && (
+                    <div style={{ 
+                      flex: '1', 
+                      minWidth: '200px', 
+                      backgroundColor: '#f3f4f6', 
+                      borderRadius: '8px', 
+                      padding: '20px', 
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      cursor: 'pointer'
+                    }} onClick={() => setShowExtraFinancialModal(true)}>
+                      <div style={{ 
+                        backgroundColor: '#4b5563', 
+                        borderRadius: '50%', 
+                        width: '40px', 
+                        height: '40px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        marginBottom: '10px',
+                        color: 'white'
+                      }}>
+                        <FaPlusCircle size={20} />
+                      </div>
+                      <h3 style={{ margin: 0, fontSize: '18px', textAlign: 'center' }}>Adicionar Valor Extra</h3>
+                    </div>
+                  )}
                 </div>
+
+                {/* Lista de lançamentos extras */}
+                {order.extraFinancialEntries && order.extraFinancialEntries.length > 0 && (
+                  <div style={{ marginTop: '20px' }}>
+                    <h3 style={{ fontSize: '16px', marginBottom: '10px' }}>Lançamentos Extras</h3>
+                    <div style={{ 
+                      backgroundColor: 'white', 
+                      borderRadius: '8px', 
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      overflow: 'hidden'
+                    }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#f3f4f6' }}>
+                            <th style={{ padding: '12px 15px', textAlign: 'left' }}>Descrição</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right' }}>Valor</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'center', width: '80px' }}>Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.extraFinancialEntries.map((entry) => (
+                            <tr key={entry.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '12px 15px' }}>{entry.description}</td>
+                              <td style={{ 
+                                padding: '12px 15px', 
+                                textAlign: 'right', 
+                                color: entry.type === 'increase' ? '#16a34a' : '#dc2626',
+                                fontWeight: 'bold'
+                              }}>
+                                {entry.type === 'increase' ? '+' : '-'} R$ {entry.amount.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '12px 15px', textAlign: 'center' }}>
+                                {canManageOrder && (
+                                  <button 
+                                    style={{ 
+                                      backgroundColor: 'transparent', 
+                                      border: 'none', 
+                                      cursor: 'pointer',
+                                      color: '#ef4444'
+                                    }}
+                                    onClick={() => handleRemoveExtraEntry(entry.id)}
+                                    title="Remover lançamento"
+                                  >
+                                    <FaTrash />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -804,8 +1068,13 @@ const OrderDetail: React.FC = () => {
                         <p className="final-price-value">
                           {isDriver && order.driverPayment?.amount 
                             ? formatCurrency(order.driverPayment.amount) 
-                            : formatCurrency(order.pricing.finalPrice)}
+                            : formatCurrency(paymentCalculations?.totalWithExtras || order.pricing.finalPrice)}
                         </p>
+                        {!isDriver && paymentCalculations?.extraEntriesTotal !== 0 && paymentCalculations?.extraEntriesTotal !== undefined && (
+                          <p className="price-calculation">
+                            Inclui {paymentCalculations?.extraEntriesTotal > 0 ? 'adição' : 'redução'} de {formatCurrency(Math.abs(paymentCalculations?.extraEntriesTotal || 0))}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -866,7 +1135,9 @@ const OrderDetail: React.FC = () => {
                         className="status-select"
                       >
                         <option value="pending">Pendente</option>
+                        <option value="approved">Aprovado</option>
                         <option value="in_progress">Em Andamento</option>
+                        <option value="en_route">Em Rota</option>
                         <option value="completed">Concluído</option>
                         <option value="cancelled">Cancelado</option>
                       </select>
@@ -945,6 +1216,9 @@ const OrderDetail: React.FC = () => {
           </div>
         </main>
       </div>
+      
+      {/* Renderizar o modal de lançamento financeiro extra */}
+      {renderExtraFinancialModal()}
     </div>
   );
 };
