@@ -19,7 +19,9 @@ import {
   FaChartPie,
   FaPlusCircle,
   FaMinusCircle,
-  FaTrash
+  FaTrash,
+  FaCircle,
+  FaCar
 } from 'react-icons/fa';
 import { 
   updateOrderStatus, 
@@ -414,6 +416,55 @@ const OrderDetail: React.FC = () => {
     );
   };
 
+  // Render order information cards
+  const renderOrderInfoCards = () => {
+    if (!order) return null;
+
+    const routePoints = order.routePoints || [];
+    const firstPoint = routePoints[0]?.name || 'N/A';
+    const lastPoint = routePoints[routePoints.length - 1]?.name || 'N/A';
+
+    return (
+      <div className="order-detail-info-cards">
+        <div className="order-detail-info-card">
+          <div className="card-icon"><FaCircle color="green" /></div>
+          <div className="card-label">Status</div>
+          <div className="card-value">{translateStatus(order.status)}</div>
+        </div>
+        <div className="order-detail-info-card">
+          <div className="card-icon"><FaUserAlt /></div>
+          <div className="card-label">Tipo de Transporte</div>
+          <div className="card-value">{translateTransportType(order.transportType)}</div>
+        </div>
+        <div className="order-detail-info-card">
+          <div className="card-icon"><FaCar /></div>
+          <div className="card-label">Veículo</div>
+          <div className="card-value">{getVehicleDescription(order.vehicleType, order.transportType)}</div>
+        </div>
+        <div className="order-detail-info-card">
+          <div className="card-icon"><FaRoute /></div>
+          <div className="card-label">Rota</div>
+          <div className="card-value">{`${firstPoint} - ${lastPoint}`}</div>
+        </div>
+        <div className="order-detail-info-card">
+          <div className="card-icon"><FaRuler /></div>
+          <div className="card-label">Distância</div>
+          <div className="card-value">{formatDistance(order.routeDistance?.totalDistance || 0)}</div>
+        </div>
+        <div className="order-detail-info-card">
+          <div className="card-icon"><FaClock /></div>
+          <div className="card-label">Tempo</div>
+          <div className="card-value">{formatDuration(order.routeDistance?.totalDuration || 0)}</div>
+        </div>
+        <div className="order-detail-info-card">
+          <div className="card-icon"><FaMoneyBillWave color="green" /></div>
+          <div className="card-label">Valor</div>
+          <div className="card-value">{formatCurrency(order.pricing?.finalPrice || 0)}</div>
+        </div>
+      </div>
+    );
+  };
+
   if (!order) {
     return (
       <div className="order-detail-page">
@@ -456,153 +507,34 @@ const OrderDetail: React.FC = () => {
   return (
     <div className="order-detail-page">
       <Header />
-      <div className="order-detail-content">
-        <main className="order-detail-main">
-          <div className="order-detail-title-row">
-            <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: '20px' }}>
-              <h1 className="order-detail-title">Detalhes da Solicitação</h1>
-              <span className="order-detail-id">#{order.id}</span>
-            </div>
-            <div className="action-buttons">
-              <button 
-                className="action-button"
-                onClick={() => navigate('/orders')}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 12H5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Voltar
-              </button>
-            </div>
+      <main className="order-detail-main">
+        {!order ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Carregando detalhes da ordem...</p>
           </div>
-
-          {showSuccess && (
-            <div className="success-message">
-              Motorista atribuído com sucesso!
-            </div>
-          )}
-
-          {showPaymentSuccess && (
-            <div className="success-message">
-              Pagamento do motorista atualizado com sucesso!
-            </div>
-          )}
-
-          {showExtraFinancialSuccess && (
-            <div className="success-message">
-              Lançamento financeiro extra adicionado com sucesso!
-            </div>
-          )}
-
-          <div className="order-detail-sections">
-            <div className="order-detail-section">
-              <h2 className="section-title">Informações Gerais</h2>
-              <div className="project-details-grid">
-                <div className="detail-card status-card">
-                  <div className="detail-card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className="detail-card-content">
-                    <h3>Status</h3>
-                    <div className="status-badge-wrapper">
-                      <div className={`status-badge status-${order.status}`}>{translateStatus(order.status)}</div>
-                      {order.approvedBy && (
-                        <div className="approved-by">
-                          Aprovado por: {order.approvedBy}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="detail-card transport-card">
-                  <div className="detail-card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {order.transportType === 'person' ? (
-                        <path d="M17 21V19C17 16.7909 15.2091 15 13 15H5C2.79086 15 1 16.7909 1 19V21M23 21V19C22.9986 17.1771 21.765 15.5857 20 15.13M16 3.13C17.7699 3.58317 19.0078 5.17728 19.0078 7.005C19.0078 8.83272 17.7699 10.4268 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      ) : (
-                        <path d="M13 16V6C13 5.44772 12.5523 5 12 5H4C3.44772 5 3 5.44772 3 6V16C3 16.5523 3.44772 17 4 17H12C12.5523 17 13 16.5523 13 16ZM13 16V8C13 7.44772 13.4477 7 14 7H20C20.5523 7 21 7.44772 21 8V16C21 16.5523 20.5523 17 20 17H14C13.4477 17 13 16.5523 13 16Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      )}
-                    </svg>
-                  </div>
-                  <div className="detail-card-content">
-                    <h3>Tipo de Transporte</h3>
-                    <div className="transport-badge-wrapper">
-                      <div className={`transport-badge ${order.transportType}`}>{translateTransportType(order.transportType)}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="detail-card vehicle-card">
-                  <div className="detail-card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M17 8H19C20.1046 8 21 8.89543 21 10L19 15H17M17 8V15M17 8H5L3 15H17M1 11H3M3 15V19C3 20.1046 3.89543 21 5 21H7C8.10457 21 9 20.1046 9 19V15M15 15V19C15 20.1046 15.8954 21 17 21H19C20.1046 21 21 20.1046 21 19V15M7 10.8V10.8M17 10.8V10.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className="detail-card-content">
-                    <h3>Veículo</h3>
-                    <p className="vehicle-detail">{getVehicleDescription(order.vehicleType, order.transportType)}</p>
-                  </div>
-                </div>
-                
-                <div className="detail-card route-card">
-                  <div className="detail-card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 20L3 17V4L9 7M9 20L15 17M9 20V7M15 17L21 20V7L15 4M15 17V4M9 7L15 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className="detail-card-content">
-                    <h3>Rota</h3>
-                    <p className="route-detail">
-                      <span className="route-endpoints">
-                        <strong>De:</strong> {order.pickupLocation}<br />
-                        <strong>Para:</strong> {order.destination}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-                
-                {order.routeDistance && (
-                  <div className="detail-card distance-card">
-                    <div className="detail-card-icon">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20.0001 11.08V8.00002C20.0001 7.21002 19.4701 6.54002 18.7001 6.33002L13.3901 4.69002C12.8801 4.55002 12.3601 4.55002 11.8501 4.69002L6.54005 6.33002C5.77005 6.54002 5.24005 7.21002 5.24005 8.00002V11.08C5.24005 14.8 8.38005 19.07 11.3001 20.61C11.7301 20.83 12.2701 20.83 12.7001 20.61C15.6201 19.07 18.7601 14.8 18.7601 11.08" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M9.5 12L11 13.5L14.5 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div className="detail-card-content">
-                      <h3>Detalhes</h3>
-                      <div className="metrics-container">
-                        <div className="metric-item">
-                          <span className="metric-label">Distância:</span>
-                          <span className="metric-value">{formatDistance(order.routeDistance.totalDistance)}</span>
-                        </div>
-                        <div className="metric-item">
-                          <span className="metric-label">Tempo:</span>
-                          <span className="metric-value">{formatDuration(order.routeDistance.totalDuration)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {order.pricing && (
-                  <div className="detail-card price-card">
-                    <div className="detail-card-icon">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 8C10.3431 8 9 9.34315 9 11C9 12.6569 10.3431 14 12 14C13.6569 14 15 15.3431 15 17C15 18.6569 13.6569 20 12 20M12 8C13.6569 8 15 6.65685 15 5C15 3.34315 13.6569 2 12 2M12 8V2M12 20C10.3431 20 9 21.3431 9 23M12 20V23M12 23C13.6569 23 15 21.6569 15 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div className="detail-card-content">
-                      <h3>Valor</h3>
-                      <p className="price-detail">{formatCurrency(order.pricing.finalPrice)}</p>
-                    </div>
-                  </div>
+        ) : (
+          <div className="order-detail-content">
+            <div className="order-detail-header">
+              <h1 className="order-detail-title">
+                Detalhes da Solicitação 
+                <span className="order-detail-id">#{order.id}</span>
+              </h1>
+              <div className="order-detail-actions">
+                {canManageOrder && (
+                  <button 
+                    className="edit-order-button" 
+                    onClick={() => navigate(`/orders/edit/${order.id}`)}
+                  >
+                    Editar Ordem
+                  </button>
                 )}
               </div>
+            </div>
+
+            <div className="order-detail-section">
+              <h2 className="section-title">Informações Gerais</h2>
+              {renderOrderInfoCards()}
             </div>
 
             {/* Seção de motorista - visível apenas para admin e gerentes */}
@@ -700,162 +632,65 @@ const OrderDetail: React.FC = () => {
             {canViewFinancials && paymentCalculations && !isDriver && (
               <div className="order-detail-section">
                 <h2 className="section-title">Informações Financeiras</h2>
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                  <div style={{ 
-                    flex: '1', 
-                    minWidth: '200px', 
-                    backgroundColor: '#f0f9ff', 
-                    borderRadius: '8px', 
-                    padding: '20px', 
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                      <div style={{ 
-                        backgroundColor: '#2563eb', 
-                        borderRadius: '50%', 
-                        width: '40px', 
-                        height: '40px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        marginRight: '15px',
-                        color: 'white'
-                      }}>
-                        <FaFileInvoiceDollar size={20} />
-                      </div>
-                      <h3 style={{ margin: 0, fontSize: '18px' }}>Valor Total</h3>
+                <div className="price-info-cards">
+                  <div className="price-info-card">
+                    <div className="price-info-icon">
+                      <FaFileInvoiceDollar />
                     </div>
-                    <p style={{ 
-                      fontSize: '24px', 
-                      fontWeight: 'bold', 
-                      margin: '0', 
-                      color: '#333' 
-                    }}>
-                      R$ {paymentCalculations?.totalWithExtras.toFixed(2)}
-                    </p>
-                    {paymentCalculations?.extraEntriesTotal !== 0 && (
-                      <p style={{ 
-                        fontSize: '14px', 
-                        margin: '5px 0 0 0', 
-                        color: '#666' 
-                      }}>
-                        Base: R$ {paymentCalculations?.totalOrderValue.toFixed(2)}
-                        {paymentCalculations?.extraEntriesTotal > 0 ? ' + ' : ' - '}
-                        R$ {Math.abs(paymentCalculations?.extraEntriesTotal || 0).toFixed(2)} (extras)
+                    <div className="price-info-content">
+                      <h3>Valor Total</h3>
+                      <p className="price-value">R$ {paymentCalculations?.totalWithExtras.toFixed(2)}</p>
+                      {paymentCalculations?.extraEntriesTotal !== 0 && (
+                        <p className="price-calculation">
+                          Base: R$ {paymentCalculations?.totalOrderValue.toFixed(2)}
+                          {paymentCalculations?.extraEntriesTotal > 0 ? ' + ' : ' - '}
+                          R$ {Math.abs(paymentCalculations?.extraEntriesTotal || 0).toFixed(2)} (extras)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="price-info-card">
+                    <div className="price-info-icon">
+                      <FaUserAlt />
+                    </div>
+                    <div className="price-info-content">
+                      <h3>Pagamento Motorista</h3>
+                      <p className="price-value">
+                        R$ {paymentCalculations.driverPayment.toFixed(2)}
+                        <span className="price-calculation">
+                          ({paymentCalculations.driverPercentage}%)
+                        </span>
                       </p>
-                    )}
+                    </div>
                   </div>
                   
-                  <div style={{ 
-                    flex: '1', 
-                    minWidth: '200px', 
-                    backgroundColor: '#f0fdf4', 
-                    borderRadius: '8px', 
-                    padding: '20px', 
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                      <div style={{ 
-                        backgroundColor: '#16a34a', 
-                        borderRadius: '50%', 
-                        width: '40px', 
-                        height: '40px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        marginRight: '15px',
-                        color: 'white'
-                      }}>
-                        <FaUserAlt size={20} />
-                      </div>
-                      <h3 style={{ margin: 0, fontSize: '18px' }}>Pagamento Motorista</h3>
+                  <div className="price-info-card">
+                    <div className="price-info-icon">
+                      <FaChartPie />
                     </div>
-                    <p style={{ 
-                      fontSize: '24px', 
-                      fontWeight: 'bold', 
-                      margin: '0', 
-                      color: '#333' 
-                    }}>
-                      R$ {paymentCalculations.driverPayment.toFixed(2)}
-                      <span style={{ 
-                        fontSize: '15px', 
-                        color: '#666', 
-                        marginLeft: '5px' 
-                      }}>
-                        ({paymentCalculations.driverPercentage}%)
-                      </span>
-                    </p>
-                  </div>
-                  
-                  <div style={{ 
-                    flex: '1', 
-                    minWidth: '200px', 
-                    backgroundColor: '#fef2f2', 
-                    borderRadius: '8px', 
-                    padding: '20px', 
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                      <div style={{ 
-                        backgroundColor: '#dc2626', 
-                        borderRadius: '50%', 
-                        width: '40px', 
-                        height: '40px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        marginRight: '15px',
-                        color: 'white'
-                      }}>
-                        <FaChartPie size={20} />
-                      </div>
-                      <h3 style={{ margin: 0, fontSize: '18px' }}>Lucro</h3>
+                    <div className="price-info-content">
+                      <h3>Lucro</h3>
+                      <p className="price-value">
+                        R$ {paymentCalculations.profit.toFixed(2)}
+                        <span className="price-calculation">
+                          ({paymentCalculations.profitPercentage}%)
+                        </span>
+                      </p>
                     </div>
-                    <p style={{ 
-                      fontSize: '24px', 
-                      fontWeight: 'bold', 
-                      margin: '0', 
-                      color: '#333' 
-                    }}>
-                      R$ {paymentCalculations.profit.toFixed(2)}
-                      <span style={{ 
-                        fontSize: '15px', 
-                        color: '#666', 
-                        marginLeft: '5px' 
-                      }}>
-                        ({paymentCalculations.profitPercentage}%)
-                      </span>
-                    </p>
                   </div>
 
                   {canManageOrder && (
-                    <div style={{ 
-                      flex: '1', 
-                      minWidth: '200px', 
-                      backgroundColor: '#f3f4f6', 
-                      borderRadius: '8px', 
-                      padding: '20px', 
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      cursor: 'pointer'
-                    }} onClick={() => setShowExtraFinancialModal(true)}>
-                      <div style={{ 
-                        backgroundColor: '#4b5563', 
-                        borderRadius: '50%', 
-                        width: '40px', 
-                        height: '40px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        marginBottom: '10px',
-                        color: 'white'
-                      }}>
-                        <FaPlusCircle size={20} />
+                    <div 
+                      className="price-info-card add-extra-value" 
+                      onClick={() => setShowExtraFinancialModal(true)}
+                    >
+                      <div className="price-info-icon">
+                        <FaPlusCircle />
                       </div>
-                      <h3 style={{ margin: 0, fontSize: '18px', textAlign: 'center' }}>Adicionar Valor Extra</h3>
+                      <div className="price-info-content">
+                        <h3>Adicionar Valor Extra</h3>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1214,8 +1049,8 @@ const OrderDetail: React.FC = () => {
               </div>
             )}
           </div>
-        </main>
-      </div>
+        )}
+      </main>
       
       {/* Renderizar o modal de lançamento financeiro extra */}
       {renderExtraFinancialModal()}

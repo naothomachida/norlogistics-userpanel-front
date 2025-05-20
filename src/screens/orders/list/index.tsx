@@ -11,7 +11,10 @@ import {
   FaMapMarkerAlt, 
   FaBuilding, 
   FaHome, 
-  FaCity 
+  FaCity,
+  FaUser,
+  FaUserSlash,
+  FaCheck
 } from 'react-icons/fa';
 
 // Função para obter descrições dos tipos de veículos
@@ -240,12 +243,6 @@ const OrderList: React.FC = () => {
     });
   }, [roleFilteredOrders, filters]);
 
-  const handleRemoveOrder = (id: string) => {
-    if (window.confirm('Tem certeza que deseja remover esta solicitação?')) {
-      dispatch(removeOrder(id));
-    }
-  };
-
   // Traduzir status para português
   const translateStatus = (status: string) => {
     const translations: Record<string, string> = {
@@ -293,11 +290,6 @@ const OrderList: React.FC = () => {
       default:
         return '';
     }
-  }, [userProfile]);
-
-  // Verificar se o usuário tem permissão para excluir solicitações
-  const canDeleteOrders = useMemo(() => {
-    return userProfile?.role === 'admin' || userProfile?.role === 'manager';
   }, [userProfile]);
 
   return (
@@ -554,7 +546,9 @@ const OrderList: React.FC = () => {
                           {translateTransportType(order.transportType)}
                         </span>
                       </td>
-                      <td>{getVehicleDescription(order.vehicleType, order.transportType)}</td>
+                      <td className="vehicle-type-cell">
+                        {getVehicleDescription(order.vehicleType, order.transportType)}
+                      </td>
                       <td>
                         <div className="location-cell" title={order.routePoints?.[0]?.address || 'N/A'}>
                           {getOrigin(order.routePoints)}
@@ -574,19 +568,17 @@ const OrderList: React.FC = () => {
                       {userProfile?.role !== 'driver' && (
                         <td>
                           {order.driverId ? (
-                            <span className="driver-assigned">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#16a34a"/>
-                              </svg>
-                              {users.find(u => u.id === order.driverId)?.name || 'Motorista atribuído'}
-                            </span>
+                            <div className="driver-assigned">
+                              <div className="driver-assigned-icon">
+                                <FaCheck />
+                              </div>
+                            </div>
                           ) : (
-                            <span className="no-driver">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z" fill="#ef4444"/>
-                              </svg>
-                              Sem motorista
-                            </span>
+                            <div className="driver-assigned">
+                              <div className="driver-assigned-icon not-assigned">
+                                <FaUserSlash />
+                              </div>
+                            </div>
                           )}
                         </td>
                       )}
@@ -602,18 +594,6 @@ const OrderList: React.FC = () => {
                             </svg>
                             Ver Ordem
                           </button>
-                          {canDeleteOrders && (
-                            <button 
-                              className="action-icon delete-order"
-                              onClick={() => handleRemoveOrder(order.id)}
-                              title="Excluir ordem"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4zM8 12v8h8v-8H8z" fill="currentColor"/>
-                              </svg>
-                              Excluir
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>

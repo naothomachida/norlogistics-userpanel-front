@@ -564,7 +564,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const handleSubmit = async (e?: React.FormEvent, status?: Order['status'], approvedBy?: string) => {
     // Prevent default form submission if event is provided
     if (e) {
-      e.preventDefault();
+    e.preventDefault();
     }
 
     // Validate all required data
@@ -604,12 +604,12 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         transportType: (formData.transportType === 'person' || formData.transportType === 'cargo') 
           ? formData.transportType 
           : 'person', // Default to 'person' if type is invalid
-        vehicleType: formData.vehicleType,
+      vehicleType: formData.vehicleType,
         carModel: '', // TODO: Add car model selection
         pickupLocation: formData.startLocationId,
         destination: formData.endLocationId,
-        startLocationId: formData.startLocationId,
-        endLocationId: formData.endLocationId,
+      startLocationId: formData.startLocationId,
+      endLocationId: formData.endLocationId,
         userId: userProfile?.id || '', // ID do usuário que está criando a ordem
         status: status || 'pending',
         approvedBy: approvedBy || undefined,
@@ -651,7 +651,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       dispatch(addOrder(orderData));
 
       // Navigate to orders list
-      navigate('/orders');
+    navigate('/orders');
     } catch (error) {
       console.error('Order submission error:', error);
       alert('Erro ao submeter ordem. Por favor, tente novamente.');
@@ -875,7 +875,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       console.log(`   Total de pedágios: R$ ${tollsTotal.toFixed(2)}`);
     }
     
-    console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
+      console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
 
     return {
       kmBasedPrice,
@@ -1189,7 +1189,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                 </button>
                 
                 <div className="right-actions">
-                  <button 
+                  <button
                     type="button"
                     className="add-item-button"
                     onClick={addItem}
@@ -1578,30 +1578,30 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   >
                     {!point.isToll ? (
                       <>
-                        <div className="route-point-handle">
-                          <DragHandleIcon />
+                    <div className="route-point-handle">
+                    <DragHandleIcon />
+                    </div>
+                    <div className="route-point-number">{index + 1}</div>
+                    <div className="route-point-content">
+                      <div className="route-point-header">
+                        <div className="route-point-icon">
+                        {getLocationIcon(point.locationType || '', point.isCompany)}
                         </div>
-                        <div className="route-point-number">{index + 1}</div>
-                        <div className="route-point-content">
-                          <div className="route-point-header">
-                            <div className="route-point-icon">
-                              {getLocationIcon(point.locationType || '', point.isCompany)}
-                            </div>
-                            <h3>{point.name}</h3>
-                          </div>
-                          <p>{point.address}</p>
-                          {point.locationType && (
-                            <span className="location-type-badge">
-                              {point.locationType === 'airport' ? 'Aeroporto' :
-                               point.locationType === 'hotel' ? 'Hotel' :
-                               point.locationType === 'other' ? 'Outro Local' : ''}
-                            </span>
-                          )}
-                          {point.isCompany && <span className="company-badge">Empresa</span>}
-                          {index === 0 && <span className="origin-badge">Origem</span>}
-                          {index === routePoints.length - 1 && point.isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
-                          {index === routePoints.length - 1 && !point.isLastPassenger && <span className="destination-badge">Destino</span>}
-                        </div>
+                      <h3>{point.name}</h3>
+                      </div>
+                      <p>{point.address}</p>
+                    {point.locationType && (
+                        <span className="location-type-badge">
+                        {point.locationType === 'airport' ? 'Aeroporto' :
+                         point.locationType === 'hotel' ? 'Hotel' :
+                         point.locationType === 'other' ? 'Outro Local' : ''}
+                        </span>
+                      )}
+                      {point.isCompany && <span className="company-badge">Empresa</span>}
+                    {index === 0 && <span className="origin-badge">Origem</span>}
+                    {index === routePoints.length - 1 && point.isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
+                    {index === routePoints.length - 1 && !point.isLastPassenger && <span className="destination-badge">Destino</span>}
+                    </div>
                       </>
                     ) : (
                       <>
@@ -1611,7 +1611,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                             <line x1="12" y1="4" x2="12" y2="20" />
                             <line x1="3" y1="12" x2="21" y2="12" />
                           </svg>
-                        </div>
+                  </div>
                         <div className="toll-point-content">
                           <h3>{point.name}</h3>
                           <p>{point.address}</p>
@@ -1652,50 +1652,50 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
               ))}
             </div>
             
-            <div className="form-actions all-buttons">
-              <button 
-                type="button"
-                onClick={goToPreviousStep}
-                className="back-button"
-              >
-                Voltar etapa
-              </button>
-              
-              <div className="right-actions">
+              <div className="form-actions all-buttons">
                 <button 
-                type="button" 
-                className="continue-button"
-                onClick={handleProceedToRouteDetails}
-                disabled={isCalculatingRoute}
-              >
-                {isCalculatingRoute ? (
-                  <div className="loading-overlay">
-                    <FaSpinner className="loading-spinner" />
-                    <span className="sr-only">Calculando rota...</span>
-                  </div>
-                ) : (
-                  <>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                      style={{ marginRight: '0.5rem' }}
-                    >
-                      <path d="M13 17l5-5-5-5"/>
-                      <path d="M6 17l5-5-5-5"/>
-                    </svg>
-                    Avançar para cálculo
-                  </>
-                )}
+                  type="button"
+                  onClick={goToPreviousStep}
+                  className="back-button"
+                >
+                  Voltar etapa
                 </button>
+                
+                <div className="right-actions">
+                  <button 
+                  type="button" 
+                  className="continue-button"
+                  onClick={handleProceedToRouteDetails}
+                  disabled={isCalculatingRoute}
+                >
+                  {isCalculatingRoute ? (
+                    <div className="loading-overlay">
+                      <FaSpinner className="loading-spinner" />
+                      <span className="sr-only">Calculando rota...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        style={{ marginRight: '0.5rem' }}
+                      >
+                        <path d="M13 17l5-5-5-5"/>
+                        <path d="M6 17l5-5-5-5"/>
+                      </svg>
+                      Avançar para cálculo
+                    </>
+                  )}
+                  </button>
+                </div>
               </div>
-            </div>
           </div>
         );
       
@@ -1845,9 +1845,9 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                             <div className="route-price-content">
                               <h3>Preço Mínimo</h3>
                               <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
-                            </div>
-                          </div>
-                        )}
+                </div>
+              </div>
+            )}
 
                         {/* Adicionar card para mostrar o total de pedágios */}
                         {routePrice && routePrice.tollsTotal && routePrice.tollsTotal > 0 && (

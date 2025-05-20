@@ -10,38 +10,35 @@
 }
 
 .users-content {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px;
+  max-width: 1200px;
+  padding: 0 15px;
 }
 
 .users-main {
-  padding: 2.5rem 0;
-  margin-top: 60px;
+  padding: 1.5rem 0;
+  margin-top: 50px;
 }
 
 .users-title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
 }
 
 .users-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   border-bottom: 1px solid #eaeaea;
-  padding-bottom: 1rem;
+  padding-bottom: 0.5rem;
 }
 
 .users-title-count {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #777;
   align-self: flex-end;
-  margin-bottom: 1rem;
-  margin-left: 0.75rem;
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
 }
 
 .action-buttons {
@@ -53,13 +50,13 @@
   background-color: #f5f5f5;
   color: #000000;
   border: none;
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.6rem;
   border-radius: 0.375rem;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
@@ -72,8 +69,8 @@
   background-color: #000000;
   color: white;
   font-weight: 600;
-  padding: 0.5rem 1rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  padding: 0.4rem 0.8rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
   transform: translateY(0);
 }
 
@@ -84,26 +81,26 @@
 }
 
 .action-button.new-user svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .users-filters {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
 .filter-group {
   background-color: #f5f5f5;
   border-radius: 0.375rem;
-  padding: 0.4rem 0.8rem;
+  padding: 0.3rem 0.6rem;
   color: #000000;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   display: flex;
   align-items: center;
-  min-width: 150px;
+  min-width: 130px;
 }
 
 .filter-spacer {
@@ -114,10 +111,10 @@
   background-color: #f5f5f5;
   color: #000000;
   border: none;
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.6rem;
   border-radius: 0.375rem;
-  width: 250px;
-  font-size: 0.75rem;
+  width: 200px;
+  font-size: 0.7rem;
   display: flex;
   align-items: center;
 }
@@ -515,8 +512,8 @@
 }
 
 .user-avatar.large {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
 }
 
 .user-avatar img {
@@ -563,9 +560,9 @@
 
 .role-badge {
   display: inline-block;
-  padding: 0.375rem 0.75rem;
+  padding: 0.2rem 0.4rem;
   border-radius: 2rem;
-  font-size: 0.875rem;
+  font-size: 0.65rem;
   font-weight: 500;
   max-width: fit-content;
 }
@@ -739,8 +736,8 @@
 }
 
 .user-avatar.large {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
 }
 
 .avatar-placeholder {
@@ -1124,9 +1121,9 @@ select:focus {
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #333;
 }
 
@@ -1140,8 +1137,8 @@ select:focus {
 /* Avatar preview styling */
 .avatar-preview {
   margin-top: 1rem;
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid #fff;
@@ -1541,10 +1538,10 @@ select:focus {
   background-color: #000;
   color: #fff;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 8px;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1570,10 +1567,10 @@ select:focus {
   background-color: #f3f4f6;
   color: #4b5563;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 0.4rem 0.6rem;
   border-radius: 8px;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1909,9 +1906,9 @@ select:focus {
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #333;
 }
 
@@ -2090,8 +2087,8 @@ select:focus {
 }
 
 .user-avatar.medium {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   overflow: hidden;
   background-color: #8334e3;
@@ -2801,7 +2798,7 @@ select:focus {
 }
 
 .driver-info-subtitle {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #4b5563;
   margin-bottom: 0.75rem;
