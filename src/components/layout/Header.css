@@ -1,7 +1,7 @@
 .app-header {
   background-color: #000000;
   color: #ffffff;
-  padding: 0.3rem 1rem;
+  padding: 0.5rem 1.2rem 0.5rem 1.2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -13,73 +13,84 @@
   left: 0;
   transform: none;
   z-index: 1000;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(80, 52, 150, 0.10);
+  min-height: 60px;
+  transition: box-shadow 0.2s;
 }
 
 .header-logo-container {
   display: flex;
   align-items: center;
   width: 100%;
+  gap: 1.2rem;
 }
 
 .header-logo {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: bold;
   display: flex;
   align-items: center;
-  padding: 0.2rem 0;
+  padding: 0.1rem 0;
 }
 
 .nor-logo {
-  height: 28px;
-  margin-right: 8px;
+  height: 22px;
+  margin-right: 6px;
 }
 
 .nor-text {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: bold;
   letter-spacing: 1px;
-  color: #8334e3; /* Cor roxa do logo conforme imagem enviada */
-  margin-left: 4px;
+  color: #8334e3;
+  margin-left: 3px;
 }
 
 .header-nav {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.1rem;
   margin: 0 auto;
+  align-items: center;
 }
 
 .header-nav-link {
   color: #ffffff;
   text-decoration: none;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   opacity: 0.85;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  padding: 1rem 2rem;
+  border-radius: 0;
+  transition: background 0.18s, color 0.18s, opacity 0.18s;
 }
 
-.header-nav-link:hover {
+.header-nav-link:hover, .header-nav-link.active {
   opacity: 1;
+  background: #1a1a1a;
+  color: #a76af5;
 }
 
 .header-nav-link.active {
-  opacity: 1;
   position: relative;
-  color: #a76af5; /* Cor roxa mais clara para indicar aba ativa */
 }
 
 .header-nav-link.active::after {
   content: '';
   position: absolute;
-  bottom: -6px;
+  bottom: -4px;
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #a76af5; /* Linha roxa mais clara indicadora */
+  background-color: #a76af5;
+  border-radius: 0;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.7rem;
 }
 
 .notification-button {
@@ -89,16 +100,26 @@
   padding: 0.1rem;
   cursor: pointer;
   position: relative;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.18s;
+}
+
+.notification-button:hover {
+  color: #a76af5;
 }
 
 .notification-indicator {
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   background-color: #ef4444;
   border-radius: 50%;
-  top: 0;
-  right: 0;
+  top: 1px;
+  right: 1px;
+  border: 1px solid #000;
 }
 
 .avatar-container {
@@ -106,11 +127,17 @@
 }
 
 .avatar {
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 50%;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 0;
   overflow: hidden;
   cursor: pointer;
+  border: 1px solid #a76af5;
+  box-shadow: none;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar img {
@@ -123,80 +150,42 @@
   position: absolute;
   top: calc(100% + 0.3rem);
   right: 0;
-  width: 180px;
+  width: 150px;
   background-color: #ffffff;
-  border-radius: 0.5rem;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(80, 52, 150, 0.10);
   z-index: 50;
   overflow: hidden;
+  animation: fadeIn 0.18s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
   color: #333;
   cursor: pointer;
-  font-size: 0.8rem;
-  transition: background-color 0.2s;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background-color 0.18s;
+  border-radius: 0;
 }
 
 .dropdown-item:hover {
   background-color: #f5f5f5;
 }
 
-.dropdown-item svg {
-  color: #555;
-}
-
 .dropdown-divider {
   height: 1px;
   background-color: #eaeaea;
-  margin: 0.25rem 0;
+  margin: 0.15rem 0;
 }
-
-/* Adjust main padding to account for smaller header */
-main {
-  padding-top: 50px;
-}
-
-@media (max-width: 768px) {
-  .app-header {
-    flex-direction: column;
-    border-radius: 0;
-    padding: 0.75rem;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-  }
-  
-  .header-logo-container {
-    flex-direction: column;
-    margin-bottom: 0.75rem;
-  }
-  
-  .header-logo {
-    margin-bottom: 0.5rem;
-  }
-  
-  .header-nav {
-    margin-left: 0;
-    margin-top: 0.5rem;
-    gap: 1rem;
-  }
-  
-  .avatar-dropdown {
-    right: -50px;
-  }
-  
-  main {
-    padding-top: 100px;
-  }
-}
-
-/* Adicione estas classes ao final do arquivo Header.css */
 
 .avatar-initials {
   width: 100%;
@@ -207,35 +196,71 @@ main {
   background-color: #1a73e8;
   color: white;
   font-weight: bold;
-  font-size: 16px;
-  border-radius: 50%;
+  font-size: 0.82rem;
+  border-radius: 0;
 }
 
 .user-info {
-  padding: 12px 16px;
+  padding: 8px 10px;
   text-align: left;
   border-bottom: 1px solid #eaeaea;
 }
 
 .user-name {
   font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-size: 0.85rem;
+  margin-bottom: 2px;
   color: #333;
 }
 
 .user-email {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #666;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .user-role {
   display: inline-block;
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: 0.7rem;
+  padding: 1px 5px;
   background-color: #f0f0f0;
-  border-radius: 10px;
+  border-radius: 0;
   color: #555;
-  margin-top: 4px;
+  margin-top: 2px;
+}
+
+main {
+  padding-top: 56px;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    border-radius: 0;
+    padding: 0.7rem 0.5rem 0.7rem 0.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 56px;
+  }
+  .header-logo-container {
+    flex-direction: column;
+    margin-bottom: 0.4rem;
+    gap: 0.7rem;
+  }
+  .header-logo {
+    margin-bottom: 0.2rem;
+  }
+  .header-nav {
+    margin-left: 0;
+    margin-top: 0.2rem;
+    gap: 0.7rem;
+  }
+  .avatar-dropdown {
+    right: -30px;
+  }
+  main {
+    padding-top: 70px;
+  }
 } 

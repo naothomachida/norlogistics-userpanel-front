@@ -11,14 +11,14 @@
 
 .order-detail-content {
   width: 100%;
-  max-width: 1200px;
+  max-width: none;
   margin: 0 auto;
   padding: 0 15px;
 }
 
 .order-detail-main {
   padding: 1rem 0;
-  margin-top: 50px;
+  margin-top: 80px;
 }
 
 .order-detail-title {
