@@ -22,18 +22,19 @@
 }
 
 .orders-title {
+  margin-top: 1rem;
   font-size: 2rem;
   font-weight: bold;
-  margin-bottom: 0.75rem;
 }
 
 .orders-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
   border-bottom: 1px solid #eaeaea;
   padding-bottom: 0.75rem;
+  width: 100%;
 }
 
 .orders-title-count {
@@ -95,25 +96,6 @@
   flex-wrap: wrap;
 }
 
-/* Estilo para a mensagem de filtro por role */
-.role-filter-info {
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  color: #4b5563;
-  font-size: 0.75rem;
-  margin-bottom: 1rem;
-  border-left: 3px solid #3b82f6;
-  display: flex;
-  align-items: center;
-}
-
-.role-filter-info:before {
-  content: "ℹ️";
-  margin-right: 0.5rem;
-  font-size: 1rem;
-}
-
 .filter-group {
   background-color: #f5f5f5;
   border-radius: 0.375rem;
@@ -169,6 +151,8 @@
 .orders-table-container {
   width: 100%;
   overflow-x: auto;
+  position: relative;
+  padding-bottom: 2rem; /* Make space for the role message */
 }
 
 .orders-table {
@@ -179,7 +163,7 @@
 }
 
 .orders-table th {
-  padding: 0.75rem 0.5rem;
+  padding: 0.25rem 0.5rem;
   text-align: left;
   font-weight: 500;
   color: #777;
@@ -188,7 +172,6 @@
 }
 
 .orders-table td {
-  padding: 0.75rem 0.5rem;
   text-align: left;
   border-bottom: 1px solid #eaeaea;
   font-size: 0.8rem;
@@ -344,12 +327,19 @@ tr.has-driver:hover {
 }
 
 .transport-badge {
-  display: inline-block;
-  padding: 0.15rem 0.25rem;
-  border-radius: 1rem;
-  font-size: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.5rem;
   font-weight: 500;
-  text-align: center;
+  gap: 0.25rem;
+}
+
+.transport-badge svg {
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 .transport-badge.person {
@@ -503,4 +493,597 @@ td .driver-assigned {
 
 .orders-table .vehicle-type-cell {
   padding-left: 0.75rem;
+}
+
+/* Updated sidebar layout */
+.orders-layout {
+  display: flex;
+  gap: 2.5rem;
+  height: 100vh; /* Changed from calc(100vh - 100px) to full viewport height */
+}
+
+.orders-filters-sidebar {
+  width: 400px; /* Increased width */
+  background: linear-gradient(to bottom right, #ffffff 0%, #f4f3ff 30%, #e6e6fa 70%, #f0e6ff 100%);
+  padding: 2rem;
+  border-right: 1px solid #f0f0f0;
+  height: 100%; /* Ensure full height */
+  overflow-y: auto;
+  position: sticky;
+  top: 0; /* Changed from 70px to 0 */
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  font-size: 0.75rem;
+  border-radius: 0; /* Removed rounded corners */
+}
+
+.orders-filters-sidebar h3 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b46c1;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.filter-dropdown select {
+  font-size: 0.75rem;
+}
+
+.search-input-sidebar {
+  width: 100%;
+  background-color: #ffffff; /* Changed to white background */
+  border: 1px solid #d6bcfa;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.5rem 0.375rem 4.5rem;
+  padding-left: 42px !important;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  height: 2.5rem;
+  color: #6b46c1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b46c1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.75rem center;
+  background-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.search-input-sidebar:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.1);
+}
+
+/* Adjust filter sections */
+.filter-section {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.filter-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .orders-filters-sidebar {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* Sort type badge styles */
+.sortable-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sort-type-badge {
+  background-color: #f0f0f0;
+  color: #495057;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  margin-right: 0.5rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sortable-header:hover .sort-type-badge {
+  background-color: #e9ecef;
+}
+
+/* Styles for sorting controls */
+.sort-direction-toggle,
+.sort-type-toggle {
+  margin-top: 0.5rem;
+}
+
+.sort-direction-btn,
+.sort-type-btn {
+  width: 100%;
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #ced4da;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.sort-direction-btn:hover,
+.sort-type-btn:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.sort-direction-btn::before {
+  content: attr(data-direction);
+  margin-right: 0.5rem;
+}
+
+.sort-type-btn::before {
+  content: '🔍';
+  margin-right: 0.5rem;
+}
+
+/* Styles for route and location icons */
+.order-route-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.order-route-icons svg {
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+}
+
+.route-separator {
+  color: #9ca3af;
+  font-weight: bold;
+  margin: 0 0.5rem;
+}
+
+.route-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.route-origin,
+.route-destination {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-separator {
+  color: #9ca3af;
+  font-weight: bold;
+}
+
+/* Adjust table cell padding for new layout */
+.orders-table td {
+  vertical-align: middle;
+}
+
+/* Styles for origin route icon */
+.order-route-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.order-route-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background-color: #8b5cf6; /* Purple color */
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-route-icon-wrapper svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+/* Pagination Controls */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid #eaeaea;
+}
+
+.pagination-page-info {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-btn {
+  background-color: #f5f5f5;
+  color: #000;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.pagination-btn:hover {
+  background-color: #e5e5e5;
+}
+
+.pagination-btn.page-number {
+  background-color: transparent;
+  border: 1px solid #e5e5e5;
+}
+
+.pagination-btn.page-number.active {
+  background-color: #6b46c1;
+  color: white;
+  border-color: #6b46c1;
+}
+
+.pagination-btn:disabled,
+.pagination-btn.disabled {
+  background-color: #f9f9f9;
+  color: #ccc;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pagination-btn.first-page,
+.pagination-btn.last-page {
+  font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .pagination-page-info {
+    margin-bottom: 0.5rem;
+  }
+  
+  .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* Compact filter inputs */
+.filter-dropdown select,
+.new-order-btn,
+.sort-direction-btn,
+.sort-type-btn,
+.clear-filters-btn {
+  height: 2.5rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.filter-dropdown select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b46c1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 16px;
+}
+
+.filter-section {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.filters-top-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+/* Origin Badge Styling */
+.orders-table .origin-badge-cell {
+  width: 50px;
+  max-width: 50px;
+  text-align: center;
+  padding: 0.25rem 0.5rem !important;
+}
+
+.origin-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: #6b46c1;
+  border-radius: 50%;
+  background-color: rgba(107, 70, 193, 0.1);
+}
+
+.origin-badge-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Ensure company initials icon fits within the badge */
+.origin-badge-icon > div {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(107, 70, 193, 0.1);
+  color: #6b46c1;
+  font-weight: bold;
+  font-size: 0.7rem;
+}
+
+.new-order-btn {
+  width: 100%;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(0);
+  margin-bottom: 2rem;
+  height: 3.5rem;
+}
+
+.new-order-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.new-order-btn:hover {
+  background-color: #222222;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Order Actions Dropdown Styles */
+.order-actions-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  z-index: 100; /* Increased z-index */
+}
+
+.order-actions-dropdown-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 50; /* Ensure button is above other elements */
+}
+
+.order-actions-dropdown-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.order-actions-dropdown-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.order-actions-dropdown {
+  position: fixed;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 180px;
+  padding: 0.25rem 0;
+  overflow: hidden;
+}
+
+.order-actions-dropdown::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid #e5e7eb;
+  top: -10px;
+  right: 10px;
+  z-index: 1001;
+}
+
+.order-actions-dropdown::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid white;
+  top: -9px;
+  right: 11px;
+  z-index: 1002;
+}
+
+.order-action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #374151;
+  transition: all 0.2s ease;
+}
+
+.order-action-item:hover {
+  background-color: #f3f4f6;
+}
+
+.order-action-item svg {
+  color: #6b7280;
+  width: 14px;
+  height: 14px;
+  margin-right: 0.5rem;
+}
+
+.order-action-item.delete {
+  color: #ef4444;
+}
+
+.order-action-item.delete:hover {
+  background-color: #fee2e2;
+}
+
+.order-action-item.delete svg {
+  color: #ef4444;
+}
+
+.outlined-purple-btn {
+  border: 1px solid #6b46c1;
+  background-color: transparent;
+  color: #6b46c1;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  height: 2.5rem;
+}
+
+.outlined-purple-btn:hover {
+  background-color: rgba(107, 70, 193, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(107, 70, 193, 0.1);
+}
+
+.search-filter-section {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.outlined-export-btn {
+  border: 1px solid #6b46c1;
+  background-color: transparent;
+  color: #6b46c1;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  height: 2.5rem;
+}
+
+.outlined-export-btn:hover {
+  background-color: rgba(107, 70, 193, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(107, 70, 193, 0.1);
+}
+
+/* Styles for route info and value columns */
+.route-info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.route-info-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.route-info-item svg {
+  color: #6b46c1;
+}
+
+.value-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.total-value,
+.km-rate {
+  display: flex;
+  align-items: center;
+  font-size: 0.7rem;
+}
+
+.total-value svg {
+  color: #16a34a;
+}
+
+.km-rate svg {
+  color: #2563eb;
 } 

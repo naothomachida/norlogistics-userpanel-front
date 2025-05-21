@@ -520,16 +520,6 @@ const OrderDetail: React.FC = () => {
                 Detalhes da Solicitação 
                 <span className="order-detail-id">#{order.id}</span>
               </h1>
-              <div className="order-detail-actions">
-                {canManageOrder && (
-                  <button 
-                    className="edit-order-button" 
-                    onClick={() => navigate(`/orders/edit/${order.id}`)}
-                  >
-                    Editar Ordem
-                  </button>
-                )}
-              </div>
             </div>
 
             <div className="order-detail-section">

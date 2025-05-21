@@ -13,7 +13,7 @@
   width: 100%;
   max-width: none;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0.5rem 3rem;
 }
 
 .order-form-main {
@@ -42,6 +42,10 @@
   align-items: center;
   justify-content: center;
   margin: 1.5rem 0;
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .step-indicator {
@@ -51,25 +55,14 @@
   opacity: 0.3;
   transition: opacity 0.3s ease, transform 0.2s ease;
   cursor: not-allowed;
-}
-
-.step-indicator.active {
-  opacity: 1;
-  cursor: pointer;
-}
-
-.step-indicator.active:hover {
-  opacity: 0.8;
-  transform: translateY(-3px);
-}
-
-.step-indicator.active:hover .step-number {
-  background-color: #222;
+  position: relative;
+  flex: 1;
+  max-width: 150px;
 }
 
 .step-number {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   background-color: #e5e5e5;
   border-radius: 50%;
   display: flex;
@@ -78,17 +71,10 @@
   font-weight: bold;
   margin-bottom: 0.5rem;
   transition: background-color 0.3s ease;
-  font-size: 0.7rem;
-}
-
-.step-indicator.active .step-number {
-  background-color: #000;
-  color: white;
-}
-
-.step-name {
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  color: #666;
+  position: relative;
+  z-index: 2;
 }
 
 .step-line {
@@ -97,6 +83,33 @@
   flex-grow: 1;
   margin: 0 0.75rem;
   max-width: 80px;
+  position: relative;
+  z-index: 1;
+  top: -16px;
+}
+
+.step-indicator.active .step-number {
+  background-color: #000;
+  color: white;
+}
+
+.step-indicator.active {
+  opacity: 1;
+  cursor: pointer;
+}
+
+.step-name {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-align: center;
+  color: #666;
+  line-height: 1.2;
+  max-width: 100px;
+}
+
+.step-indicator.active .step-name {
+  color: #000;
+  font-weight: 600;
 }
 
 /* Container de etapas */
@@ -107,11 +120,28 @@
   margin-bottom: 1.5rem;
 }
 
+.step-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
 .step-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 1.25rem;
+  margin: 0;
+  flex-grow: 1;
   text-align: center;
+}
+
+.step-navigation-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.step-navigation-buttons .back-button,
+.step-navigation-buttons .continue-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
 }
 
 /* Seleção de tipo de transporte (Etapa 1) */
@@ -786,41 +816,40 @@
 }
 
 .address-input-container {
-  display: flex;
-  align-items: center;
   position: relative;
-  width: 100%;
-  max-width: 800px;
 }
 
 .address-input-container input {
-  flex-grow: 1;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.375rem;
+  font-size: 0.7rem;
   cursor: pointer;
   background-color: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  padding: 0.5rem;
-  font-size: 0.95rem;
-  min-width: 800px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  transition: all 0.2s ease;
+}
+
+.address-input-container input:hover {
+  border-color: #000;
+  background-color: #f5f5f5;
 }
 
 .edit-address-button {
-  background-color: transparent;
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
   border: none;
   color: #666;
-  margin-left: 0.5rem;
   cursor: pointer;
-  transition: color 0.3s ease;
-  font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  transition: color 0.2s ease;
 }
 
 .edit-address-button:hover {
   color: #000;
-  background-color: #f0f0f0;
-  border-radius: 0.25rem;
 }
 
 .name-phone-row {
@@ -869,7 +898,7 @@
 .location-cards-grid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
   width: 100%;
 }
 
@@ -887,13 +916,14 @@
 }
 
 .location-card:hover {
-  border-color: var(--primary-color);
+  border-color: var(--primary-color, #000);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
 }
 
 .location-card.selected {
-  border-color: var(--primary-color);
-  background-color: rgba(var(--primary-color-rgb), 0.1);
+  border-color: var(--primary-color, #000);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .location-card-content {
@@ -921,16 +951,16 @@
   gap: 4px;
 }
 
-.location-card-content h4 {
+.location-card-text h4 {
   margin: 0;
   font-size: 16px;
-  color: var(--text-primary);
+  color: #111827;
 }
 
-.location-card-content p {
+.location-card-text p {
   margin: 0;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: #6b7280;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -960,25 +990,58 @@
   }
 }
 
-.route-summary {
+.route-summary-container {
   display: flex;
-  justify-content: space-between;
-  background-color: #f3f4f6;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 1rem;
+  width: 100%;
+}
+
+.route-summary-card {
+  flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   padding: 1rem;
-  margin-top: 1rem;
-  border-left: 4px solid #000;
+  transition: all 0.2s ease;
 }
 
-.route-summary > div {
-  flex: 1;
+.route-summary-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
-.route-summary p {
-  margin: 0.25rem 0;
-  font-size: 0.95rem;
-  color: #555;
-  font-weight: 500;
+.route-summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  margin-right: 1rem;
+  font-size: 1.5rem;
+}
+
+.route-summary-content {
+  flex-grow: 1;
+}
+
+.route-summary-content h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #4b5563;
+}
+
+.route-summary-content p {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .route-segment-detail {
@@ -1256,8 +1319,19 @@
 }
 
 .loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6b46c1;
+}
+
+.spinner-icon {
+  font-size: 3rem;
   animation: spin 1s linear infinite;
-  display: inline-block;
+  margin-bottom: 1rem;
+  border: none;
+  border-radius: 50%;
 }
 
 @keyframes spin {
@@ -1533,30 +1607,55 @@
   z-index: 0;
 }
 
+.route-point-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+  position: relative;
+}
+
+.route-point-actions:before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -0.5rem;
+  bottom: 100%;
+  width: 1px;
+  background-color: #e5e7eb;
+  z-index: 0;
+}
+
 .add-toll-button {
-  background-color: #fff;
-  border: 1px dashed #d1d5db;
-  color: #4b5563;
-  padding: 0.4rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
+  background-color: transparent;
+  border: 1px dashed #8b5cf6;  /* Roxo suave tracejado */
+  color: #6d28d9;  /* Cor do texto em tom de roxo */
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  opacity: 0.7;
+  outline: none;
   position: relative;
   z-index: 1;
-  transition: all 0.2s;
 }
 
 .add-toll-button:hover {
-  background-color: #f9fafb;
-  border-color: #9ca3af;
-  color: #111827;
+  background-color: rgba(139, 92, 246, 0.05);  /* Fundo roxo muito claro */
+  border-color: #7c3aed;  /* Roxo um pouco mais escuro no hover */
+  color: #5b21b6;  /* Texto um pouco mais escuro */
+  opacity: 1;
+  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.1);  /* Sombra sutil */
 }
 
 .add-toll-button svg {
-  color: #4b5563;
+  color: #8b5cf6;  /* Ícone na mesma cor da borda */
+  margin-right: 0.25rem;
 }
 
 .toll-modal .toll-input-container {
@@ -1619,4 +1718,586 @@
     top: 0.5rem;
     right: 0.5rem;
   }
+}
+
+/* Loading and Error States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f9f9f9;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6b46c1;
+}
+
+.spinner-icon {
+  font-size: 3rem;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+  border: none;
+  border-radius: 50%;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  margin-top: 1rem;
+  text-align: center;
+  color: #ef4444;
+  background-color: #fee2e2;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  max-width: 400px;
+}
+
+/* Styles for custom location details */
+.custom-location-details {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.custom-location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.custom-location-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.75rem;
+}
+
+.custom-location-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.edit-custom-location-button {
+  background-color: transparent;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-custom-location-button:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.custom-location-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.custom-location-content p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+.custom-location-content p strong {
+  color: #111827;
+  margin-right: 0.25rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .custom-location-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.location-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.location-options-container .custom-location-details {
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Location Type Confirmation Modal */
+.location-type-confirmation-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.location-type-confirmation-content {
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+.location-type-confirmation-content h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.location-type-confirmation-content p {
+  margin-bottom: 1.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.location-type-confirmation-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.location-type-confirmation-actions button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.location-type-confirmation-actions .cancel-button {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.location-type-confirmation-actions .confirm-button {
+  background-color: #000;
+  color: white;
+}
+
+.location-type-confirmation-actions .cancel-button:hover {
+  background-color: #e5e5e5;
+}
+
+.location-type-confirmation-actions .confirm-button:hover {
+  background-color: #222;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilos para Modal de Pedágio */
+.toll-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.toll-modal-content {
+  background-color: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.toll-modal-content h3 {
+  margin-bottom: 16px;
+  color: #333;
+  font-size: 1rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toll-modal-content .form-group {
+  margin-bottom: 16px;
+}
+
+.toll-modal-content input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.modal-actions .cancel-button {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.modal-actions .confirm-button {
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.4rem 1rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-actions .confirm-button:hover {
+  background-color: #222222;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.modal-actions .confirm-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Estilos para preview de rota no modal de pedágio */
+.toll-route-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.toll-route-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+}
+
+.toll-route-point span {
+  font-size: 0.8rem;
+  color: #4a5568;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.toll-route-arrow {
+  font-size: 1.5rem;
+  color: #718096;
+  margin: 0 0.5rem;
+}
+
+.route-point-toll-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.edit-toll-button,
+.remove-toll-button {
+  background-color: transparent;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-toll-button {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.remove-toll-button {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.edit-toll-button:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: #2563eb;
+}
+
+.remove-toll-button:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #dc2626;
+}
+
+@media (max-width: 480px) {
+  .toll-route-preview {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .toll-route-point span {
+    max-width: 200px; /* Adjust as needed */
+  }
+  
+  .toll-route-arrow {
+    transform: rotate(90deg);
+    margin: 0.5rem 0;
+  }
+}
+
+.toll-modal .form-group {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.toll-modal .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: #4a5568;
+}
+
+.toll-modal .form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.toll-modal .form-group input:focus {
+  outline: none;
+  border-color: #4a5568;
+  box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.1);
+}
+
+.toll-modal .form-group input::placeholder {
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+.route-organization-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.route-point-card {
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: move;
+}
+
+.route-point-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.route-point-number {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background-color: #6b7280;
+  color: white;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.route-point-icon {
+  margin-right: 1rem;
+  font-size: 2rem;
+  color: #4b5563;
+}
+
+.route-point-info {
+  flex-grow: 1;
+}
+
+.route-point-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.route-point-info p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.route-point-tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.point-tag {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+.origin-tag {
+  background-color: #10b981;
+  color: white;
+}
+
+.destination-tag {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.company-tag {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.location-type-tag {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.route-point-actions,
+.route-point-toll-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-toll-button,
+.edit-toll-button,
+.remove-toll-button {
+  background-color: transparent;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-toll-button {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
+
+.edit-toll-button {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.remove-toll-button {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.add-toll-button:hover {
+  background-color: rgba(139, 92, 246, 0.1);
+  border-color: #6d28d9;
+}
+
+.edit-toll-button:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: #2563eb;
+}
+
+.remove-toll-button:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #dc2626;
+}
+
+.route-point-card.origin-point {
+  border-left: 4px solid #10b981;
+}
+
+.route-point-card.destination-point {
+  border-left: 4px solid #3b82f6;
 }

@@ -5,7 +5,7 @@ import { RootState } from '../../store';
 import { logout } from '../../store/authSlice';
 import './Header.css';
 import norLogo from '../../assets/logo-nor.png';
-import { FiHome, FiSettings, FiUsers, FiClock, FiPlusSquare, FiBell } from 'react-icons/fi';
+import { FiHome, FiSettings, FiUsers, FiClock, FiPlusSquare, FiBell, FiLogOut } from 'react-icons/fi';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -70,7 +70,17 @@ const Header: React.FC = () => {
       return names[0].substring(0, 2).toUpperCase();
     }
     
-    return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
+    // Use first and last name initials, with a preference for more meaningful names
+    const firstInitial = names[0].charAt(0).toUpperCase();
+    const lastInitial = names[names.length - 1].charAt(0).toUpperCase();
+    
+    // Special handling for common prefixes or short names
+    const skipFirstInitialPrefixes = ['de', 'da', 'do', 'das', 'dos'];
+    if (skipFirstInitialPrefixes.includes(names[0].toLowerCase()) && names.length > 2) {
+      return `${names[1].charAt(0).toUpperCase()}${lastInitial}`;
+    }
+    
+    return `${firstInitial}${lastInitial}`;
   };
 
   // Obter o nome de exibição do usuário
@@ -201,33 +211,42 @@ const Header: React.FC = () => {
         </nav>
       </div>
       <div className="header-actions">
-        <button className="notification-button">
-          <FiBell size={16} />
-          <div className="notification-indicator"></div>
-        </button>
+        <div className="notification-container">
+          <button className="notification-button">
+            <FiBell size={24} />
+            <div className="notification-indicator"></div>
+          </button>
+          <span className="notification-tooltip">Notificações</span>
+        </div>
         <div className="avatar-container" ref={dropdownRef}>
           <div className="avatar" onClick={handleAvatarClick}>
             {renderAvatar()}
           </div>
           {showDropdown && (
             <div className="avatar-dropdown">
-              <div className="user-info">
-                <div className="user-name">{getDisplayName()}</div>
-                <div className="user-email">{userProfile?.email || 'sem email'}</div>
-                <div className="user-role">
-                  {userProfile?.role === 'admin' && 'Administrador'}
-                  {userProfile?.role === 'manager' && 'Gerente'}
-                  {userProfile?.role === 'user' && 'Usuário'}
-                  {userProfile?.role === 'driver' && 'Motorista'}
-                  {!userProfile?.role && 'Cargo não definido'}
+              <div className="dropdown-header">
+                <div className="dropdown-avatar">
+                  {renderAvatar()}
+                </div>
+                <div className="dropdown-user-info">
+                  <div className="user-name">{getDisplayName()}</div>
+                  <div className="user-role">
+                    {userProfile?.role === 'admin' && 'Administrador'}
+                    {userProfile?.role === 'manager' && 'Gerente'}
+                    {userProfile?.role === 'user' && 'Usuário'}
+                    {userProfile?.role === 'driver' && 'Motorista'}
+                    {!userProfile?.role && 'Cargo não definido'}
+                  </div>
                 </div>
               </div>
               <div className="dropdown-divider"></div>
-              <div className="dropdown-item" onClick={navigateToProfile}>
-                Perfil
-              </div>
-              <div className="dropdown-item" onClick={handleLogout}>
-                Sair
+              <div className="dropdown-menu">
+                <div className="dropdown-item" onClick={navigateToProfile}>
+                  <FiSettings size={16} /> Perfil
+                </div>
+                <div className="dropdown-item" onClick={handleLogout}>
+                  <FiLogOut size={16} /> Sair
+                </div>
               </div>
             </div>
           )}

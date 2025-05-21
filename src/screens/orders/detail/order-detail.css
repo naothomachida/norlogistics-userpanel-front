@@ -13,7 +13,7 @@
   width: 100%;
   max-width: none;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0.5rem 3rem !important;
 }
 
 .order-detail-main {

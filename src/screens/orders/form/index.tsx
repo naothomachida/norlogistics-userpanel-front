@@ -7,11 +7,12 @@ import Header from '../../../components/layout/Header';
 import './order-form.css';
 import { Location } from '../../../store/locationSlice';
 import { MdBusinessCenter } from 'react-icons/md';
-import { FaBox, FaHotel, FaPlane, FaMapMarkerAlt, FaBuilding, FaWarehouse, FaHome, FaSpinner } from 'react-icons/fa';
+import { FaBox, FaHotel, FaPlane, FaMapMarkerAlt, FaBuilding, FaWarehouse, FaHome, FaSpinner, FaUser, FaRoad, FaTruck, FaMoneyBillWave, FaUserTie } from 'react-icons/fa';
 import AddressModal, { DetailedAddress } from './AddressModal';
 import { useGoogleMapsLoader } from '../../../hooks/useGoogleMapsLoader';
 import { MdLocationCity } from 'react-icons/md';
 import { calculateRouteDistance, RouteDistanceResult } from '../../../utils/mapbox-route-distance';
+import { getLocationIcon, getLocationTypeBadge } from '../../../utils/locationIcons';
 
 // Ícone de arrasto
 const DragHandleIcon = () => (
@@ -35,25 +36,55 @@ enum OrderFormStep {
 
 interface OrderFormProps {} // Empty props interface
 
+// Location type verification constants
+const AIRPORT_KEYWORDS = ['aeroporto', 'airport', 'congonhas', 'internacional'];
+const HOTEL_KEYWORDS = ['hotel', 'mercure', 'pullman', 'renaissance'];
+
+// Utility function to verify location type
+const verifyLocationType = (name: string, expectedType: 'airport' | 'hotel' | 'other'): boolean => {
+  const nameLower = (name || '').toLowerCase();
+
+  switch (expectedType) {
+    case 'airport':
+      return AIRPORT_KEYWORDS.some(keyword => nameLower.includes(keyword));
+    case 'hotel':
+      return HOTEL_KEYWORDS.some(keyword => nameLower.includes(keyword));
+    case 'other':
+      return !AIRPORT_KEYWORDS.some(keyword => nameLower.includes(keyword)) &&
+             !HOTEL_KEYWORDS.some(keyword => nameLower.includes(keyword));
+    default:
+      return false;
+  }
+};
+
 const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
+  // IMPORTANT: Hooks must be called in the same order every time to avoid React Hook order errors
+  // Order of hooks:
+  // 1. Routing/Navigation hooks
+  // 2. Redux selector hooks
+  // 3. External library hooks (like Google Maps loader)
+  // 4. State hooks (useState)
+  // 5. Memoized values (useMemo)
+  // 6. Effects (useEffect)
+  
+  // Routing and navigation hooks
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
-  // Obter tipos de veículos e locais do Redux store
+  // Selector hooks
   const personVehicles = useSelector((state: RootState) => state.vehicleTypes.person);
   const cargoVehicles = useSelector((state: RootState) => state.vehicleTypes.cargo);
   const locations = useSelector((state: RootState) => state.locations.locations);
   const pricing = useSelector((state: RootState) => state.pricing);
-
-  // Obter o perfil do usuário para pegar o ID do criador da ordem
   const { userProfile } = useSelector((state: RootState) => state.auth);
 
-  // Controles de etapas
-  const [currentStep, setCurrentStep] = useState<OrderFormStep>(OrderFormStep.TransportType);
+  // External library hooks
+  const { isLoaded, error: googleMapsError } = useGoogleMapsLoader();
   
-  // Dados do formulário
+  // State hooks - keep a consistent order
+  const [currentStep, setCurrentStep] = useState<OrderFormStep>(OrderFormStep.TransportType);
   const [formData, setFormData] = useState({
-    transportType: '', // 'person' ou 'cargo'
+    transportType: '',
     vehicleType: '',
     items: [{
       name: '',
@@ -70,87 +101,152 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     startLocationId: '',
     endLocationId: '',
   });
-
-  // Estado para a rota
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>([]);
-  
-  // Estado para controlar o arrastar e soltar
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-
-  // State for address modal
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null);
-
-  // Add state for custom location address modal
   const [isCustomLocationAddressModalOpen, setIsCustomLocationAddressModalOpen] = useState(false);
-
-  // Estado para o modal de pedágio
   const [isTollModalOpen, setIsTollModalOpen] = useState(false);
   const [tollValue, setTollValue] = useState<string>('');
   const [tollPosition, setTollPosition] = useState<number | null>(null);
-
-  // Verificar se há itens válidos para definir o último passageiro como destino
-  const hasValidItems = useMemo(() => {
-    return formData.items.some(item => item.name && item.address);
-  }, [formData.items]);
-
-  // New state for route distance
+  const [customStartLocation, setCustomStartLocation] = useState({
+    type: '',
+    address: ''
+  });
+  const [customEndLocation, setCustomEndLocation] = useState({
+    type: '',
+    address: ''
+  });
+  const [customLocationModalType, setCustomLocationModalType] = useState<'start' | 'end'>('start');
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [approvalData, setApprovalData] = useState({
+    approvalType: 'manager',
+    approvedBy: '',
+  });
   const [routeDistance, setRouteDistance] = useState<RouteDistanceResult | null>(null);
-
-  // Add this near the route distance state declaration
   const [routeDistanceError, setRouteDistanceError] = useState<string | null>(null);
-  
-  // Estado para preços
   const [routePrice, setRoutePrice] = useState<{
     kmBasedPrice: number;
     minimumPrice: number | null;
     finalPrice: number;
     tollsTotal?: number;
   } | null>(null);
+  const [customLocationDetails, setCustomLocationDetails] = useState<{
+    start?: DetailedAddress;
+    end?: DetailedAddress;
+  }>({});
 
-  // Use Google Maps loader hook
-  const { isLoaded } = useGoogleMapsLoader();
+  // Add state for location type confirmation
+  const [isLocationTypeConfirmationOpen, setIsLocationTypeConfirmationOpen] = useState(false);
+  const [pendingLocationSelection, setPendingLocationSelection] = useState<{
+    type: 'start' | 'end';
+    locationId: string;
+    locationName: string;
+    locationAddress: string;
+  } | null>(null);
 
-  // Modify custom location state to have separate start and end locations
-  const [customStartLocation, setCustomStartLocation] = useState({
-    type: '',
-    address: ''
-  });
+  // Memoized values
+  const hasValidItems = useMemo(() => {
+    return formData.items.some(item => item.name && item.address);
+  }, [formData.items]);
 
-  const [customEndLocation, setCustomEndLocation] = useState({
-    type: '',
-    address: ''
-  });
+  // Effects
+  useEffect(() => {
+    if (googleMapsError) {
+      console.error('Google Maps Loading Error:', googleMapsError);
+      alert('Erro ao carregar o Google Maps. Por favor, tente novamente mais tarde.');
+    }
+  }, [googleMapsError]);
 
-  // Update the custom location modal type state
-  const [customLocationModalType, setCustomLocationModalType] = useState<'start' | 'end'>('start');
+  // Render loading state if Google Maps is not loaded
+  if (!isLoaded) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner">
+          <FaSpinner className="spinner-icon" />
+          <p>Carregando mapa...</p>
+        </div>
+        {googleMapsError && (
+          <div className="error-message">
+            <p>Erro ao carregar o Google Maps</p>
+            <p>{googleMapsError.message}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
-  // Add loading state near other state declarations
-  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const handleTransportTypeSelect = (type: 'person' | 'cargo') => {
+    setFormData({
+      ...formData,
+      transportType: type,
+      // Reset vehicle type when transport type changes
+      vehicleType: '',
+      // Reset items based on transport type
+      items: [{
+        name: '',
+        phone: type === 'person' ? '' : '',
+        address: '',
+        weight: type === 'cargo' ? '' : '',
+        dimensions: type === 'cargo' 
+          ? { length: '', width: '', height: '' }
+          : { length: '', width: '', height: '' },
+        detailedAddress: undefined
+      }]
+    });
 
-  // Estado para controlar o modal de aprovação
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
-  const [approvalData, setApprovalData] = useState({
-    approvalType: 'manager', // 'direct' para aprovação direta ou 'manager' para aprovação via gestor
-    approvedBy: '',
-  });
+    // Automatically advance to the next step
+    setCurrentStep(OrderFormStep.VehicleType);
+  };
+
+  const handleVehicleTypeSelect = (vehicleId: string) => {
+    setFormData({
+      ...formData,
+      vehicleType: vehicleId
+    });
+
+    // Automatically advance to the next step
+    setCurrentStep(OrderFormStep.Details);
+  };
 
   const handleCustomLocationAddressSave = (addressData: DetailedAddress) => {
-    // Update custom location based on the current modal type (start or end)
+    // Determine whether this is a start or end location
     if (customLocationModalType === 'start') {
-      setCustomStartLocation(prev => ({
+      setCustomLocationDetails(prev => ({
         ...prev,
-        address: addressData.fullAddress || ''
+        start: addressData
+      }));
+      setCustomStartLocation({
+        type: addressData.street,
+        address: addressData.fullAddress
+      });
+      setFormData(prev => ({
+        ...prev, 
+        startLocationId: prev.startLocationId || 'other' // Preserve existing location type
       }));
     } else {
-      setCustomEndLocation(prev => ({
+      setCustomLocationDetails(prev => ({
         ...prev,
-        address: addressData.fullAddress || ''
+        end: addressData
+      }));
+      setCustomEndLocation({
+        type: addressData.street,
+        address: addressData.fullAddress
+      });
+      setFormData(prev => ({
+        ...prev, 
+        endLocationId: prev.endLocationId || 'other' // Preserve existing location type
       }));
     }
     
     // Close the modal
     setIsCustomLocationAddressModalOpen(false);
+  };
+
+  const openCustomLocationAddressModal = (type: 'start' | 'end') => {
+    setCustomLocationModalType(type);
+    setIsCustomLocationAddressModalOpen(true);
   };
 
   const handleCalculateDistance = async () => {
@@ -220,22 +316,6 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   };
 
   // Manipuladores de eventos
-  const handleTransportTypeSelect = (type: string) => {
-    setFormData({
-      ...formData,
-      transportType: type,
-    });
-    setCurrentStep(OrderFormStep.VehicleType);
-  };
-
-  const handleVehicleTypeSelect = (type: string) => {
-    setFormData({
-      ...formData,
-      vehicleType: type,
-    });
-    setCurrentStep(OrderFormStep.Details);
-  };
-
   const handleItemChange = (index: number, field: string, value: string) => {
     const newItems = [...formData.items];
     if (field.includes('.')) {
@@ -336,6 +416,15 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   };
 
   const handleProceedToRouteOrganization = () => {
+    console.log('🚀 Iniciando handleProceedToRouteOrganization');
+    console.log('Dados do formulário:', {
+      startLocationId: formData.startLocationId,
+      endLocationId: formData.endLocationId,
+      items: formData.items,
+      customStartLocation,
+      customEndLocation
+    });
+
     // Encontrar os locais de origem e destino
     let originLocation = locations.find(loc => loc.id === formData.startLocationId);
     let destinationLocation: Location | undefined;
@@ -376,6 +465,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         return basePoint;
       });
     
+    console.log('Item Points:', itemPoints);
+    
     if (itemPoints.length === 0) {
       alert('É necessário adicionar pelo menos um passageiro ou carga com dados válidos.');
       return;
@@ -414,6 +505,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       return;
     }
     
+    console.log('Origin Point:', originPoint);
+    
     // Preparar ponto de destino
     let destinationPoint: RoutePoint;
     
@@ -448,6 +541,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       alert('Não foi possível determinar o local de destino.');
       return;
     }
+    
+    console.log('Destination Point:', destinationPoint);
 
     // Construir array de pontos de rota
     let routePointsArray: RoutePoint[];
@@ -459,11 +554,15 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       routePointsArray = [originPoint, ...itemPoints, destinationPoint];
     }
     
+    console.log('Route Points Array:', routePointsArray);
+    
     // Definir pontos da rota
     setRoutePoints(routePointsArray);
     
     // Avançar para a próxima etapa
     setCurrentStep(OrderFormStep.RouteOrganization);
+    
+    console.log('🏁 Finalizado handleProceedToRouteOrganization');
   };
 
   const handleDragStart = (index: number) => {
@@ -508,6 +607,11 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
   // Função para abrir o modal de pedágio
   const openTollModal = (position: number) => {
+    console.log('🚦 Abrindo modal de pedágio', { 
+      position, 
+      routePoints: routePoints.map(point => point.name),
+      currentStep
+    });
     setTollPosition(position);
     setTollValue('');
     setIsTollModalOpen(true);
@@ -521,6 +625,12 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
   // Função para adicionar um pedágio
   const addToll = () => {
+    console.log('🚧 Adicionando/Editando pedágio', { 
+      tollPosition, 
+      tollValue,
+      routePoints: routePoints.map(point => point.name)
+    });
+
     if (tollPosition === null || !tollValue || isNaN(parseFloat(tollValue)) || parseFloat(tollValue) <= 0) {
       alert('Por favor, insira um valor válido para o pedágio.');
       return;
@@ -528,18 +638,34 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
     const tollValueNumber = parseFloat(tollValue);
     
-    // Criar um novo ponto de rota para o pedágio
-    const newTollPoint: RoutePoint = {
-      id: `toll-${Date.now()}`,
-      name: `Pedágio R$ ${tollValueNumber.toFixed(2)}`,
-      address: `Entre ${routePoints[tollPosition].name} e ${routePoints[tollPosition + 1]?.name || 'destino'}`,
-      isToll: true,
-      tollValue: tollValueNumber
-    };
-    
-    // Inserir o pedágio na posição correta
+    // Check if we're editing an existing toll
+    const existingTollIndex = routePoints.findIndex((point, index) => 
+      point.isToll && index > tollPosition && index <= tollPosition + 1
+    );
+
     const newRoutePoints = [...routePoints];
-    newRoutePoints.splice(tollPosition + 1, 0, newTollPoint);
+
+    if (existingTollIndex !== -1) {
+      // Update existing toll
+      newRoutePoints[existingTollIndex] = {
+        ...newRoutePoints[existingTollIndex],
+        name: `Pedágio R$ ${tollValueNumber.toFixed(2)}`,
+        address: `Entre ${routePoints[tollPosition].name} e ${routePoints[tollPosition + 1]?.name || 'destino'}`,
+        tollValue: tollValueNumber
+      };
+    } else {
+      // Create a new toll point
+      const newTollPoint: RoutePoint = {
+        id: `toll-${Date.now()}`,
+        name: `Pedágio R$ ${tollValueNumber.toFixed(2)}`,
+        address: `Entre ${routePoints[tollPosition].name} e ${routePoints[tollPosition + 1]?.name || 'destino'}`,
+        isToll: true,
+        tollValue: tollValueNumber
+      };
+      
+      // Insert the toll point
+      newRoutePoints.splice(tollPosition + 1, 0, newTollPoint);
+    }
     
     // Atualizar os pontos da rota
     setRoutePoints(newRoutePoints);
@@ -554,6 +680,16 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     setRoutePoints(newRoutePoints);
   };
 
+  // Function to edit an existing toll
+  const editToll = (index: number) => {
+    const tollPoint = routePoints[index];
+    if (tollPoint && tollPoint.isToll) {
+      setTollPosition(index - 1); // Set position to the point before the toll
+      setTollValue(tollPoint.tollValue?.toString() || '');
+      setIsTollModalOpen(true);
+    }
+  };
+
   // Função para calcular o total de pedágios
   const calculateTollsTotal = (): number => {
     return routePoints
@@ -564,7 +700,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const handleSubmit = async (e?: React.FormEvent, status?: Order['status'], approvedBy?: string) => {
     // Prevent default form submission if event is provided
     if (e) {
-    e.preventDefault();
+      e.preventDefault();
     }
 
     // Validate all required data
@@ -593,23 +729,48 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       return;
     }
 
-    if (!routeDistance) {
-      alert('Por favor, calcule a distância da rota.');
-      return;
-    }
-
     try {
+      // Extract full addresses from route points, filtering out toll points
+      const addresses = routePoints
+        .filter(point => !point.isToll)
+        .map((point, index) => {
+          const address = point.fullAddress || 
+            `${point.address}, ${point.city || ''} ${point.state || ''}`.trim();
+          console.log(`🗺️ Address ${index + 1}: ${address}`);
+          return address;
+        });
+      
+      console.log('🚧 Attempting to calculate route distance');
+      
+      // Calculate route distance using Mapbox
+      const result = await calculateRouteDistance(addresses);
+
+      console.log('✅ Route distance calculation successful');
+      console.log('Route Distance Result:', result);
+
+      // Set route distance state
+      setRouteDistance(result);
+
+      // Now calculate the price based on the route distance
+      if (pricing) {
+        const priceResult = calculateRoutePrice(result);
+        setRoutePrice(priceResult);
+        if (priceResult) {
+          console.log('💸 Valor total calculado: R$ ' + priceResult.finalPrice.toFixed(2));
+        }
+      }
+
       // Prepare order data for submission
       const orderData: Omit<Order, 'id'> = {
         transportType: (formData.transportType === 'person' || formData.transportType === 'cargo') 
           ? formData.transportType 
           : 'person', // Default to 'person' if type is invalid
-      vehicleType: formData.vehicleType,
+        vehicleType: formData.vehicleType,
         carModel: '', // TODO: Add car model selection
         pickupLocation: formData.startLocationId,
         destination: formData.endLocationId,
-      startLocationId: formData.startLocationId,
-      endLocationId: formData.endLocationId,
+        startLocationId: formData.startLocationId,
+        endLocationId: formData.endLocationId,
         userId: userProfile?.id || '', // ID do usuário que está criando a ordem
         status: status || 'pending',
         approvedBy: approvedBy || undefined,
@@ -619,13 +780,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
           weight: item.weight,
           dimensions: item.dimensions
         })),
-        routePoints: routePoints,
+        routePoints: routePoints, // Include original route points with tolls
         // Adicionar dados de distância da rota
         routeDistance: {
-          totalDistance: routeDistance.totalDistance,
-          totalDuration: routeDistance.totalDuration,
-          totalSteps: routeDistance.totalSteps,
-          distanceDetails: routeDistance.distanceDetails.map(segment => ({
+          totalDistance: result.totalDistance,
+          totalDuration: result.totalDuration,
+          totalSteps: result.totalSteps,
+          distanceDetails: result.distanceDetails.map(segment => ({
             from: segment.from,
             to: segment.to,
             distance: segment.distance,
@@ -651,10 +812,10 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       dispatch(addOrder(orderData));
 
       // Navigate to orders list
-    navigate('/orders');
+      navigate('/orders');
     } catch (error) {
-      console.error('Order submission error:', error);
-      alert('Erro ao submeter ordem. Por favor, tente novamente.');
+      console.error('Route calculation error:', error);
+      setRouteDistanceError(error instanceof Error ? error.message : 'Erro desconhecido ao calcular rota');
     }
   };
 
@@ -665,8 +826,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   };
 
   const handleProceedToRouteDetails = async () => {
+    console.log('🚨 DEBUG: Entering handleProceedToRouteDetails');
+    console.log('Route Points:', routePoints);
+    console.log('Route Points Length:', routePoints.length);
+
     // Validate route points
     if (routePoints.length < 2) {
+      console.error('🚨 Not enough route points');
       alert('Por favor, adicione pelo menos dois pontos na rota.');
       return;
     }
@@ -676,13 +842,20 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
     try {
       // Extract full addresses from route points, using a fallback
-      const addresses = routePoints.map(point => 
-        point.fullAddress || 
-        `${point.address}, ${point.city || ''} ${point.state || ''}`.trim()
-      );
+      const addresses = routePoints.map((point, index) => {
+        const address = point.fullAddress || 
+          `${point.address}, ${point.city || ''} ${point.state || ''}`.trim();
+        console.log(`🗺️ Address ${index + 1}: ${address}`);
+        return address;
+      });
+      
+      console.log('🚧 Attempting to calculate route distance');
       
       // Calculate route distance using Mapbox
       const result = await calculateRouteDistance(addresses);
+
+      console.log('✅ Route distance calculation successful');
+      console.log('Route Distance Result:', result);
 
       // Set route distance state
       setRouteDistance(result);
@@ -713,9 +886,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       });
 
       // Set the current step to RouteDetails
+      console.log('🔜 Advancing to Route Details step');
       setCurrentStep(OrderFormStep.RouteDetails);
     } catch (error) {
-      console.error('Failed to calculate route distance:', error);
+      console.error('❌ Failed to calculate route distance:', error);
+      
+      // Always set the step to RouteDetails to allow manual intervention
+      setCurrentStep(OrderFormStep.RouteDetails);
       
       // Provide more specific error messages
       if (error instanceof Error) {
@@ -738,6 +915,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     } finally {
       // Always reset loading state
       setIsCalculatingRoute(false);
+      console.log('🏁 Route details calculation process completed');
     }
   };
 
@@ -810,49 +988,59 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     }
   };
 
-  // Update the calculateRoutePrice function to accept a routeDistance parameter
+  // Update the calculateRoutePrice function to handle toll points more explicitly
   const calculateRoutePrice = (distanceResult?: RouteDistanceResult | null) => {
-    // Use the provided route distance or fall back to the state
-    const distance = distanceResult || routeDistance;
-    
-    if (!distance || !pricing) return null;
+    // Validate input
+    if (!distanceResult || !pricing) {
+      console.warn('Não foi possível calcular o preço: dados de distância ou precificação ausentes');
+      return null;
+    }
 
-    // Obter cidades de origem e destino a partir dos pontos da rota
-    const startPoint = routePoints[0];
-    const endPoint = routePoints[routePoints.length - 1];
+    const { totalDistance } = distanceResult;
+    const { kmRate, cityPairs } = pricing;
 
-    const startCity = startPoint?.city || '';
-    const startState = startPoint?.state || '';
-    const endCity = endPoint?.city || '';
-    const endState = endPoint?.state || '';
+    // Calcular o preço base por km
+    const kmBasedPrice = totalDistance * kmRate;
 
-    // Calcular preço baseado em km
-    const kmBasedPrice = distance.totalDistance * pricing.kmRate;
+    // Determinar o preço mínimo com base nas cidades
+    let minimumPrice: number | null = null;
+    let startCity = '';
+    let endCity = '';
 
-    // Procurar por preço mínimo entre cidades
-    let minimumPrice = null;
-    
-    // Verificar se existe preço mínimo para o par de cidades (em ambas as direções)
-    const cityPair = pricing.cityPairs.find(
-      pair => 
-        // Verificar se existe par origem -> destino
-        (pair.fromCity.toLowerCase() === startCity.toLowerCase() && 
-         pair.fromState === startState && 
-         pair.toCity.toLowerCase() === endCity.toLowerCase() && 
-         pair.toState === endState) ||
-        // Verificar se existe par destino -> origem (preço vale para ambas direções)
-        (pair.fromCity.toLowerCase() === endCity.toLowerCase() && 
-         pair.fromState === endState && 
-         pair.toCity.toLowerCase() === startCity.toLowerCase() && 
-         pair.toState === startState)
-    );
+    // Extrair cidades dos detalhes da rota
+    if (distanceResult.distanceDetails.length > 0) {
+      const firstSegment = distanceResult.distanceDetails[0];
+      const lastSegment = distanceResult.distanceDetails[distanceResult.distanceDetails.length - 1];
+      
+      // Tentar extrair nomes das cidades
+      const extractCity = (placeName: string) => {
+        const cityMatch = placeName.match(/,\s*([^,]+),/);
+        return cityMatch ? cityMatch[1].trim() : placeName.split(',')[0].trim();
+      };
 
-    if (cityPair) {
-      minimumPrice = cityPair.minimumPrice;
+      startCity = extractCity(firstSegment.from);
+      endCity = extractCity(lastSegment.to);
+
+      // Buscar preço mínimo para o par de cidades
+      const cityPair = cityPairs.find(
+        (pair: { fromCity: string; fromState: string; toCity: string; toState: string; minimumPrice: number }) => 
+          // Verificar se existe par origem -> destino
+          (pair.fromCity.toLowerCase() === startCity.toLowerCase() && 
+           pair.toCity.toLowerCase() === endCity.toLowerCase()) ||
+          // Verificar se existe par destino -> origem (preço vale para ambas direções)
+          (pair.fromCity.toLowerCase() === endCity.toLowerCase() && 
+           pair.toCity.toLowerCase() === startCity.toLowerCase())
+      );
+
+      if (cityPair) {
+        minimumPrice = cityPair.minimumPrice;
+      }
     }
 
     // Calcular o total de pedágios
-    const tollsTotal = calculateTollsTotal();
+    const tollsTotal = routePoints
+      .filter(point => point.isToll && point.tollValue)
+      .reduce((total, point) => total + (point.tollValue || 0), 0);
 
     // Determinar o preço final (o maior entre o preço por km e o preço mínimo) + pedágios
     const basePrice = minimumPrice !== null ? Math.max(kmBasedPrice, minimumPrice) : kmBasedPrice;
@@ -860,8 +1048,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
     // Log detalhado do cálculo do preço em reais
     console.log('💰 Detalhes do cálculo de preço:');
-    console.log(`   Distância total: ${distance.totalDistance.toFixed(2)} km`);
-    console.log(`   Preço por km: R$ ${pricing.kmRate.toFixed(2)}`);
+    console.log(`   Distância total: ${totalDistance.toFixed(2)} km`);
+    console.log(`   Preço por km: R$ ${kmRate.toFixed(2)}`);
     console.log(`   Preço base (distância × taxa por km): R$ ${kmBasedPrice.toFixed(2)}`);
     
     if (minimumPrice !== null) {
@@ -875,7 +1063,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       console.log(`   Total de pedágios: R$ ${tollsTotal.toFixed(2)}`);
     }
     
-      console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
+    console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
 
     return {
       kmBasedPrice,
@@ -885,1286 +1073,872 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     };
   };
 
-  // Helper function to get icon for location type
-  const getLocationIcon = (type: string, isCompany?: boolean) => {
-    switch (type) {
-      case 'airport':
-        return <FaPlane />;
-      case 'hotel':
-        return <FaHotel />;
-      case 'other':
-        return <FaMapMarkerAlt />;
-      case 'first-passenger':
-        return <FaHome />;
-      case 'last-passenger':
-        return <FaHome />;
-      default:
-        // For predefined locations
-        if (isCompany) {
-          return <FaBuilding />;
-        }
-        return <MdLocationCity />;
-    }
+  // Add this function near the top of the component, before the renderLocationOptions
+  const getInitials = (name: string, fallback: string = 'LO'): string => {
+    if (!name) return fallback;
+    const words = name.split(/\s+/);
+    return words.length > 1 
+      ? words[0][0].toUpperCase() + words[1][0].toUpperCase()
+      : words[0].slice(0, 2).toUpperCase();
   };
 
-  // Função para abrir o modal de aprovação
-  const openApprovalModal = () => {
-    // Validar todos os dados antes de abrir o modal
-    if (!formData.transportType) {
-      alert('Por favor, selecione o tipo de transporte.');
-      return;
-    }
-
-    if (!formData.vehicleType) {
-      alert('Por favor, selecione o tipo de veículo.');
-      return;
-    }
-
-    if (!formData.items || formData.items.length === 0) {
-      alert('Por favor, adicione detalhes dos passageiros/cargas.');
-      return;
-    }
-
-    if (!formData.startLocationId || !formData.endLocationId) {
-      alert('Por favor, selecione os locais de início e fim.');
-      return;
-    }
-
-    if (!routePoints || routePoints.length < 2) {
-      alert('Por favor, organize a rota com pelo menos dois pontos.');
-      return;
-    }
-
-    if (!routeDistance) {
-      alert('Por favor, calcule a distância da rota.');
-      return;
-    }
+  // Render method for custom location details
+  const renderCustomLocationDetails = (type: 'start' | 'end') => {
+    const locationDetails = type === 'start' 
+      ? customLocationDetails.start 
+      : customLocationDetails.end;
     
-    setIsApprovalModalOpen(true);
-  };
-  
-  // Função para fechar o modal de aprovação
-  const closeApprovalModal = () => {
-    setIsApprovalModalOpen(false);
-  };
-  
-  // Função para lidar com a mudança no tipo de aprovação
-  const handleApprovalTypeChange = (type: 'direct' | 'manager') => {
-    setApprovalData({
-      ...approvalData,
-      approvalType: type
-    });
-  };
-  
-  // Função para lidar com a mudança no campo de aprovado por
-  const handleApprovedByChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setApprovalData({
-      ...approvalData,
-      approvedBy: e.target.value
-    });
-  };
-  
-  // Função para finalizar a ordem com base no tipo de aprovação
-  const finalizeOrder = () => {
-    // Definir o status com base no tipo de aprovação
-    const status = approvalData.approvalType === 'direct' ? 'approved' : 'pending';
-    
-    // Chamar handleSubmit com os dados de aprovação
-    handleSubmit(undefined, status, approvalData.approvedBy);
-    
-    // Fechar o modal
-    closeApprovalModal();
-  };
+    if (!locationDetails) return null;
 
-  // Replace the entire renderStep function to fix all JSX structure issues
-  const renderStep = () => {
-    switch (currentStep) {
-      case OrderFormStep.TransportType:
-        return (
-          <div className="step-container">
-            <h2 className="step-title">O que você deseja transportar?</h2>
-            <div className="transport-type-selection">
-              <div 
-                className={`transport-card ${formData.transportType === 'person' ? 'selected' : ''}`}
-                onClick={() => handleTransportTypeSelect('person')}
-              >
-                <div className="transport-icon person-icon">
-                  <MdBusinessCenter />
-                </div>
-                <h3>Pessoas</h3>
-                <p>Transporte de executivos</p>
-              </div>
-              
-              <div 
-                className={`transport-card ${formData.transportType === 'cargo' ? 'selected' : ''}`}
-                onClick={() => handleTransportTypeSelect('cargo')}
-              >
-                <div className="transport-icon box-icon">
-                  <FaBox />
-                </div>
-                <h3>Cargas</h3>
-                <p>Transporte de mercadorias</p>
-              </div>
-            </div>
+    return (
+      <div className="custom-location-details">
+        <div className="custom-location-info">
+          <div className="custom-location-header">
+            <h4>{type === 'start' ? 'Local de Origem' : 'Local de Destino'}</h4>
+            <button 
+              className="edit-custom-location-button"
+              onClick={() => openCustomLocationAddressModal(type)}
+            >
+              Editar
+            </button>
           </div>
-        );
-        
-      case OrderFormStep.VehicleType:
-        const vehicles = formData.transportType === 'person' 
-          ? personVehicles 
-          : cargoVehicles;
-          
-        return (
-          <div className="step-container">
-            <h2 className="step-title">
-              {formData.transportType === 'person' 
-                ? 'Escolha o tipo de veículo para os passageiros' 
-                : 'Escolha o tipo de veículo para a carga'}
-            </h2>
-            <div className="vehicle-type-selection">
-              {vehicles.map((vehicle) => (
-                <div 
-                  key={vehicle.id}
-                  className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
-                  onClick={() => handleVehicleTypeSelect(vehicle.id)}
-                >
-                  <h3>{vehicle.name}</h3>
-                  <p>{vehicle.description}</p>
-                </div>
-              ))}
-            </div>
-            <br />
-            <p className="form-hint">
-              Para adicionar mais tipos de veículos, vá até <strong>Configurações</strong>
+          <div className="custom-location-content">
+            <p><strong>Rua:</strong> {locationDetails.street}</p>
+            <p><strong>Número:</strong> {locationDetails.number}</p>
+            <p><strong>Bairro:</strong> {locationDetails.neighborhood}</p>
+            <p><strong>Cidade:</strong> {locationDetails.city}</p>
+            <p><strong>Estado:</strong> {locationDetails.state}</p>
+            <p><strong>CEP:</strong> {locationDetails.cep}</p>
+            <p><strong>Endereço Completo:</strong> {locationDetails.fullAddress}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Modify the existing LocationTypeConfirmationModal to include verification logic
+  const LocationTypeConfirmationModal = () => {
+    if (!pendingLocationSelection) return null;
+
+    const { type, locationId, locationName, locationAddress } = pendingLocationSelection;
+
+    // Determine the expected location type
+    const expectedType = 
+      locationId === 'airport' ? 'airport' :
+      locationId === 'hotel' ? 'hotel' :
+      'other';
+
+    // Verify if the location matches the expected type
+    const isLocationTypeMatch = verifyLocationType(locationName, expectedType);
+
+    return (
+      <div className="location-type-confirmation-modal">
+        <div className="location-type-confirmation-content">
+          <h3>Confirmação de Local</h3>
+          {!isLocationTypeMatch ? (
+            <p>
+              O local "{locationName}" parece não ser um {expectedType === 'airport' ? 'aeroporto' : 'hotel'}. 
+              Tem certeza que deseja continuar?
             </p>
+          ) : (
+            <p>Confirmar local: {locationName}?</p>
+          )}
+          <div className="location-type-confirmation-actions">
+            <button 
+              className="cancel-button"
+              onClick={() => {
+                setIsLocationTypeConfirmationOpen(false);
+                setPendingLocationSelection(null);
+              }}
+            >
+              Cancelar
+            </button>
+            <button 
+              className="confirm-button"
+              onClick={() => {
+                // Confirm the location selection
+                const updateField = type === 'start' 
+                  ? 'startLocationId' 
+                  : 'endLocationId';
+                
+                setFormData(prev => ({
+                  ...prev, 
+                  [updateField]: locationId
+                }));
+
+                // Open address modal for custom location
+                setCustomLocationModalType(type);
+                setIsCustomLocationAddressModalOpen(true);
+                
+                // Close confirmation modal
+                setIsLocationTypeConfirmationOpen(false);
+                setPendingLocationSelection(null);
+              }}
+            >
+              {!isLocationTypeMatch ? 'Continuar mesmo assim' : 'Confirmar'}
+            </button>
           </div>
-        );
-        
-      case OrderFormStep.Details:
-        return (
-          <div className="step-container">
-            <h2 className="step-title">
-              {formData.transportType === 'person' 
-                ? 'Detalhes dos passageiros' 
-                : 'Detalhes das cargas'}
-            </h2>
-            <form className="details-form">
-              {formData.items.map((item, index) => (
-                <div key={index} className="item-details">
-                  <div className="item-header">
-                    <h3>{formData.transportType === 'person' ? `Passageiro ${index + 1}` : `Carga ${index + 1}`}</h3>
-                    {formData.items.length > 1 && (
-                      <button 
-                        type="button" 
-                        className="remove-item-button"
-                        onClick={() => removeItem(index)}
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="name-phone-row">
-                    <div className="form-group name-group">
-                      <label htmlFor={`name-${index}`}>
-                        {formData.transportType === 'person' ? 'Nome' : 'Descrição da carga'}
-                      </label>
-                      <input
-                        type="text"
-                        id={`name-${index}`}
-                        value={item.name}
-                        onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                        placeholder={formData.transportType === 'person' ? 'Nome do passageiro' : 'Descrição da carga'}
-                        required
-                      />
-                    </div>
-                    
-                    {formData.transportType === 'person' && (
-                    <div className="form-group phone-group">
-                      <label htmlFor={`phone-${index}`}>Telefone</label>
-                      <input
-                        type="tel"
-                        id={`phone-${index}`}
-                        value={item.phone}
-                        onChange={(e) => handlePhoneChange(index, e.target.value)}
-                        placeholder="Telefone do passageiro"
-                        required
-                      />
-                    </div>
-                    )}
-                  </div>
-                  
-                  <div className="form-row address-row">
-                    <div className="form-group address-group">
-                      <label htmlFor={`address-${index}`}>Endereço</label>
-                      <div className="address-input-container">
-                        <input
-                          type="text"
-                          id={`address-${index}`}
-                          value={item.address}
-                          onClick={() => openAddressModal(index)}
-                          readOnly
-                          placeholder="Clique para adicionar endereço"
-                          required
-                        />
-                        {item.address && (
-                          <button 
-                            type="button" 
-                            className="edit-address-button"
-                            onClick={() => openAddressModal(index)}
-                          >
-                            Editar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {formData.transportType === 'cargo' && (
-                    <>
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label htmlFor={`weight-${index}`}>Peso (kg)</label>
-                          <input
-                            type="number"
-                            id={`weight-${index}`}
-                            value={item.weight}
-                            onChange={(e) => handleItemChange(index, 'weight', e.target.value)}
-                            placeholder="Peso em kg"
-                            required
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="form-row dimensions-row">
-                        <h4>Dimensões (cm)</h4>
-                        <div className="form-group">
-                          <label htmlFor={`length-${index}`}>Comprimento</label>
-                          <input
-                            type="number"
-                            id={`length-${index}`}
-                            value={item.dimensions.length}
-                            onChange={(e) => handleItemChange(index, 'dimensions.length', e.target.value)}
-                            placeholder="Comprimento"
-                            required
-                          />
-                        </div>
-                        
-                        <div className="form-group">
-                          <label htmlFor={`width-${index}`}>Largura</label>
-                          <input
-                            type="number"
-                            id={`width-${index}`}
-                            value={item.dimensions.width}
-                            onChange={(e) => handleItemChange(index, 'dimensions.width', e.target.value)}
-                            placeholder="Largura"
-                            required
-                          />
-                        </div>
-                        
-                        <div className="form-group">
-                          <label htmlFor={`height-${index}`}>Altura</label>
-                          <input
-                            type="number"
-                            id={`height-${index}`}
-                            value={item.dimensions.height}
-                            onChange={(e) => handleItemChange(index, 'dimensions.height', e.target.value)}
-                            placeholder="Altura"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-              
-              <div className="form-actions all-buttons">
-                <button 
-                  type="button"
-                  onClick={goToPreviousStep}
-                  className="back-button"
-                >
-                  Voltar etapa
-                </button>
-                
-                <div className="right-actions">
-                  <button
-                    type="button"
-                    className="add-item-button"
-                    onClick={addItem}
-                  >
-                    {formData.transportType === 'person' ? 'Adicionar passageiro' : 'Adicionar carga'}
-                  </button>
-                  
-                  {formData.transportType === 'person' && formData.vehicleType && (
-                    <div className="capacity-info">
-                      {(() => {
-                        const selectedVehicle = personVehicles.find(v => v.id === formData.vehicleType);
-                        if (selectedVehicle) {
-                          const capacity = Number(selectedVehicle.capacity);
-                          const current = formData.items.length;
-                          const remaining = capacity - current;
-                          return (
-                            <span className={remaining <= 2 ? 'low-capacity' : ''}>
-                              {remaining > 0 
-                                ? `Vagas restantes: ${remaining} de ${capacity}` 
-                                : 'Capacidade máxima atingida'}
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  )}
-                  
-                  <button 
-                    type="button" 
-                    className="continue-button"
-                    onClick={handleProceedToLocationSelection}
-                  >
-                    Continuar
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        );
-      
-      case OrderFormStep.StartEnd:
-        // StartEnd step
-        return (
-          <div className="step-container">
-            <h2 className="step-title">Selecione o início e o fim</h2>
-            
-            <div className="location-selection-container">
-              <div className="location-selection-column">
-                <h3>Local de Início</h3>
-                
-                <div className="location-cards-grid">
-                  {/* First passenger option */}
-                  {formData.transportType === 'person' && formData.items.length > 0 && (
-                    <div 
-                      id={`start-first-passenger-card`}
-                      key="first-passenger"
-                      className={`location-card first-last-passenger-card ${formData.startLocationId === 'first-passenger' ? 'selected' : ''}`}
-                      onClick={() => {
-                        handleChangeOriginDestination('startLocationId', 'first-passenger');
-                        setCustomStartLocation({ type: '', address: '' });
-                      }}
-                    >
-                      <h4>Primeiro Passageiro</h4>
-                      <div className="passenger-name">{formData.items[0].name}</div>
-                      <div className="passenger-address">{formData.items[0].address}</div>
-                    </div>
-                  )}
+        </div>
+      </div>
+    );
+  };
 
-                  {/* New custom location options */}
-                  {['airport', 'hotel', 'other'].map((type) => (
-                    <div 
-                      id={`start-${type}-location-card`}
-                      key={`start-${type}`}
-                      className={`location-card ${
-                        (formData.startLocationId === type)
-                          ? 'selected' 
-                          : ''
-                      }`}
-                      onClick={() => {
-                        handleChangeOriginDestination('startLocationId', type);
-                      }}
-                    >
-                      <div className="location-card-content">
-                        <div className="location-card-icon">
-                          {getLocationIcon(type)}
-                        </div>
-                        <div className="location-card-text">
-                          <h4>{
-                            type === 'airport' 
-                              ? 'Aeroporto' 
-                              : type === 'hotel' 
-                                ? 'Hotel' 
-                                : 'Outro Local'
-                          }</h4>
-                          {formData.startLocationId === type && (
-                            <div className="item-details custom-location-input">
-                              <div className="form-group name-group">
-                                <label htmlFor={`start-${type}-location-name`}>
-                                  Nome do local
-                                </label>
-                  <input 
-                    type="text"
-                                  id={`start-${type}-location-name`}
-                                  placeholder="Digite o nome do local"
-                                  value={customStartLocation.type}
-                                  onChange={(e) => setCustomStartLocation(prev => ({
-                                    ...prev, 
-                                    type: e.target.value
-                                  }))}
-                                  onClick={(e) => e.stopPropagation()}
-                                  required
-                  />
-                </div>
-                
-                              <div className="form-group address-group">
-                                <label htmlFor={`start-${type}-location-address`}>
-                                  Endereço completo
-                                </label>
-                                <div className="address-input-container">
-                                  <input
-                                    type="text"
-                                    id={`start-${type}-location-address`}
-                                    value={customStartLocation.address}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCustomLocationModalType('start');
-                                      setIsCustomLocationAddressModalOpen(true);
-                                    }}
-                                    readOnly
-                                    placeholder="Clique para adicionar endereço"
-                                    required
-                                  />
-                                  {customStartLocation.address && (
-                                    <button 
-                                      type="button" 
-                                      className="edit-address-button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCustomLocationModalType('start');
-                                        setIsCustomLocationAddressModalOpen(true);
-                                      }}
-                                    >
-                                      Editar
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+  // Modify renderLocationOptions to use confirmation modal
+  const renderLocationOptions = (type: 'start' | 'end') => {
+    // Custom location types
+    const customLocations = [
+      { 
+        id: 'airport', 
+        name: 'Aeroporto', 
+        icon: <FaPlane className="location-card-icon" />,
+        type: 'airport'
+      },
+      { 
+        id: 'hotel', 
+        name: 'Hotel', 
+        icon: <FaHotel className="location-card-icon" />,
+        type: 'hotel'
+      },
+      { 
+        id: 'other', 
+        name: 'Outro Local', 
+        icon: <FaMapMarkerAlt className="location-card-icon" />,
+        type: 'other'
+      }
+    ];
 
-                  {/* Existing locations */}
-                  {locations.map((location) => (
-                    <div 
-                      id={`start-location-card-${location.id}`}
-                      key={`start-${location.id}`}
-                      className={`location-card ${formData.startLocationId === location.id ? 'selected' : ''}`}
-                      onClick={() => {
-                        handleChangeOriginDestination('startLocationId', location.id);
-                        setCustomStartLocation({ type: '', address: '' });
-                      }}
-                    >
-                      <div className="location-card-content">
-                        <div className="location-card-icon">
-                          {getLocationIcon(
-                            location.id, 
-                            location.isCompany
-                          )}
-                        </div>
-                        <div className="location-card-text">
-                        <h4>{location.name}</h4>
-                        <p>{location.address}</p>
-                        <div className="location-card-details">
-                          <span>{location.city} - {location.state}</span>
-                          {location.isCompany && <span className="company-badge">Empresa</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="location-selection-column">
-                <h3>Local de Fim</h3>
-                
-                <div className="location-cards-grid">
-                  {/* Last passenger option */}
-                  {formData.transportType === 'person' && formData.items.length > 0 && (
-                    <div 
-                      id={`end-first-passenger-card`}
-                      key="last-passenger"
-                      className={`location-card first-last-passenger-card ${formData.endLocationId === 'last-passenger' ? 'selected' : ''}`}
-                      onClick={() => {
-                        handleChangeOriginDestination('endLocationId', 'last-passenger');
-                        setCustomEndLocation({ type: '', address: '' });
-                      }}
-                    >
-                      <h4>Último Passageiro</h4>
-                      <div className="passenger-name">{formData.items[formData.items.length - 1].name}</div>
-                      <div className="passenger-address">{formData.items[formData.items.length - 1].address}</div>
-                    </div>
-                  )}
+    // Combine predefined locations with custom locations
+    const allLocations = [
+      ...customLocations,
+      ...locations.map(loc => ({
+        id: loc.id,
+        name: loc.name,
+        icon: loc.isCompany 
+          ? <span className="location-card-icon">{getInitials(loc.name)}</span>
+          : <FaMapMarkerAlt className="location-card-icon" />,
+        type: loc.isCompany ? 'company' : 'predefined'
+      }))
+    ];
 
-                  {/* New custom location options */}
-                  {['airport', 'hotel', 'other'].map((type) => (
-                    <div 
-                      id={`end-${type}-location-card`}
-                      key={`end-${type}`}
-                      className={`location-card ${
-                        (formData.endLocationId === type)
-                          ? 'selected' 
-                          : ''
-                      }`}
-                      onClick={() => {
-                        handleChangeOriginDestination('endLocationId', type);
-                      }}
-                    >
-                      <div className="location-card-content">
-                        <div className="location-card-icon">
-                          {getLocationIcon(type)}
-                        </div>
-                        <div className="location-card-text">
-                          <h4>{
-                            type === 'airport' 
-                              ? 'Aeroporto' 
-                              : type === 'hotel' 
-                                ? 'Hotel' 
-                                : 'Outro Local'
-                          }</h4>
-                          {formData.endLocationId === type && (
-                            <div className="item-details custom-location-input">
-                              <div className="form-group name-group">
-                                <label htmlFor={`end-${type}-location-name`}>
-                                  Nome do local
-                                </label>
-                  <input 
-                    type="text"
-                                  id={`end-${type}-location-name`}
-                                  placeholder="Digite o nome do local"
-                                  value={customEndLocation.type}
-                                  onChange={(e) => setCustomEndLocation(prev => ({
-                                    ...prev, 
-                                    type: e.target.value
-                                  }))}
-                                  onClick={(e) => e.stopPropagation()}
-                                  required
-                  />
-                </div>
-                
-                              <div className="form-group address-group">
-                                <label htmlFor={`end-${type}-location-address`}>
-                                  Endereço completo
-                                </label>
-                                <div className="address-input-container">
-                                  <input
-                                    type="text"
-                                    id={`end-${type}-location-address`}
-                                    value={customEndLocation.address}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCustomLocationModalType('end');
-                                      setIsCustomLocationAddressModalOpen(true);
-                                    }}
-                                    readOnly
-                                    placeholder="Clique para adicionar endereço"
-                                    required
-                                  />
-                                  {customEndLocation.address && (
-                                    <button 
-                                      type="button" 
-                                      className="edit-address-button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCustomLocationModalType('end');
-                                        setIsCustomLocationAddressModalOpen(true);
-                                      }}
-                                    >
-                                      Editar
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Existing locations */}
-                  {locations.map((location) => (
-                    <div 
-                      id={`end-location-card-${location.id}`}
-                      key={`end-${location.id}`}
-                      className={`location-card ${formData.endLocationId === location.id ? 'selected' : ''}`}
-                      onClick={() => {
-                        handleChangeOriginDestination('endLocationId', location.id);
-                        setCustomEndLocation({ type: '', address: '' });
-                      }}
-                    >
-                      <div className="location-card-content">
-                        <div className="location-card-icon">
-                          {getLocationIcon(
-                            location.id, 
-                            location.isCompany
-                        )}
-                      </div>
-                        <div className="location-card-text">
-                        <h4>{location.name}</h4>
-                        <p>{location.address}</p>
-                        <div className="location-card-details">
-                          <span>{location.city} - {location.state}</span>
-                          {location.isCompany && <span className="company-badge">Empresa</span>}
-                    </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {formData.startLocationId === formData.endLocationId && 
-             formData.startLocationId && 
-             formData.endLocationId !== 'last-passenger' && (
-              <div className="location-warning">
-                <p>Atenção: início e fim são o mesmo local.</p>
-              </div>
-            )}
-            
-            <div className="form-actions all-buttons">
-              <button 
-                type="button"
-                onClick={goToPreviousStep}
-                className="back-button"
-              >
-                Voltar etapa
-              </button>
-              
-              <div className="right-actions">
-                <button 
-                  type="button" 
-                  className="continue-button"
-                  onClick={() => {
-                    // Validate custom locations if selected
-                    if (['airport', 'hotel', 'other'].includes(formData.startLocationId)) {
-                      if (!customStartLocation.address) {
-                        alert('Por favor, preencha o endereço do local de início.');
-                        return;
-                      }
-                    }
-                    if (['airport', 'hotel', 'other'].includes(formData.endLocationId)) {
-                      if (!customEndLocation.address) {
-                        alert('Por favor, preencha o endereço do local de fim.');
-                        return;
-                      }
-                    }
-                    handleProceedToRouteOrganization();
-                  }}
-                  disabled={!formData.startLocationId || !formData.endLocationId}
-                >
-                  Continuar
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-        
-      case OrderFormStep.RouteOrganization:
-        return (
-          <div className="step-container">
-            <div className="route-container">
-              {routePoints.map((point, index) => (
-                <React.Fragment key={`route-point-${index}`}>
-                  <div 
-                    className={`route-point ${draggedItemIndex === index ? 'dragging' : ''} ${point.isToll ? 'toll-point' : ''}`}
-                    draggable={!point.isToll}
-                    onDragStart={() => !point.isToll && handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    {!point.isToll ? (
-                      <>
-                    <div className="route-point-handle">
-                    <DragHandleIcon />
-                    </div>
-                    <div className="route-point-number">{index + 1}</div>
-                    <div className="route-point-content">
-                      <div className="route-point-header">
-                        <div className="route-point-icon">
-                        {getLocationIcon(point.locationType || '', point.isCompany)}
-                        </div>
-                      <h3>{point.name}</h3>
-                      </div>
-                      <p>{point.address}</p>
-                    {point.locationType && (
-                        <span className="location-type-badge">
-                        {point.locationType === 'airport' ? 'Aeroporto' :
-                         point.locationType === 'hotel' ? 'Hotel' :
-                         point.locationType === 'other' ? 'Outro Local' : ''}
-                        </span>
-                      )}
-                      {point.isCompany && <span className="company-badge">Empresa</span>}
-                    {index === 0 && <span className="origin-badge">Origem</span>}
-                    {index === routePoints.length - 1 && point.isLastPassenger && <span className="last-passenger-badge">Último passageiro</span>}
-                    {index === routePoints.length - 1 && !point.isLastPassenger && <span className="destination-badge">Destino</span>}
-                    </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="toll-point-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="16" rx="2" />
-                            <line x1="12" y1="4" x2="12" y2="20" />
-                            <line x1="3" y1="12" x2="21" y2="12" />
-                          </svg>
-                  </div>
-                        <div className="toll-point-content">
-                          <h3>{point.name}</h3>
-                          <p>{point.address}</p>
-                        </div>
-                        <div className="toll-point-actions">
-                          <button 
-                            className="remove-toll-button"
-                            onClick={() => removeToll(index)}
-                            title="Remover pedágio"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 6L6 18" />
-                              <path d="M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  
-                  {/* Add toll button between route points, but not after the last one */}
-                  {!point.isToll && index < routePoints.length - 1 && !routePoints[index + 1]?.isToll && (
-                    <div className="add-toll-container">
-                      <button 
-                        className="add-toll-button"
-                        onClick={() => openTollModal(index)}
-                        title="Adicionar pedágio"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 5v14" />
-                          <path d="M5 12h14" />
-                        </svg>
-                        Adicionar Pedágio
-                      </button>
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            
-              <div className="form-actions all-buttons">
-                <button 
-                  type="button"
-                  onClick={goToPreviousStep}
-                  className="back-button"
-                >
-                  Voltar etapa
-                </button>
-                
-                <div className="right-actions">
-                  <button 
-                  type="button" 
-                  className="continue-button"
-                  onClick={handleProceedToRouteDetails}
-                  disabled={isCalculatingRoute}
-                >
-                  {isCalculatingRoute ? (
-                    <div className="loading-overlay">
-                      <FaSpinner className="loading-spinner" />
-                      <span className="sr-only">Calculando rota...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                        style={{ marginRight: '0.5rem' }}
-                      >
-                        <path d="M13 17l5-5-5-5"/>
-                        <path d="M6 17l5-5-5-5"/>
-                      </svg>
-                      Avançar para cálculo
-                    </>
-                  )}
-                  </button>
-                </div>
-              </div>
-          </div>
-        );
-      
-      case OrderFormStep.RouteDetails:
-        return (
-          <div className="route-details-page">
-            <div className="route-details-header">
-              <h2 className="step-title">Resumo da Ordem</h2>
-
-            {routeDistance && (
-                <>
-              <div className="route-distance-summary">
-                <div className="route-distance-details">
-                      <div className="route-summary-card">
-                        <div className="route-summary-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 12h18"/>
-                            <path d="M12 3l3 6l3 -6"/>
-                            <path d="M12 21l3 -6l3 6"/>
-                          </svg>
-                        </div>
-                        <div className="route-summary-content">
-                          <h3>Distância Total</h3>
-                          <p>{routeDistance.totalDistance.toFixed(2)} km</p>
-                        </div>
-                      </div>
-
-                      <div className="route-summary-card">
-                        <div className="route-summary-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                          </svg>
-                        </div>
-                        <div className="route-summary-content">
-                          <h3>Duração Total</h3>
-                          <p>{routeDistance.totalDuration.toFixed(1)} minutos</p>
-                        </div>
-                      </div>
-
-                      <div className="route-summary-card">
-                        <div className="route-summary-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 3l18 18"/>
-                            <path d="M6 6l12 12"/>
-                            <path d="M10 6l6 12"/>
-                          </svg>
-                        </div>
-                        <div className="route-summary-content">
-                          <h3>Número de Etapas</h3>
-                          <p>{routeDistance.totalSteps}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="route-segments-container">
-                      <h3>Detalhes dos Segmentos</h3>
-                    {routeDistance.distanceDetails.map((segment, index) => (
-                        <div key={index} className="route-segment-card">
-                          <div className="route-segment-header">
-                            <div className="route-segment-number">
-                              {index + 1}
-                            </div>
-                            <div className="route-segment-locations">
-                              <div className="route-segment-from">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
-                                  <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
-                                </svg>
-                                <span>{segment.from}</span>
-                              </div>
-                              <div className="route-segment-arrow">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M5 12l14 0"/>
-                                  <path d="M15 16l4 -4"/>
-                                  <path d="M15 8l4 4"/>
-                                </svg>
-                              </div>
-                              <div className="route-segment-to">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
-                                  <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
-                                </svg>
-                                <span>{segment.to}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="route-segment-details">
-                            <div className="route-segment-distance">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 12h18"/>
-                                <path d="M12 3l3 6l3 -6"/>
-                                <path d="M12 21l3 -6l3 6"/>
-                              </svg>
-                              <span>{segment.distance.toFixed(2)} km</span>
-                            </div>
-                            <div className="route-segment-duration">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>
-                                <path d="M12 7l0 5l3 3"/>
-                              </svg>
-                              <span>{segment.duration.toFixed(1)} minutos</span>
-                            </div>
-                          </div>
-                      </div>
-                    ))}
-                    </div>
-
-                    {/* Seção de preço - Após os detalhes dos segmentos */}
-                    <div className="route-price-container">
-                      <h3>Informações de Preço</h3>
-                      <div className="route-price-summary">
-                        <div className="route-price-card">
-                          <div className="route-price-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 1v22m5-18H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                            </svg>
-                          </div>
-                          <div className="route-price-content">
-                            <h3>Preço por KM</h3>
-                            <p>R$ {pricing?.kmRate.toFixed(2) || '0.00'}</p>
-                          </div>
-                        </div>
-
-                        <div className="route-price-card">
-                          <div className="route-price-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3" />
-                              <path d="M8 7V3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V7" />
-                              <path d="M12 12v4" />
-                              <path d="M8 12h8" />
-                            </svg>
-                          </div>
-                          <div className="route-price-content">
-                            <h3>Preço Base</h3>
-                            <p>R$ {routePrice ? routePrice.kmBasedPrice.toFixed(2) : '0.00'}</p>
-                          </div>
-                        </div>
-
-                        {routePrice && routePrice.minimumPrice !== null && (
-                          <div className="route-price-card">
-                            <div className="route-price-icon">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-                              </svg>
-                            </div>
-                            <div className="route-price-content">
-                              <h3>Preço Mínimo</h3>
-                              <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
-                </div>
-              </div>
-            )}
-
-                        {/* Adicionar card para mostrar o total de pedágios */}
-                        {routePrice && routePrice.tollsTotal && routePrice.tollsTotal > 0 && (
-                          <div className="route-price-card toll-card">
-                            <div className="route-price-icon">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="4" width="18" height="16" rx="2" />
-                                <line x1="12" y1="4" x2="12" y2="20" />
-                                <line x1="3" y1="12" x2="21" y2="12" />
-                              </svg>
-                            </div>
-                            <div className="route-price-content">
-                              <h3>Total de Pedágios</h3>
-                              <p>R$ {routePrice.tollsTotal.toFixed(2)}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="route-price-card final-price">
-                          <div className="route-price-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="m9.7 16.3 4.6-4.6" />
-                              <path d="M15.5 11.2v-1.7h-1.7" />
-                              <path d="M9.8 12.5v1.7h1.7" />
-                            </svg>
-              </div>
-                          <div className="route-price-content">
-                            <h3>Preço Final</h3>
-                            <p className="final-price-value">R$ {routePrice ? routePrice.finalPrice.toFixed(2) : '0.00'}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className="form-actions all-buttons">
-                <button 
-                  type="button"
-                  onClick={goToPreviousStep}
-                  className="back-button"
-                >
-                  Voltar etapa
-                </button>
-                
-                <div className="right-actions">
-                  <button 
-                    type="button" 
-                    className="continue-button"
-                    onClick={openApprovalModal}
-                  >
-                    Finalizar ordem
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-        
-      default:
-        return null;
+    // Add last passenger option for end location
+    if (type === 'end') {
+      allLocations.push({
+        id: 'last-passenger',
+        name: 'Último Passageiro',
+        icon: <FaHome className="location-card-icon" />,
+        type: 'last-passenger'
+      });
     }
-  };
 
-  // Componente do modal de aprovação
-  const renderApprovalModal = () => {
-    if (!isApprovalModalOpen) return null;
-    
-    return (
-      <div className="modal-overlay">
-        <div className="modal-container">
-          <div className="modal-header">
-            <h2>Finalizar Solicitação</h2>
-            <button 
-              className="modal-close-button"
-              onClick={closeApprovalModal}
-            >
-              ×
-            </button>
-          </div>
-          <div className="modal-content">
-            <p>Escolha como deseja processar esta solicitação:</p>
-            
-            <div className="approval-options">
+    const handleLocationSelect = (location: any) => {
+      // For custom location types
+      if (['airport', 'hotel', 'other'].includes(location.id)) {
+        const expectedType = 
+          location.id === 'airport' ? 'airport' :
+          location.id === 'hotel' ? 'hotel' :
+          'other';
+
+        const isLocationTypeMatch = verifyLocationType(location.name, expectedType);
+
+        setPendingLocationSelection({
+          type,
+          locationId: location.id,
+          locationName: location.name || location.type || 'Local personalizado',
+          locationAddress: 'Endereço a ser definido'
+        });
+
+        // If location type doesn't match, open confirmation modal
+        if (!isLocationTypeMatch) {
+          setIsLocationTypeConfirmationOpen(true);
+        } else {
+          // Directly set the location
+          const updateField = type === 'start' 
+            ? 'startLocationId' 
+            : 'endLocationId';
+          
+          setFormData(prev => ({
+            ...prev, 
+            [updateField]: location.id
+          }));
+
+          // Open address modal for custom location
+          setCustomLocationModalType(type);
+          setIsCustomLocationAddressModalOpen(true);
+        }
+      } else {
+        // For predefined locations
+        const updateField = type === 'start' 
+          ? 'startLocationId' 
+          : 'endLocationId';
+        
+        setFormData(prev => ({
+          ...prev, 
+          [updateField]: location.id
+        }));
+      }
+    };
+
+        return (
+      <div className="location-options-container">
+        <div className="location-cards-grid">
+          {allLocations.map(location => (
+            <React.Fragment key={location.id}>
               <div 
-                className={`type-card ${approvalData.approvalType === 'direct' ? 'selected' : ''}`}
-                onClick={() => handleApprovalTypeChange('direct')}
+                className={`location-card ${
+                  (type === 'start' ? formData.startLocationId : formData.endLocationId) === location.id 
+                    ? 'selected' 
+                    : ''
+                }`}
+                onClick={() => handleLocationSelect(location)}
               >
-                <div className="type-icon increase">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                  </svg>
-                </div>
-                <div className="type-label">Aprovação Direta</div>
-                <div className="type-description">
-                  A solicitação será aprovada imediatamente
+                <div className="location-card-content">
+                  <div className="location-card-icon">{location.icon}</div>
+                  <div className="location-card-text">
+                    <h4>{location.name}</h4>
+                    {location.type === 'company' && (
+                      <span className="company-badge">Empresa</span>
+                    )}
+                  </div>
                 </div>
               </div>
-              
-              <div 
-                className={`type-card ${approvalData.approvalType === 'manager' ? 'selected' : ''}`}
-                onClick={() => handleApprovalTypeChange('manager')}
-              >
-                <div className="type-icon decrease">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="8.5" cy="7" r="4"></circle>
-                    <polyline points="17 11 19 13 23 9"></polyline>
-                  </svg>
-                </div>
-                <div className="type-label">Aprovação via Gestor</div>
-                <div className="type-description">
-                  A solicitação ficará pendente para aprovação do gestor
-                </div>
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="approvedBy">Aprovado por:</label>
-              <input
-                type="text"
-                id="approvedBy"
-                name="approvedBy"
-                value={approvalData.approvedBy}
-                onChange={handleApprovedByChange}
-                placeholder="Nome do responsável pela aprovação"
-              />
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button 
-              className="modal-cancel-button"
-              onClick={closeApprovalModal}
-            >
-              Cancelar
-            </button>
-            <button 
-              className="modal-confirm-button"
-              onClick={finalizeOrder}
-            >
-              Finalizar
-            </button>
-          </div>
+
+              {/* Render custom location details immediately after the selected custom location card */}
+              {location.id === (type === 'start' ? formData.startLocationId : formData.endLocationId) &&
+               ['airport', 'hotel', 'other'].includes(location.id) &&
+               renderCustomLocationDetails(type)}
+            </React.Fragment>
+          ))}
         </div>
       </div>
     );
   };
 
-  // Componente do modal de pedágio
-  const renderTollModal = () => {
-    if (!isTollModalOpen) return null;
-    
-    return (
-      <div className="modal-overlay">
-        <div className="modal-container toll-modal">
-          <div className="modal-header">
-            <h2>Adicionar Pedágio</h2>
-            <button 
-              className="modal-close-button"
-              onClick={closeTollModal}
-            >
-              ×
-            </button>
-          </div>
-          <div className="modal-content">
-            <p>Informe o valor do pedágio:</p>
-            
-            <div className="form-group">
-              <label htmlFor="tollValue">Valor (R$):</label>
-              <div className="toll-input-container">
-                <span className="toll-currency-symbol">R$</span>
-                <input
-                  type="number"
-                  id="tollValue"
-                  name="tollValue"
-                  value={tollValue}
-                  onChange={(e) => setTollValue(e.target.value)}
-                  placeholder="0,00"
-                  step="0.01"
-                  min="0.01"
-                  autoFocus
-                />
-              </div>
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button 
-              className="modal-cancel-button"
-              onClick={closeTollModal}
-            >
-              Cancelar
-            </button>
-            <button 
-              className="modal-confirm-button"
-              onClick={addToll}
-            >
-              Adicionar
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  const navigateToNextStep = () => {
+    switch(true) {
+      case currentStep === OrderFormStep.TransportType:
+        if (formData.transportType) setCurrentStep(OrderFormStep.VehicleType);
+        break;
+      case currentStep === OrderFormStep.VehicleType:
+        if (formData.vehicleType) setCurrentStep(OrderFormStep.Details);
+        break;
+      case currentStep === OrderFormStep.Details:
+        if (formData.items.some(item => item.name && item.address)) setCurrentStep(OrderFormStep.StartEnd);
+        break;
+      case currentStep === OrderFormStep.StartEnd:
+        if (formData.startLocationId && formData.endLocationId) handleProceedToRouteOrganization();
+        break;
+    }
   };
 
   return (
     <div className="order-form-page">
       <Header />
       <div className="order-form-content">
-        <main className="order-form-main">
+        <div className="order-form-main">
           <div className="order-form-title-row">
-            <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: '20px' }}>
-              <h1 className="order-form-title">Nova solicitação</h1>
+            <h1 className="order-form-title">Nova Solicitação</h1>
+          </div>
+
+          {/* Steps Indicator */}
+          <div className="steps-indicator">
+            {[
+              { step: 1, name: 'Tipo de Transporte' },
+              { step: 2, name: 'Tipo de Veículo' },
+              { step: 3, name: 'Detalhes' },
+              { step: 4, name: 'Origem/Destino' },
+              { step: 5, name: 'Organizar Rota' },
+              { step: 6, name: 'Detalhes da Rota' }
+            ].map((stepInfo, index, array) => (
+              <React.Fragment key={stepInfo.step}>
+                <div 
+                  className={`step-indicator ${currentStep >= stepInfo.step ? 'active' : ''}`}
+                  onClick={() => navigateToStep(stepInfo.step as OrderFormStep)}
+                >
+                  <div className="step-number">{stepInfo.step}</div>
+                  <div className="step-name">{stepInfo.name}</div>
+                </div>
+                {index < array.length - 1 && (
+                  <div className="step-line"></div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* Step Container */}
+          <div className="step-container">
+            {currentStep === OrderFormStep.TransportType && (
+              <div>
+                <div className="step-title-container">
+                  <div className="step-navigation-buttons">
+                    {currentStep > OrderFormStep.TransportType && (
+                      <button 
+                        className="back-button"
+                        onClick={goToPreviousStep}
+                      >
+                        Voltar
+                      </button>
+                    )}
+                  </div>
+                  <h2 className="step-title">Selecione o Tipo de Transporte</h2>
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="continue-button"
+                      onClick={navigateToNextStep}
+                      disabled={!formData.transportType}
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+                <div className="transport-type-selection">
+                  <div 
+                    className={`transport-card ${formData.transportType === 'person' ? 'selected' : ''}`}
+                    onClick={() => handleTransportTypeSelect('person')}
+                  >
+                    <div className="transport-icon person-icon">
+                      <FaUserTie />
+                    </div>
+                    <h3>Transporte de Pessoas</h3>
+                    <p>Viagens com passageiros</p>
+                  </div>
+                  <div 
+                    className={`transport-card ${formData.transportType === 'cargo' ? 'selected' : ''}`}
+                    onClick={() => handleTransportTypeSelect('cargo')}
+                  >
+                    <div className="transport-icon box-icon">
+                      <FaBox />
+                    </div>
+                    <h3>Transporte de Cargas</h3>
+                    <p>Entregas e logística</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === OrderFormStep.VehicleType && (
+              <div>
+                <div className="step-title-container">
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="back-button"
+                      onClick={goToPreviousStep}
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                  <h2 className="step-title">Selecione o Tipo de Veículo</h2>
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="continue-button"
+                      onClick={navigateToNextStep}
+                      disabled={!formData.vehicleType}
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+                <div className="vehicle-type-selection">
+                  {(formData.transportType === 'person' ? personVehicles : cargoVehicles).map(vehicle => (
+                    <div 
+                      key={vehicle.id}
+                      className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
+                      onClick={() => handleVehicleTypeSelect(vehicle.id)}
+                    >
+                      <h3>{vehicle.name}</h3>
+                      <p>{vehicle.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {currentStep === OrderFormStep.Details && (
+              <div>
+                <div className="step-title-container">
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="back-button"
+                      onClick={goToPreviousStep}
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                  <h2 className="step-title">Detalhes dos {formData.transportType === 'person' ? 'Passageiros' : 'Itens'}</h2>
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="continue-button"
+                      onClick={navigateToNextStep}
+                      disabled={!formData.items.some(item => item.name && item.address)}
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+                <div className="details-form">
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="item-details">
+                      <div className="item-header">
+                        <h3>Item {index + 1}</h3>
+                        {formData.items.length > 1 && (
+                          <button 
+                            className="remove-item-button"
+                            onClick={() => removeItem(index)}
+                          >
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Nome</label>
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                            placeholder="Nome completo"
+                          />
+                        </div>
+                        {formData.transportType === 'person' && (
+                          <div className="form-group">
+                            <label>Telefone</label>
+                            <input
+                              type="tel"
+                              value={item.phone}
+                              onChange={(e) => handlePhoneChange(index, e.target.value)}
+                              placeholder="(00) 00000-0000"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group address-row">
+                          <label>Endereço</label>
+                          <div className="address-input-container">
+                            <input
+                              type="text"
+                              value={item.address}
+                              placeholder="Selecione o endereço"
+                              readOnly
+                              onClick={() => openAddressModal(index)}
+                            />
+                            <button 
+                              className="edit-address-button"
+                              onClick={() => openAddressModal(index)}
+                            >
+                              Editar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="form-actions">
+                    <button 
+                      className="add-item-button"
+                      onClick={addItem}
+                    >
+                      Adicionar Item
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === OrderFormStep.StartEnd && (
+              <div>
+                <div className="step-title-container">
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="back-button"
+                      onClick={goToPreviousStep}
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                  <h2 className="step-title">Selecione Origem e Destino</h2>
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="continue-button"
+                      onClick={handleProceedToRouteOrganization}
+                      disabled={!formData.startLocationId || !formData.endLocationId}
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+                <div className="location-selection-container">
+                  <div className="location-selection-column">
+                    <h3>Local de Origem</h3>
+                    {renderLocationOptions('start')}
+                  </div>
+                  <div className="location-selection-column">
+                    <h3>Local de Destino</h3>
+                    {renderLocationOptions('end')}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === OrderFormStep.RouteOrganization && (
+              <>
+                <div className="step-title-container">
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="back-button"
+                      onClick={goToPreviousStep}
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                  <h2 className="step-title">Organize a Rota</h2>
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="continue-button"
+                      onClick={handleProceedToRouteDetails}
+                      disabled={routePoints.length < 2}
+                    >
+                      Calcular Rota
+                    </button>
+                  </div>
+                </div>
+                <div className="route-organization-container">
+                  {routePoints.map((point, index) => (
+                    <div 
+                      key={point.id} 
+                      className={`route-point-card ${
+                        index === 0 ? 'origin-point' : 
+                        index === routePoints.length - 1 ? 'destination-point' : ''
+                      }`}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className="route-point-number">{index + 1}</div>
+                      <div className="route-point-icon">
+                        {getLocationIcon({ 
+                          name: point.name, 
+                          locationType: point.locationType, 
+                          isCompany: point.isCompany,
+                          isToll: point.isToll
+                        })}
+                      </div>
+                      <div className="route-point-info">
+                        <h3>{point.name}</h3>
+                        <p>{point.address}</p>
+                        <div className="route-point-tags">
+                          {index === 0 && <span className="point-tag origin-tag">Origem</span>}
+                          {index === routePoints.length - 1 && <span className="point-tag destination-tag">Destino</span>}
+                          {point.isCompany && <span className="point-tag company-tag">Empresa</span>}
+                          {point.locationType && (
+                            <span className={`point-tag location-type-tag ${point.locationType}`}>
+                              {point.locationType === 'airport' ? 'Aeroporto' :
+                               point.locationType === 'hotel' ? 'Hotel' :
+                               'Outro Local'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {point.isToll && (
+                        <div className="route-point-toll-actions">
+                          <button 
+                            className="edit-toll-button"
+                            onClick={() => editToll(index)}
+                          >
+                            Editar
+                          </button>
+                          <button 
+                            className="remove-toll-button"
+                            onClick={() => removeToll(index)}
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      )}
+                      {index < routePoints.length - 1 && !point.isToll && !routePoints[index + 1].isToll && (
+                        <div className="route-point-actions">
+                          <button 
+                            className="add-toll-button"
+                            onClick={() => openTollModal(index)}
+                          >
+                            Adicionar Pedágio
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {currentStep === OrderFormStep.RouteDetails && (
+              <div className="route-details-page">
+                <div className="step-title-container">
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="back-button"
+                      onClick={goToPreviousStep}
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                  <h2 className="step-title">Detalhes da Rota</h2>
+                  <div className="step-navigation-buttons">
+                    <button 
+                      className="submit-button"
+                      onClick={() => handleSubmit()}
+                    >
+                      Criar Solicitação
+                    </button>
+                  </div>
+                </div>
+                {routeDistance && (
+                  <>
+                    {/* Route Distance Summary */}
+                    <div className="route-distance-summary">
+                      <h2>Resumo da Rota</h2>
+                      <div className="route-summary-container">
+                        <div className="route-summary-card">
+                          <div className="route-summary-icon">
+                            <FaRoad />
+                          </div>
+                          <div className="route-summary-content">
+                            <h3>Distância Total</h3>
+                            <p>{routeDistance.totalDistance.toFixed(2)} km</p>
+                          </div>
+                        </div>
+                        <div className="route-summary-card">
+                          <div className="route-summary-icon">
+                            <FaTruck />
+                          </div>
+                          <div className="route-summary-content">
+                            <h3>Tempo Total</h3>
+                            <p>{routeDistance.totalDuration.toFixed(1)} minutos</p>
+                          </div>
+                        </div>
+                        <div className="route-summary-card">
+                          <div className="route-summary-icon">
+                            <FaMapMarkerAlt />
+                          </div>
+                          <div className="route-summary-content">
+                            <h3>Total de Etapas</h3>
+                            <p>{routeDistance.totalSteps}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Route Price Summary */}
+                    {routePrice && pricing && (
+                      <div className="route-price-container">
+                        <h3>Detalhes de Preço</h3>
+                        <div className="route-price-summary">
+                          <div className="route-price-card">
+                            <div className="route-price-icon">
+                              <FaRoad />
+                            </div>
+                            <div className="route-price-content">
+                              <h3>Preço por KM</h3>
+                              <p>R$ {pricing.kmRate.toFixed(2)}</p>
+                            </div>
+                          </div>
+                          <div className="route-price-card">
+                            <div className="route-price-icon">
+                              <FaMoneyBillWave />
+                            </div>
+                            <div className="route-price-content">
+                              <h3>Preço Base</h3>
+                              <p>R$ {routePrice.kmBasedPrice.toFixed(2)}</p>
+                            </div>
+                          </div>
+                          {routePrice.minimumPrice !== null && (
+                            <div className="route-price-card">
+                              <div className="route-price-icon">
+                                <FaMapMarkerAlt />
+                              </div>
+                              <div className="route-price-content">
+                                <h3>Preço Mínimo</h3>
+                                <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
+                              </div>
+                            </div>
+                          )}
+                          {routePrice.tollsTotal && routePrice.tollsTotal > 0 && (
+                            <div className="route-price-card toll-card">
+                              <div className="route-price-icon">
+                                <FaRoad />
+                              </div>
+                              <div className="route-price-content">
+                                <h3>Total de Pedágios</h3>
+                                <p>R$ {routePrice.tollsTotal.toFixed(2)}</p>
+                              </div>
+                            </div>
+                          )}
+                          <div className="route-price-card final-price">
+                            <div className="route-price-icon">
+                              <FaMoneyBillWave />
+                            </div>
+                            <div className="route-price-content">
+                              <h3>Preço Final</h3>
+                              <p className="final-price-value">R$ {routePrice.finalPrice.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Route Segments */}
+                    <div className="route-segments-container">
+                      <h3>Detalhes dos Segmentos</h3>
+                      {routeDistance.distanceDetails.map((segment, index) => (
+                        <div key={index} className="route-segment-card">
+                          <div className="route-segment-header">
+                            <div className="route-segment-number">{index + 1}</div>
+                            <div className="route-segment-locations">
+                              <div className="route-segment-from">{segment.from}</div>
+                              <div className="route-segment-arrow">→</div>
+                              <div className="route-segment-to">{segment.to}</div>
+                            </div>
+                          </div>
+                          <div className="route-segment-details">
+                            <div className="route-segment-distance">
+                              Distância: {segment.distance.toFixed(2)} km
+                            </div>
+                            <div className="route-segment-duration">
+                              Duração: {segment.duration.toFixed(1)} minutos
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Toll Points */}
+                    {routePoints.filter(point => point.isToll).length > 0 && (
+                      <div className="route-toll-points-container">
+                        <h3>Pedágios</h3>
+                        {routePoints.filter(point => point.isToll).map((tollPoint, index) => (
+                          <div key={index} className="toll-point">
+                            <div className="toll-point-icon">
+                              <FaRoad />
+                            </div>
+                            <div className="toll-point-content">
+                              <h3>{tollPoint.name}</h3>
+                              <p>{tollPoint.address}</p>
+                            </div>
+                            <div className="toll-point-actions">
+                              <span>R$ {tollPoint.tollValue?.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Error Handling */}
+                {routeDistanceError && (
+                  <div className="error-message">
+                    <p>{routeDistanceError}</p>
+                    <div className="error-actions">
+                      <button 
+                        className="continue-button" 
+                        onClick={handleProceedToRouteDetails}
+                      >
+                        Tentar Novamente
+                      </button>
+                      <button 
+                        className="submit-button"
+                        onClick={() => {
+                          // Force advance to next step even with error
+                          setCurrentStep(OrderFormStep.RouteDetails);
+                        }}
+                      >
+                        Continuar Mesmo Assim
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {isAddressModalOpen && (
+        <AddressModal
+          isOpen={isAddressModalOpen}
+          onClose={() => setIsAddressModalOpen(false)}
+          onSave={handleAddressSave}
+          initialAddress={currentItemIndex !== null ? formData.items[currentItemIndex].detailedAddress : undefined}
+        />
+      )}
+
+      {isCustomLocationAddressModalOpen && (
+        <AddressModal
+          isOpen={isCustomLocationAddressModalOpen}
+          onClose={() => setIsCustomLocationAddressModalOpen(false)}
+          onSave={handleCustomLocationAddressSave}
+          title={`Endereço de ${customLocationModalType === 'start' ? 'Origem' : 'Destino'}`}
+        />
+      )}
+
+      {/* Add Location Type Confirmation Modal */}
+      {isLocationTypeConfirmationOpen && <LocationTypeConfirmationModal />}
+
+      {/* Modal de Pedágio */}
+      {isTollModalOpen && tollPosition !== null && (
+        <div className="toll-modal">
+          <div className="toll-modal-content">
+            <h3>Adicionar Pedágio</h3>
+            <div className="toll-route-preview">
+              <div className="toll-route-point">
+                {routePoints[tollPosition] && getLocationIcon({ 
+                  name: routePoints[tollPosition].name || '', 
+                  locationType: routePoints[tollPosition].locationType,
+                  isCompany: routePoints[tollPosition].isCompany
+                })}
+                <span>{routePoints[tollPosition]?.name || 'Ponto de Origem'}</span>
+              </div>
+              <div className="toll-route-arrow">→</div>
+              <div className="toll-route-point">
+                {routePoints[tollPosition + 1] && getLocationIcon({ 
+                  name: routePoints[tollPosition + 1].name || '', 
+                  locationType: routePoints[tollPosition + 1].locationType,
+                  isCompany: routePoints[tollPosition + 1].isCompany
+                })}
+                <span>{routePoints[tollPosition + 1]?.name || 'Ponto de Destino'}</span>
+              </div>
             </div>
-            <div className="action-buttons">
+            <div className="form-group">
+              <label htmlFor="tollValue">Valor do Pedágio (R$)</label>
+              <input
+                type="number"
+                id="tollValue"
+                value={tollValue}
+                onChange={(e) => setTollValue(e.target.value)}
+                placeholder="Digite o valor do pedágio"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div className="modal-actions">
               <button 
-                className="action-button"
-                onClick={() => navigate('/orders')}
+                className="cancel-button" 
+                onClick={closeTollModal}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 12H5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Voltar
+                Cancelar
+              </button>
+              <button 
+                className="confirm-button" 
+                onClick={addToll}
+                disabled={!tollValue || parseFloat(tollValue) <= 0}
+              >
+                Adicionar Pedágio
               </button>
             </div>
           </div>
-
-          <div className="steps-indicator">
-            <div 
-              className={`step-indicator ${currentStep >= 1 ? 'active' : ''}`}
-              onClick={() => navigateToStep(OrderFormStep.TransportType)}
-              title={currentStep < 1 ? "Complete the previous step to access this" : ""}
-            >
-              <div className="step-number">1</div>
-              <div className="step-name">Tipo de transporte</div>
-            </div>
-            <div className="step-line"></div>
-            <div 
-              className={`step-indicator ${currentStep >= 2 ? 'active' : ''}`}
-              onClick={() => navigateToStep(OrderFormStep.VehicleType)}
-              title={currentStep < 2 ? "Complete the previous step to access this" : ""}
-            >
-              <div className="step-number">2</div>
-              <div className="step-name">Veículo</div>
-            </div>
-            <div className="step-line"></div>
-            <div 
-              className={`step-indicator ${currentStep >= 3 ? 'active' : ''}`}
-              onClick={() => navigateToStep(OrderFormStep.Details)}
-              title={currentStep < 3 ? "Complete the previous step to access this" : ""}
-            >
-              <div className="step-number">3</div>
-              <div className="step-name">Detalhes</div>
-            </div>
-            <div className="step-line"></div>
-            <div 
-              className={`step-indicator ${currentStep >= 4 ? 'active' : ''}`}
-              onClick={() => navigateToStep(OrderFormStep.StartEnd)}
-              title={currentStep < 4 ? "Complete the previous step to access this" : ""}
-            >
-              <div className="step-number">4</div>
-              <div className="step-name">Início/Fim</div>
-            </div>
-            <div className="step-line"></div>
-            <div 
-              className={`step-indicator ${currentStep >= 5 ? 'active' : ''}`}
-              onClick={() => navigateToStep(OrderFormStep.RouteOrganization)}
-              title={currentStep < 5 ? "Complete the previous step to access this" : ""}
-            >
-              <div className="step-number">5</div>
-              <div className="step-name">Organizar rota</div>
-            </div>
-            <div className="step-line"></div>
-            <div 
-              className={`step-indicator ${currentStep >= 6 ? 'active' : ''}`}
-              onClick={() => navigateToStep(OrderFormStep.RouteDetails)}
-              title={currentStep < 6 ? "Complete the previous step to access this" : ""}
-            >
-              <div className="step-number">6</div>
-              <div className="step-name">Detalhes da rota</div>
-            </div>
-          </div>
-
-          {renderStep()}
-        </main>
-      </div>
-
-      {/* Renderizar o modal de aprovação */}
-      {renderApprovalModal()}
-      
-      {/* Renderizar o modal de pedágio */}
-      {renderTollModal()}
-
-      {/* Address Modal */}
-      <AddressModal
-        isOpen={isAddressModalOpen}
-        onClose={() => setIsAddressModalOpen(false)}
-        onSave={handleAddressSave}
-        initialAddress={
-          currentItemIndex !== null && formData.items[currentItemIndex].detailedAddress 
-            ? formData.items[currentItemIndex].detailedAddress 
-            : undefined
-        }
-      />
-
-      {/* Add the address modal for custom locations */}
-      <AddressModal
-        isOpen={isCustomLocationAddressModalOpen}
-        onClose={() => setIsCustomLocationAddressModalOpen(false)}
-        onSave={handleCustomLocationAddressSave}
-        initialAddress={customStartLocation.address ? {
-          fullAddress: customStartLocation.address
-        } : undefined}
-      />
+        </div>
+      )}
     </div>
   );
 };

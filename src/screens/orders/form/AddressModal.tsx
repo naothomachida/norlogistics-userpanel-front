@@ -128,6 +128,7 @@ export interface DetailedAddress {
   street: string;
   number: string;
   complement: string;
+  neighborhood: string;
   city: string;
   state: string;
   country: string;
@@ -139,13 +140,15 @@ interface AddressModalProps {
   onClose: () => void;
   onSave: (address: DetailedAddress) => void;
   initialAddress?: Partial<DetailedAddress>;
+  title?: string;
 }
 
 const AddressModal: React.FC<AddressModalProps> = ({ 
   isOpen, 
   onClose, 
   onSave,
-  initialAddress = {} 
+  initialAddress = {},
+  title = 'Endereço'
 }) => {
   // Initialize state with a memoized initial address to prevent unnecessary re-renders
   const [address, setAddress] = useState<DetailedAddress>(() => ({
@@ -153,6 +156,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
     street: initialAddress.street || '',
     number: initialAddress.number || '',
     complement: initialAddress.complement || '',
+    neighborhood: initialAddress.neighborhood || '',
     city: initialAddress.city || '',
     state: initialAddress.state || '',
     country: initialAddress.country || 'Brasil',
@@ -197,7 +201,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
       setAddress(prev => ({
         ...prev,
         street: data.logradouro || '',
-        city: data.municipio || '',  // Use 'municipio' instead of 'localidade'
+        neighborhood: data.bairro || '',
+        city: data.municipio || '',
         state: data.uf || '',
         cep: formatCEP(cleanCep)
       }));
@@ -307,14 +312,21 @@ const AddressModal: React.FC<AddressModalProps> = ({
 
   const handleSave = () => {
     // Validate required fields
-    if (!address.cep || !address.street || !address.number || !address.city || !address.state) {
-      alert('Por favor, preencha todos os campos obrigatórios');
+    if (!address.cep || !address.street || !address.number) {
+      alert('Por favor, preencha CEP, Rua e Número.');
       return;
     }
 
-    // Format the full address string
-    const fullAddress = `${address.street}, ${address.number}${address.complement ? `, ${address.complement}` : ''}, ${address.city} - ${address.state}`;
+    // Construct full address with neighborhood
+    const fullAddress = [
+      `${address.street}, ${address.number}`,
+      address.complement ? `${address.complement}` : '',
+      address.neighborhood ? `${address.neighborhood}` : '',
+      `${address.city} - ${address.state}`,
+      `CEP: ${address.cep}`
+    ].filter(Boolean).join(', ');
 
+    // Save the address with full details
     onSave({
       ...address,
       fullAddress
@@ -326,9 +338,12 @@ const AddressModal: React.FC<AddressModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="address-modal-overlay">
+    <div className={`address-modal ${isOpen ? 'open' : ''}`}>
       <div className="address-modal-content">
-        <h2>Adicionar Endereço</h2>
+        <div className="address-modal-header">
+          <h2>{title}</h2>
+          <button className="modal-close-button" onClick={onClose}>×</button>
+        </div>
         <form className="address-form" onSubmit={(e) => e.preventDefault()}>
           <div className="form-group">
             <label htmlFor="cep">CEP</label>
@@ -348,7 +363,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
               />
               {isLoading && (
                 <div className="loading-overlay">
-                  <FaSpinner className="loading-spinner" />
+                  <div className="loading-spinner">
+                  </div>
                   <span className="sr-only">Carregando dados do CEP...</span>
                 </div>
               )}

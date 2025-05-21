@@ -39,6 +39,14 @@ export async function calculateRouteDistance(
     const geocodedAddresses = await Promise.all(
       addresses.map(async (address) => {
         try {
+          // Skip geocoding for toll points
+          if (address.includes('Pedágio')) {
+            return {
+              coordinates: null,
+              placeName: address
+            };
+          }
+
           const normalizedAddress = normalizeAddress(address);
           
           // Encode the address for URL
@@ -77,8 +85,10 @@ export async function calculateRouteDistance(
       })
     );
 
-    // Filter out addresses that couldn't be geocoded
-    const validGeocodes = geocodedAddresses.filter(addr => addr.coordinates !== null);
+    // Filter out addresses that couldn't be geocoded and are not toll points
+    const validGeocodes = geocodedAddresses.filter(addr => 
+      addr.coordinates !== null || addr.placeName.includes('Pedágio')
+    );
     
     if (validGeocodes.length < 2) {
       throw new Error("Could not geocode enough addresses to calculate route");
@@ -86,6 +96,7 @@ export async function calculateRouteDistance(
 
     // Prepare coordinates string for Mapbox Directions API
     const coordinatesString = validGeocodes
+      .filter(addr => addr.coordinates !== null)
       .map(addr => addr.coordinates.join(','))
       .join(';');
 
@@ -112,9 +123,12 @@ export async function calculateRouteDistance(
 
     // Calculate distance for each route segment
     route.legs.forEach((leg: any, index: number) => {
+      const fromAddress = validGeocodes.filter(addr => addr.coordinates !== null)[index].placeName;
+      const toAddress = validGeocodes.filter(addr => addr.coordinates !== null)[index + 1].placeName;
+
       distanceDetails.push({
-        from: validGeocodes[index].placeName,
-        to: validGeocodes[index + 1].placeName,
+        from: fromAddress,
+        to: toAddress,
         distance: leg.distance / 1000, // convert meters to kilometers
         duration: leg.duration / 60 // convert seconds to minutes
       });
