@@ -208,7 +208,7 @@ const getLocationDetails = (point: any) => {
           alignItems: 'center', 
           justifyContent: 'center',
           fontWeight: 'bold',
-          fontSize: '0.7rem'
+          fontSize: '0.8rem'
         }}
       >
         {getCompanyInitials(point.name || 'LO')}
@@ -236,7 +236,7 @@ const getLocationDetails = (point: any) => {
           alignItems: 'center', 
           justifyContent: 'center',
           fontWeight: 'bold',
-          fontSize: '0.7rem'
+          fontSize: '0.8rem'
         }}
       >
         {getCompanyInitials(point.name || 'CO')}
@@ -273,7 +273,7 @@ const OrderList: React.FC = () => {
   // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
   // Add items per page state
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Update initial state to include sorting
   const [filters, setFilters] = useState<OrderFilters>({
@@ -538,6 +538,27 @@ const OrderList: React.FC = () => {
           acc && acc[part] !== undefined ? acc[part] : undefined, obj);
       };
 
+      // Special handling for status and type columns
+      if (filters.sortKey === 'status') {
+        const statusOrder = ['pending', 'in_progress', 'en_route', 'completed', 'cancelled'];
+        const aStatusIndex = statusOrder.indexOf(a.status);
+        const bStatusIndex = statusOrder.indexOf(b.status);
+        
+        return filters.sortDirection === 'asc' 
+          ? aStatusIndex - bStatusIndex 
+          : bStatusIndex - aStatusIndex;
+      }
+
+      if (filters.sortKey === 'transportType') {
+        const typeOrder = ['person', 'cargo'];
+        const aTypeIndex = typeOrder.indexOf(a.transportType);
+        const bTypeIndex = typeOrder.indexOf(b.transportType);
+        
+        return filters.sortDirection === 'asc' 
+          ? aTypeIndex - bTypeIndex 
+          : bTypeIndex - aTypeIndex;
+      }
+
       // Check if the sort key includes a dot (indicating nested property)
       const isNestedKey = typeof filters.sortKey === 'string' && filters.sortKey.includes('.');
 
@@ -740,30 +761,32 @@ const OrderList: React.FC = () => {
             </div>
           )}
         </td>
-        <td>
-          <span className={`status-${order.status}`}>
-            {translateStatus(order.status)}
-          </span>
-        </td>
-        <td className="transport-type-cell">
-          <span className={`transport-badge ${order.transportType || 'unknown'}`}>
-            {order.transportType === 'person' ? <FaUserTie /> : <FaBox />}
-            {translateTransportType(order.transportType)}
-          </span>
+        <td className="status-type-cell">
+          <div className="status-container">
+            <span className={`status-${order.status}`}>
+              {translateStatus(order.status)}
+            </span>
+            </div>
+          <div className="type-container">
+            <span className={`transport-badge ${order.transportType || 'unknown'}`}>
+              {order.transportType === 'person' ? <FaUserTie /> : <FaBox />}
+              {translateTransportType(order.transportType)}
+            </span>
+          </div>
         </td>
         <td className="vehicle-type-cell">
           {getVehicleDescription(order.vehicleType, order.transportType)}
         </td>
         <td>
           <div className="route-cell">
-            <div className="route-origin" title={order.routePoints?.[0]?.address || 'N/A'}>
-            {getOrigin(order.routePoints)}
-          </div>
-            <div className="route-separator">→</div>
-            <div className="route-destination" title={order.routePoints?.[order.routePoints.length - 1]?.address || 'N/A'}>
-            {getDestination(order.routePoints)}
+            <div className="route-origin" title={getOrigin(order.routePoints)}>
+              {getOrigin(order.routePoints)}
             </div>
-          </div>
+            <div className="route-separator">→</div>
+            <div className="route-destination" title={getDestination(order.routePoints)}>
+              {getDestination(order.routePoints)}
+              </div>
+                  </div>
         </td>
         <td>
           <div className="route-info-cell">
@@ -773,15 +796,15 @@ const OrderList: React.FC = () => {
                 `${order.routeDistance.totalDistance.toFixed(2)} km` : 
                 'N/A'
               }
-            </div>
+                  </div>
             <div className="route-info-item">
               <FaClock style={{marginRight: '0.5rem'}} />
               {order.routeDistance ? 
                 `${order.routeDistance.totalDuration.toFixed(1)} min` : 
                 'N/A'
               }
-            </div>
-          </div>
+                  </div>
+                  </div>
         </td>
         <td>
           <div className="value-cell">
@@ -791,15 +814,15 @@ const OrderList: React.FC = () => {
                 `R$ ${order.pricing.finalPrice.toFixed(2)}` : 
                 'N/A'
               }
-            </div>
+                  </div>
             <div className="km-rate">
               <FaRoad style={{marginRight: '0.5rem'}} />
               {order.pricing?.kmRate ? 
                 `R$ ${order.pricing.kmRate.toFixed(2)}/km` : 
                 'N/A'
               }
-            </div>
-          </div>
+                  </div>
+                </div>
         </td>
         {userProfile?.role !== 'driver' && (
           <td>
@@ -807,7 +830,7 @@ const OrderList: React.FC = () => {
               <div className="driver-assigned">
                 <div className="driver-assigned-icon">
                   <FaCheck />
-                </div>
+            </div>
               </div>
             ) : (
               <div className="driver-assigned">
@@ -825,8 +848,8 @@ const OrderList: React.FC = () => {
               if (el) {
                 actionsDropdownRef.current[order.id] = el;
               }
-            }}
-          >
+                }}
+              >
             <button 
               ref={(el) => {
                 if (el) {
@@ -838,7 +861,7 @@ const OrderList: React.FC = () => {
             >
               <FaEllipsisV />
             </button>
-          </div>
+                  </div>
         </td>
       </tr>
     ))}
@@ -894,20 +917,6 @@ const OrderList: React.FC = () => {
         <div className="orders-main">
           <div className="orders-layout">
             <div className="orders-filters-sidebar">
-              {(userProfile?.role === 'admin' || userProfile?.role === 'user') && (
-                <div style={{ marginBottom: '1rem' }}>
-                <button 
-                    className="new-order-btn outlined-purple-btn"
-                  onClick={() => navigate('/orders/new')}
-                >
-                    Nova solicitação
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
-                  </svg>
-              </button>
-            </div>
-              )}
-
               <div className="filter-section">
                 <h3>Status</h3>
                 {/* Status filter dropdown */}
@@ -915,7 +924,7 @@ const OrderList: React.FC = () => {
                   <select 
                     value={filters.status} 
                     onChange={(e) => updateFilter('status', e.target.value)}
-              >
+                  >
                     <option value="all">Todos</option>
                     <option value="pending">Pendente</option>
                     <option value="in_progress">Em Progresso</option>
@@ -923,8 +932,8 @@ const OrderList: React.FC = () => {
                     <option value="completed">Concluído</option>
                     <option value="cancelled">Cancelado</option>
                   </select>
-              </div>
                   </div>
+              </div>
 
               <div className="filter-section">
                 <h3>Tipo</h3>
@@ -939,7 +948,7 @@ const OrderList: React.FC = () => {
                     <option value="cargo">Carga</option>
                   </select>
                   </div>
-                  </div>
+                </div>
 
               <div className="filter-section">
                 <h3>Data</h3>
@@ -954,7 +963,7 @@ const OrderList: React.FC = () => {
                     <option value="week">Última Semana</option>
                     <option value="month">Último Mês</option>
                   </select>
-                  </div>
+                </div>
             </div>
             
               {/* New section for items per page */}
@@ -968,8 +977,9 @@ const OrderList: React.FC = () => {
                       setItemsPerPage(newItemsPerPage);
                       // Reset to first page when changing items per page
                       setCurrentPage(1);
-                    }}
+                }}
                   >
+                    <option value={5}>5 itens</option>
                     <option value={10}>10 itens</option>
                     <option value={25}>25 itens</option>
                     <option value={50}>50 itens</option>
@@ -977,7 +987,7 @@ const OrderList: React.FC = () => {
                   </select>
               </div>
                   </div>
-
+            
               {/* New sorting section */}
               <div className="filter-section">
                 <h3>Ordenação</h3>
@@ -1001,7 +1011,7 @@ const OrderList: React.FC = () => {
                   >
                     {filters.sortDirection === 'asc' ? '▲ Crescente' : '▼ Decrescente'}
                   </button>
-            </div>
+                  </div>
             
                 <div className="sort-type-toggle">
                   <button 
@@ -1010,8 +1020,8 @@ const OrderList: React.FC = () => {
                   >
                     Tipo: {getSortTypeLabel()}
                   </button>
-              </div>
                   </div>
+              </div>
 
               {activeFilterCount > 0 && (
                 <div className="filter-clear-section">
@@ -1040,27 +1050,110 @@ const OrderList: React.FC = () => {
               </svg>
                         Exportar
                       </button>
+                      {(userProfile?.role === 'admin' || userProfile?.role === 'user') && (
+                        <button 
+                          className="outlined-purple-btn"
+                          onClick={() => navigate('/orders/new')}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+                          </svg>
+                          Nova solicitação
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="search-filter-section" style={{ width: '100%' }}>
+                  <div className="search-filter-section" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    width: '100%', 
+                    gap: '1rem' 
+                  }}>
+                    <div style={{ flex: 1 }}>
               <input 
                 type="text" 
-                      placeholder="Buscar solicitação" 
+                        placeholder="Buscar solicitação" 
                 value={filters.searchQuery}
                 onChange={(e) => updateFilter('searchQuery', e.target.value)}
-                      className="search-input-sidebar"
-                      style={{ width: '100%' }}
+                        className="search-input-sidebar"
+                        style={{ width: '100%' }}
               />
             </div>
+                    {totalPages > 1 && (
+                      <div className="pagination-controls-inline">
+                        <div className="pagination-buttons-container">
+                          <div className="pagination-buttons">
+                <button 
+                              onClick={() => handlePageChange(1)}
+                              disabled={currentPage === 1}
+                              className={`pagination-btn first-page ${currentPage === 1 ? 'disabled' : ''}`}
+                              title="Primeira página"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="11 17 6 12 11 7"></polyline>
+                                <polyline points="18 17 13 12 18 7"></polyline>
+                                <line x1="5" y1="3" x2="5" y2="21"></line>
+                </svg>
+                            </button>
+                <button 
+                              onClick={() => handlePageChange(currentPage - 1)}
+                              disabled={currentPage === 1}
+                              className={`pagination-btn prev-page ${currentPage === 1 ? 'disabled' : ''}`}
+                              title="Página anterior"
+                >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+                            {[...Array(totalPages)].map((_, index) => (
+                <button 
+                                key={index + 1}
+                                onClick={() => handlePageChange(index + 1)}
+                                className={`pagination-btn page-number ${currentPage === index + 1 ? 'active' : ''}`}
+                              >
+                                {index + 1}
+                              </button>
+                            ))}
+                            <button 
+                              onClick={() => handlePageChange(currentPage + 1)}
+                              disabled={currentPage === totalPages}
+                              className={`pagination-btn next-page ${currentPage === totalPages ? 'disabled' : ''}`}
+                              title="Próxima página"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+                            <button 
+                              onClick={() => handlePageChange(totalPages)}
+                              disabled={currentPage === totalPages}
+                              className={`pagination-btn last-page ${currentPage === totalPages ? 'disabled' : ''}`}
+                              title="Última página"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="13 17 18 12 13 7"></polyline>
+                                <polyline points="6 17 11 12 6 7"></polyline>
+                                <line x1="19" y1="3" x2="19" y2="21"></line>
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="pagination-page-info">
+                            {paginatedOrders.length} de {sortedOrders.length} 
+                            {` (Página ${currentPage} de ${totalPages})`}
+                          </div>
+                        </div>
+                      </div>
+              )}
+            </div>
+                </div>
               </div>
-          </div>
 
+              <div className="orders-table-wrapper">
               <table className="orders-table">
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Status</th>
-                    <th>Tipo</th>
+                    <th>Status/Tipo</th>
                     <th>Veículo</th>
                     <th>Rota</th>
                     <th>Rota Info</th>
@@ -1079,28 +1172,30 @@ const OrderList: React.FC = () => {
                           </div>
                         )}
                       </td>
-                      <td>
-                        <span className={`status-${order.status}`}>
-                          {translateStatus(order.status)}
-                        </span>
-                      </td>
-                      <td className="transport-type-cell">
+                      <td className="status-type-cell">
+                        <div className="status-container">
+                          <span className={`status-${order.status}`}>
+                            {translateStatus(order.status)}
+                          </span>
+                        </div>
+                        <div className="type-container">
                         <span className={`transport-badge ${order.transportType || 'unknown'}`}>
-                          {order.transportType === 'person' ? <FaUserTie /> : <FaBox />}
+                            {order.transportType === 'person' ? <FaUserTie /> : <FaBox />}
                           {translateTransportType(order.transportType)}
                         </span>
+                        </div>
                       </td>
                       <td className="vehicle-type-cell">
                         {getVehicleDescription(order.vehicleType, order.transportType)}
                       </td>
                       <td>
                         <div className="route-cell">
-                          <div className="route-origin" title={order.routePoints?.[0]?.address || 'N/A'}>
+                          <div className="route-origin" title={getOrigin(order.routePoints)}>
                           {getOrigin(order.routePoints)}
-                        </div>
+                          </div>
                           <div className="route-separator">→</div>
-                          <div className="route-destination" title={order.routePoints?.[order.routePoints.length - 1]?.address || 'N/A'}>
-                          {getDestination(order.routePoints)}
+                          <div className="route-destination" title={getDestination(order.routePoints)}>
+                            {getDestination(order.routePoints)}
                           </div>
                         </div>
                       </td>
@@ -1183,87 +1278,8 @@ const OrderList: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-
-              {/* Pagination container */}
-              {totalPages > 1 && (
-                <div className="pagination-container">
-                  <div className="pagination-page-info">
-                    {paginatedOrders.length} de {sortedOrders.length} 
-                    {` (Página ${currentPage} de ${totalPages})`}
-                  </div>
-                  <div className="pagination-controls">
-                    {/* First page button */}
-                    <button 
-                      onClick={() => handlePageChange(1)}
-                      disabled={currentPage === 1}
-                      className={`pagination-btn first-page ${currentPage === 1 ? 'disabled' : ''}`}
-                      title="Primeira página"
-                    >
-                      «
-                    </button>
-
-                    {/* Previous page button */}
-                    <button 
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className={`pagination-btn prev-page ${currentPage === 1 ? 'disabled' : ''}`}
-                      title="Página anterior"
-                    >
-                      ‹
-                    </button>
-
-                    {/* Page number buttons */}
-                    {[...Array(totalPages)].map((_, index) => (
-                      <button
-                        key={index + 1}
-                        onClick={() => handlePageChange(index + 1)}
-                        className={`pagination-btn page-number ${currentPage === index + 1 ? 'active' : ''}`}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
-
-                    {/* Next page button */}
-                    <button 
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className={`pagination-btn next-page ${currentPage === totalPages ? 'disabled' : ''}`}
-                      title="Próxima página"
-                    >
-                      ›
-                    </button>
-
-                    {/* Last page button */}
-                    <button 
-                      onClick={() => handlePageChange(totalPages)}
-                      disabled={currentPage === totalPages}
-                      className={`pagination-btn last-page ${currentPage === totalPages ? 'disabled' : ''}`}
-                      title="Última página"
-                    >
-                      »
-                    </button>
-                  </div>
             </div>
-          )}
-
-              {/* Fallback for single page or no results */}
-              {totalPages <= 1 && (
-                <div className="pagination-container">
-                  <div className="pagination-page-info">
-                    {paginatedOrders.length} de {sortedOrders.length} 
-                    {` (Página ${currentPage} de ${totalPages})`}
       </div>
-                  <div className="pagination-controls">
-                    <button 
-                      className="pagination-btn page-number active"
-                      disabled
-                    >
-                      {currentPage}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

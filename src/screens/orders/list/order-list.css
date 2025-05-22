@@ -152,14 +152,100 @@
   width: 100%;
   overflow-x: auto;
   position: relative;
-  padding-bottom: 2rem; /* Make space for the role message */
+  padding-bottom: 2rem;
+}
+
+.orders-table-wrapper {
+  overflow-y: auto;
+  width: 100%;
 }
 
 .orders-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 0.5rem;
+  border-spacing: 0 0.25rem;
   min-width: 800px;
+  table-layout: fixed;
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 0.4rem 0.5rem;
+}
+
+/* Icon column */
+.orders-table th:first-child,
+.orders-table td:first-child {
+  width: 4%;
+  max-width: 50px;
+  text-align: center;
+}
+
+/* Status/Type column */
+.orders-table th:nth-child(2),
+.orders-table td:nth-child(2) {
+  width: 8%;
+}
+
+/* Vehicle column */
+.orders-table th:nth-child(3),
+.orders-table td:nth-child(3) {
+  width: 8%;
+}
+
+/* Route column */
+.orders-table th:nth-child(4),
+.orders-table td:nth-child(4) {
+  width: 24%;
+}
+
+/* Route Info column */
+.orders-table th:nth-child(5),
+.orders-table td:nth-child(5) {
+  width: 10%;
+}
+
+/* Value column */
+.orders-table th:nth-child(6),
+.orders-table td:nth-child(6) {
+  width: 10%;
+}
+
+/* Driver column (if visible) */
+.orders-table th:nth-child(7),
+.orders-table td:nth-child(7) {
+  width: 6%;
+  text-align: center;
+}
+
+/* Actions column */
+.orders-table th:last-child,
+.orders-table td:last-child {
+  width: 4%;
+  text-align: center;
+}
+
+.route-cell {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.25rem;
+}
+
+.route-origin,
+.route-destination {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+}
+
+.route-separator {
+  flex-shrink: 0;
+  margin: 0 0.2rem;
+  color: #9ca3af;
+  font-weight: bold;
+  font-size: 0.7rem;
 }
 
 .orders-table th {
@@ -179,13 +265,29 @@
 }
 
 .orders-table tbody tr {
-  transition: all 0.2s ease;
+  height: 70px;
+  transition: background-color 0.2s ease;
+  background-color: #f9f9f9;
+}
+
+.orders-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
 }
 
 .orders-table tbody tr:hover {
-  background-color: #f3f3f3;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  background-color: #f3f3f3 !important;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Remove specific hover styles for rows with driver */
+.orders-table tbody tr.has-driver:hover {
+  background-color: #f3f3f3 !important;
+}
+
+/* Ensure consistent background for all rows */
+.orders-table tbody tr td {
+  background-color: transparent;
 }
 
 /* Estilos para os status */
@@ -197,7 +299,7 @@
   display: inline-block;
   padding: 0.2rem 0.4rem;
   border-radius: 1rem;
-  font-size: 0.65rem;
+  font-size: 0.8rem;
   font-weight: 500;
   text-align: center;
 }
@@ -330,16 +432,19 @@ tr.has-driver:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.1rem 0.25rem;
+  padding: 0.1rem 0.2rem !important;
   border-radius: 0.75rem;
-  font-size: 0.5rem;
+  font-size: 0.6rem !important;
   font-weight: 500;
   gap: 0.25rem;
+  min-width: 70px !important;
+  max-height: 15px !important;
+  margin-top: 0.2rem;
 }
 
 .transport-badge svg {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.55rem;
+  height: 0.55rem;
 }
 
 .transport-badge.person {
@@ -499,22 +604,22 @@ td .driver-assigned {
 .orders-layout {
   display: flex;
   gap: 2.5rem;
-  height: 100vh; /* Changed from calc(100vh - 100px) to full viewport height */
+  height: 100vh;
 }
 
 .orders-filters-sidebar {
-  width: 400px; /* Increased width */
+  width: 400px;
   background: linear-gradient(to bottom right, #ffffff 0%, #f4f3ff 30%, #e6e6fa 70%, #f0e6ff 100%);
   padding: 2rem;
   border-right: 1px solid #f0f0f0;
-  height: 100%; /* Ensure full height */
+  height: 100%;
   overflow-y: auto;
   position: sticky;
-  top: 0; /* Changed from 70px to 0 */
+  top: 0;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   font-size: 0.75rem;
-  border-radius: 0; /* Removed rounded corners */
+  border-radius: 0;
 }
 
 .orders-filters-sidebar h3 {
@@ -532,7 +637,7 @@ td .driver-assigned {
 
 .search-input-sidebar {
   width: 100%;
-  background-color: #ffffff; /* Changed to white background */
+  background-color: #ffffff;
   border: 1px solid #d6bcfa;
   border-radius: 0.375rem;
   padding: 0.375rem 0.5rem 0.375rem 4.5rem;
@@ -656,12 +761,14 @@ td .driver-assigned {
   color: #9ca3af;
   font-weight: bold;
   margin: 0 0.5rem;
+  font-size: 0.8rem;
 }
 
 .route-cell {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.8rem;
 }
 
 .route-origin,
@@ -670,11 +777,7 @@ td .driver-assigned {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.route-separator {
-  color: #9ca3af;
-  font-weight: bold;
+  font-size: 0.8rem;
 }
 
 /* Adjust table cell padding for new layout */
@@ -692,7 +795,7 @@ td .driver-assigned {
 .order-route-icon-wrapper {
   width: 40px;
   height: 40px;
-  background-color: #8b5cf6; /* Purple color */
+  background-color: #8b5cf6;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -706,81 +809,14 @@ td .driver-assigned {
   color: white;
 }
 
-/* Pagination Controls */
+/* Pagination container removed */
 .pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-  padding: 0.5rem 0;
-  border-top: 1px solid #eaeaea;
-}
-
-.pagination-page-info {
-  font-size: 0.8rem;
-  color: #777;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.pagination-btn {
-  background-color: #f5f5f5;
-  color: #000;
-  border: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 2rem;
-  text-align: center;
-}
-
-.pagination-btn:hover {
-  background-color: #e5e5e5;
-}
-
-.pagination-btn.page-number {
-  background-color: transparent;
-  border: 1px solid #e5e5e5;
-}
-
-.pagination-btn.page-number.active {
-  background-color: #6b46c1;
-  color: white;
-  border-color: #6b46c1;
-}
-
-.pagination-btn:disabled,
-.pagination-btn.disabled {
-  background-color: #f9f9f9;
-  color: #ccc;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.pagination-btn.first-page,
-.pagination-btn.last-page {
-  font-weight: bold;
+  display: none;
 }
 
 @media (max-width: 768px) {
   .pagination-container {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .pagination-page-info {
-    margin-bottom: 0.5rem;
-  }
-  
-  .pagination-controls {
-    flex-wrap: wrap;
-    justify-content: center;
+    display: none;
   }
 }
 
@@ -823,37 +859,40 @@ td .driver-assigned {
   width: 50px;
   max-width: 50px;
   text-align: center;
-  padding: 0.25rem 0.5rem !important;
+  vertical-align: middle;
+  padding: 0 !important;
 }
 
 .origin-badge-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   width: 32px;
   height: 32px;
-  color: #6b46c1;
   border-radius: 50%;
   background-color: rgba(107, 70, 193, 0.1);
+  color: #6b46c1;
+  text-align: center;
+  line-height: 32px;
 }
 
 .origin-badge-icon svg {
   width: 18px;
   height: 18px;
+  vertical-align: middle;
+  margin-top: 0.5rem;
+  margin-left: 0.5rem;
 }
 
-/* Ensure company initials icon fits within the badge */
 .origin-badge-icon > div {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background-color: rgba(107, 70, 193, 0.1);
   color: #6b46c1;
+  text-align: center;
+  line-height: 32px;
   font-weight: bold;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
 }
 
 .new-order-btn {
@@ -895,7 +934,7 @@ td .driver-assigned {
   align-items: center;
   width: 100%;
   height: 100%;
-  z-index: 100; /* Increased z-index */
+  z-index: 100;
 }
 
 .order-actions-dropdown-btn {
@@ -912,7 +951,7 @@ td .driver-assigned {
   width: 100%;
   height: 100%;
   position: relative;
-  z-index: 50; /* Ensure button is above other elements */
+  z-index: 50;
 }
 
 .order-actions-dropdown-btn:hover {
@@ -1010,7 +1049,8 @@ td .driver-assigned {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-weight: 600;
+  font-weight: 400;
+  font-size: 0.75rem;
   transition: all 0.3s ease;
   cursor: pointer;
   height: 2.5rem;
@@ -1065,6 +1105,7 @@ td .driver-assigned {
 
 .route-info-item svg {
   color: #6b46c1;
+  margin-right: 0.25rem;
 }
 
 .value-cell {
@@ -1080,10 +1121,228 @@ td .driver-assigned {
   font-size: 0.7rem;
 }
 
-.total-value svg {
-  color: #16a34a;
+.total-value svg,
+.km-rate svg {
+  margin-right: 0.25rem;
 }
 
-.km-rate svg {
-  color: #2563eb;
+.route-info-cell,
+.value-cell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.origin-badge-cell {
+  width: 50px;
+  max-width: 50px;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 !important;
+}
+
+.origin-badge-icon {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(107, 70, 193, 0.1);
+  color: #6b46c1;
+  text-align: center;
+  line-height: 32px;
+}
+
+.origin-badge-icon svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+.origin-badge-icon > div {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(107, 70, 193, 0.1);
+  color: #6b46c1;
+  text-align: center;
+  line-height: 32px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.driver-assigned {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-actions-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure icons and text are vertically centered */
+.route-info-item,
+.total-value,
+.km-rate {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-type-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  height: 100%;
+  width: 100%;
+}
+
+.status-container,
+.type-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.status-container span,
+.type-container span {
+  width: 100%;
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.status-container .status-pending,
+.status-container .status-in_progress,
+.status-container .status-en_route,
+.status-container .status-completed,
+.status-container .status-cancelled {
+  padding: 0.2rem 0.4rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.type-container .transport-badge {
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.type-container .transport-badge svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.pagination-controls-inline {
+  display: flex;
+  align-items: center;
+}
+
+.pagination-buttons-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: rgba(107, 70, 193, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+}
+
+.pagination-btn {
+  background-color: transparent;
+  border: none;
+  color: #6b46c1;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.pagination-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(107, 70, 193, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
+.pagination-btn:hover::before {
+  opacity: 1;
+}
+
+.pagination-btn:active {
+  transform: scale(0.95);
+}
+
+.pagination-btn.disabled {
+  color: #a78bfa;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pagination-btn.page-number {
+  min-width: 2rem;
+  font-weight: 500;
+}
+
+.pagination-btn.page-number.active {
+  background-color: #6b46c1;
+  color: white;
+}
+
+.pagination-page-info {
+  font-size: 0.7rem;
+  color: #6b46c1;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+  font-weight: 500;
+}
+
+/* Icons for pagination buttons */
+.pagination-btn svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2;
+}
+
+.pagination-btn.first-page svg,
+.pagination-btn.last-page svg {
+  stroke-width: 3;
+}
+
+.pagination-btn.disabled svg {
+  opacity: 0.5;
 } 

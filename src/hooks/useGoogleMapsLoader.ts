@@ -38,17 +38,17 @@ export function useGoogleMapsLoader() {
         if (existingScript) {
           console.log('Google Maps script already exists in DOM');
           resolve();
-          return;
-        }
+      return;
+    }
 
-        // Create script element
-        const script = document.createElement('script');
+    // Create script element
+    const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async`;
-        script.async = true;
-        script.defer = true;
+    script.async = true;
+    script.defer = true;
 
-        // Handle successful script loading
-        script.onload = () => {
+    // Handle successful script loading
+    script.onload = () => {
           console.log('Google Maps script onload triggered');
           
           // Ensure Google Maps is loaded with multiple checks
@@ -57,29 +57,29 @@ export function useGoogleMapsLoader() {
             console.log('window.google:', !!window.google);
             console.log('window.google.maps:', !!window.google?.maps);
             
-            if (window.google?.maps) {
+        if (window.google?.maps) {
               console.log('Google Maps successfully loaded');
               resolve();
-            } else {
+        } else {
               console.error('Google Maps script loaded but API not available');
               reject(new Error('Google Maps script loaded but API not available'));
-            }
-          };
+        }
+      };
 
           // Multiple checks to ensure loading
           setTimeout(checkMapsLoaded, 100);
           setTimeout(checkMapsLoaded, 500);
           setTimeout(checkMapsLoaded, 1000);
-        };
+    };
 
-        // Handle script loading error
-        script.onerror = (error) => {
-          console.error('Failed to load Google Maps script:', error);
+    // Handle script loading error
+    script.onerror = (error) => {
+      console.error('Failed to load Google Maps script:', error);
           reject(new Error('Failed to load Google Maps script'));
-        };
+    };
 
-        // Append script to document
-        document.head.appendChild(script);
+    // Append script to document
+    document.head.appendChild(script);
       });
     }
 

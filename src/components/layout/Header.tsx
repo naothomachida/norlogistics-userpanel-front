@@ -212,10 +212,10 @@ const Header: React.FC = () => {
       </div>
       <div className="header-actions">
         <div className="notification-container">
-          <button className="notification-button">
+        <button className="notification-button">
             <FiBell size={24} />
-            <div className="notification-indicator"></div>
-          </button>
+          <div className="notification-indicator"></div>
+        </button>
           <span className="notification-tooltip">Notificações</span>
         </div>
         <div className="avatar-container" ref={dropdownRef}>
@@ -229,22 +229,22 @@ const Header: React.FC = () => {
                   {renderAvatar()}
                 </div>
                 <div className="dropdown-user-info">
-                  <div className="user-name">{getDisplayName()}</div>
-                  <div className="user-role">
-                    {userProfile?.role === 'admin' && 'Administrador'}
-                    {userProfile?.role === 'manager' && 'Gerente'}
-                    {userProfile?.role === 'user' && 'Usuário'}
-                    {userProfile?.role === 'driver' && 'Motorista'}
-                    {!userProfile?.role && 'Cargo não definido'}
+                <div className="user-name">{getDisplayName()}</div>
+                <div className="user-role">
+                  {userProfile?.role === 'admin' && 'Administrador'}
+                  {userProfile?.role === 'manager' && 'Gerente'}
+                  {userProfile?.role === 'user' && 'Usuário'}
+                  {userProfile?.role === 'driver' && 'Motorista'}
+                  {!userProfile?.role && 'Cargo não definido'}
                   </div>
                 </div>
               </div>
               <div className="dropdown-divider"></div>
               <div className="dropdown-menu">
-                <div className="dropdown-item" onClick={navigateToProfile}>
+              <div className="dropdown-item" onClick={navigateToProfile}>
                   <FiSettings size={16} /> Perfil
-                </div>
-                <div className="dropdown-item" onClick={handleLogout}>
+              </div>
+              <div className="dropdown-item" onClick={handleLogout}>
                   <FiLogOut size={16} /> Sair
                 </div>
               </div>

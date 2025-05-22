@@ -655,16 +655,16 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       };
     } else {
       // Create a new toll point
-      const newTollPoint: RoutePoint = {
-        id: `toll-${Date.now()}`,
-        name: `Pedágio R$ ${tollValueNumber.toFixed(2)}`,
-        address: `Entre ${routePoints[tollPosition].name} e ${routePoints[tollPosition + 1]?.name || 'destino'}`,
-        isToll: true,
-        tollValue: tollValueNumber
-      };
-      
+    const newTollPoint: RoutePoint = {
+      id: `toll-${Date.now()}`,
+      name: `Pedágio R$ ${tollValueNumber.toFixed(2)}`,
+      address: `Entre ${routePoints[tollPosition].name} e ${routePoints[tollPosition + 1]?.name || 'destino'}`,
+      isToll: true,
+      tollValue: tollValueNumber
+    };
+    
       // Insert the toll point
-      newRoutePoints.splice(tollPosition + 1, 0, newTollPoint);
+    newRoutePoints.splice(tollPosition + 1, 0, newTollPoint);
     }
     
     // Atualizar os pontos da rota
@@ -700,7 +700,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const handleSubmit = async (e?: React.FormEvent, status?: Order['status'], approvedBy?: string) => {
     // Prevent default form submission if event is provided
     if (e) {
-      e.preventDefault();
+    e.preventDefault();
     }
 
     // Validate all required data
@@ -765,12 +765,12 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         transportType: (formData.transportType === 'person' || formData.transportType === 'cargo') 
           ? formData.transportType 
           : 'person', // Default to 'person' if type is invalid
-        vehicleType: formData.vehicleType,
+      vehicleType: formData.vehicleType,
         carModel: '', // TODO: Add car model selection
         pickupLocation: formData.startLocationId,
         destination: formData.endLocationId,
-        startLocationId: formData.startLocationId,
-        endLocationId: formData.endLocationId,
+      startLocationId: formData.startLocationId,
+      endLocationId: formData.endLocationId,
         userId: userProfile?.id || '', // ID do usuário que está criando a ordem
         status: status || 'pending',
         approvedBy: approvedBy || undefined,
@@ -812,7 +812,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       dispatch(addOrder(orderData));
 
       // Navigate to orders list
-      navigate('/orders');
+    navigate('/orders');
     } catch (error) {
       console.error('Route calculation error:', error);
       setRouteDistanceError(error instanceof Error ? error.message : 'Erro desconhecido ao calcular rota');
@@ -1024,16 +1024,16 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       // Buscar preço mínimo para o par de cidades
       const cityPair = cityPairs.find(
         (pair: { fromCity: string; fromState: string; toCity: string; toState: string; minimumPrice: number }) => 
-          // Verificar se existe par origem -> destino
-          (pair.fromCity.toLowerCase() === startCity.toLowerCase() && 
+        // Verificar se existe par origem -> destino
+        (pair.fromCity.toLowerCase() === startCity.toLowerCase() && 
            pair.toCity.toLowerCase() === endCity.toLowerCase()) ||
-          // Verificar se existe par destino -> origem (preço vale para ambas direções)
-          (pair.fromCity.toLowerCase() === endCity.toLowerCase() && 
+        // Verificar se existe par destino -> origem (preço vale para ambas direções)
+        (pair.fromCity.toLowerCase() === endCity.toLowerCase() && 
            pair.toCity.toLowerCase() === startCity.toLowerCase())
-      );
+    );
 
-      if (cityPair) {
-        minimumPrice = cityPair.minimumPrice;
+    if (cityPair) {
+      minimumPrice = cityPair.minimumPrice;
       }
     }
 
@@ -1063,7 +1063,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       console.log(`   Total de pedágios: R$ ${tollsTotal.toFixed(2)}`);
     }
     
-    console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
+      console.log(`   Preço final: R$ ${finalPrice.toFixed(2)}`);
 
     return {
       kmBasedPrice,
@@ -1330,7 +1330,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     }
   };
 
-  return (
+        return (
     <div className="order-form-page">
       <Header />
       <div className="order-form-content">
@@ -1390,29 +1390,29 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                     </button>
                   </div>
                 </div>
-                <div className="transport-type-selection">
-                  <div 
-                    className={`transport-card ${formData.transportType === 'person' ? 'selected' : ''}`}
-                    onClick={() => handleTransportTypeSelect('person')}
-                  >
-                    <div className="transport-icon person-icon">
+            <div className="transport-type-selection">
+              <div 
+                className={`transport-card ${formData.transportType === 'person' ? 'selected' : ''}`}
+                onClick={() => handleTransportTypeSelect('person')}
+              >
+                <div className="transport-icon person-icon">
                       <FaUserTie />
-                    </div>
+                </div>
                     <h3>Transporte de Pessoas</h3>
                     <p>Viagens com passageiros</p>
-                  </div>
-                  <div 
-                    className={`transport-card ${formData.transportType === 'cargo' ? 'selected' : ''}`}
-                    onClick={() => handleTransportTypeSelect('cargo')}
-                  >
-                    <div className="transport-icon box-icon">
-                      <FaBox />
-                    </div>
+              </div>
+              <div 
+                className={`transport-card ${formData.transportType === 'cargo' ? 'selected' : ''}`}
+                onClick={() => handleTransportTypeSelect('cargo')}
+              >
+                <div className="transport-icon box-icon">
+                  <FaBox />
+                </div>
                     <h3>Transporte de Cargas</h3>
                     <p>Entregas e logística</p>
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
             )}
 
             {currentStep === OrderFormStep.VehicleType && (
@@ -1437,19 +1437,19 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                     </button>
                   </div>
                 </div>
-                <div className="vehicle-type-selection">
+            <div className="vehicle-type-selection">
                   {(formData.transportType === 'person' ? personVehicles : cargoVehicles).map(vehicle => (
-                    <div 
-                      key={vehicle.id}
-                      className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
-                      onClick={() => handleVehicleTypeSelect(vehicle.id)}
-                    >
-                      <h3>{vehicle.name}</h3>
-                      <p>{vehicle.description}</p>
-                    </div>
-                  ))}
+                <div 
+                  key={vehicle.id}
+                  className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
+                  onClick={() => handleVehicleTypeSelect(vehicle.id)}
+                >
+                  <h3>{vehicle.name}</h3>
+                  <p>{vehicle.description}</p>
                 </div>
-              </div>
+              ))}
+            </div>
+          </div>
             )}
 
             {currentStep === OrderFormStep.Details && (
@@ -1475,62 +1475,62 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   </div>
                 </div>
                 <div className="details-form">
-                  {formData.items.map((item, index) => (
-                    <div key={index} className="item-details">
-                      <div className="item-header">
+              {formData.items.map((item, index) => (
+                <div key={index} className="item-details">
+                  <div className="item-header">
                         <h3>Item {index + 1}</h3>
-                        {formData.items.length > 1 && (
-                          <button 
-                            className="remove-item-button"
-                            onClick={() => removeItem(index)}
-                          >
-                            Remover
-                          </button>
-                        )}
-                      </div>
+                    {formData.items.length > 1 && (
+                      <button 
+                        className="remove-item-button"
+                        onClick={() => removeItem(index)}
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
                       <div className="form-row">
                         <div className="form-group">
                           <label>Nome</label>
-                          <input
-                            type="text"
-                            value={item.name}
-                            onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                             placeholder="Nome completo"
-                          />
-                        </div>
-                        {formData.transportType === 'person' && (
+                      />
+                    </div>
+                    {formData.transportType === 'person' && (
                           <div className="form-group">
                             <label>Telefone</label>
-                            <input
-                              type="tel"
-                              value={item.phone}
-                              onChange={(e) => handlePhoneChange(index, e.target.value)}
+                      <input
+                        type="tel"
+                        value={item.phone}
+                        onChange={(e) => handlePhoneChange(index, e.target.value)}
                               placeholder="(00) 00000-0000"
-                            />
-                          </div>
-                        )}
-                      </div>
+                      />
+                    </div>
+                    )}
+                  </div>
                       <div className="form-row">
                         <div className="form-group address-row">
                           <label>Endereço</label>
-                          <div className="address-input-container">
-                            <input
-                              type="text"
-                              value={item.address}
+                      <div className="address-input-container">
+                        <input
+                          type="text"
+                          value={item.address}
                               placeholder="Selecione o endereço"
-                              readOnly
+                          readOnly
                               onClick={() => openAddressModal(index)}
-                            />
-                            <button 
-                              className="edit-address-button"
-                              onClick={() => openAddressModal(index)}
-                            >
-                              Editar
-                            </button>
-                          </div>
-                        </div>
+                        />
+                          <button 
+                            className="edit-address-button"
+                            onClick={() => openAddressModal(index)}
+                          >
+                            Editar
+                          </button>
                       </div>
                     </div>
+                  </div>
+                        </div>
                   ))}
                   <div className="form-actions">
                     <button 
@@ -1539,70 +1539,70 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                     >
                       Adicionar Item
                     </button>
-                  </div>
-                </div>
-              </div>
+                      </div>
+                        </div>
+                        </div>
             )}
 
             {currentStep === OrderFormStep.StartEnd && (
               <div>
                 <div className="step-title-container">
                   <div className="step-navigation-buttons">
-                    <button 
-                      className="back-button"
+                <button 
+                  className="back-button"
                       onClick={goToPreviousStep}
-                    >
+                >
                       Voltar
-                    </button>
-                  </div>
+                </button>
+                    </div>
                   <h2 className="step-title">Selecione Origem e Destino</h2>
                   <div className="step-navigation-buttons">
-                    <button 
-                      className="continue-button"
+                  <button 
+                    className="continue-button"
                       onClick={handleProceedToRouteOrganization}
                       disabled={!formData.startLocationId || !formData.endLocationId}
-                    >
-                      Continuar
-                    </button>
-                  </div>
-                </div>
-                <div className="location-selection-container">
-                  <div className="location-selection-column">
-                    <h3>Local de Origem</h3>
-                    {renderLocationOptions('start')}
-                  </div>
-                  <div className="location-selection-column">
-                    <h3>Local de Destino</h3>
-                    {renderLocationOptions('end')}
-                  </div>
+                  >
+                    Continuar
+                  </button>
                 </div>
               </div>
+            <div className="location-selection-container">
+              <div className="location-selection-column">
+                    <h3>Local de Origem</h3>
+                    {renderLocationOptions('start')}
+                    </div>
+              <div className="location-selection-column">
+                    <h3>Local de Destino</h3>
+                    {renderLocationOptions('end')}
+                    </div>
+                        </div>
+                </div>
             )}
 
             {currentStep === OrderFormStep.RouteOrganization && (
               <>
                 <div className="step-title-container">
                   <div className="step-navigation-buttons">
-                    <button 
-                      className="back-button"
+              <button 
+                className="back-button"
                       onClick={goToPreviousStep}
-                    >
+              >
                       Voltar
-                    </button>
+              </button>
                   </div>
                   <h2 className="step-title">Organize a Rota</h2>
                   <div className="step-navigation-buttons">
-                    <button 
-                      className="continue-button"
+                <button 
+                  className="continue-button"
                       onClick={handleProceedToRouteDetails}
                       disabled={routePoints.length < 2}
                     >
                       Calcular Rota
-                    </button>
-                  </div>
-                </div>
+                </button>
+              </div>
+            </div>
                 <div className="route-organization-container">
-                  {routePoints.map((point, index) => (
+              {routePoints.map((point, index) => (
                     <div 
                       key={point.id} 
                       className={`route-point-card ${
@@ -1611,34 +1611,34 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                       }`}
                       draggable
                       onDragStart={() => handleDragStart(index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <div className="route-point-number">{index + 1}</div>
-                      <div className="route-point-icon">
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="route-point-number">{index + 1}</div>
+                        <div className="route-point-icon">
                         {getLocationIcon({ 
                           name: point.name, 
                           locationType: point.locationType, 
                           isCompany: point.isCompany,
                           isToll: point.isToll
                         })}
-                      </div>
+                        </div>
                       <div className="route-point-info">
-                        <h3>{point.name}</h3>
-                        <p>{point.address}</p>
+                      <h3>{point.name}</h3>
+                      <p>{point.address}</p>
                         <div className="route-point-tags">
                           {index === 0 && <span className="point-tag origin-tag">Origem</span>}
                           {index === routePoints.length - 1 && <span className="point-tag destination-tag">Destino</span>}
                           {point.isCompany && <span className="point-tag company-tag">Empresa</span>}
-                          {point.locationType && (
+                    {point.locationType && (
                             <span className={`point-tag location-type-tag ${point.locationType}`}>
-                              {point.locationType === 'airport' ? 'Aeroporto' :
-                               point.locationType === 'hotel' ? 'Hotel' :
+                        {point.locationType === 'airport' ? 'Aeroporto' :
+                         point.locationType === 'hotel' ? 'Hotel' :
                                'Outro Local'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                        </span>
+                      )}
+                    </div>
+                  </div>
                       {point.isToll && (
                         <div className="route-point-toll-actions">
                           <button 
@@ -1657,133 +1657,133 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                       )}
                       {index < routePoints.length - 1 && !point.isToll && !routePoints[index + 1].isToll && (
                         <div className="route-point-actions">
-                          <button 
-                            className="add-toll-button"
-                            onClick={() => openTollModal(index)}
-                          >
-                            Adicionar Pedágio
-                          </button>
-                        </div>
-                      )}
+                      <button 
+                        className="add-toll-button"
+                        onClick={() => openTollModal(index)}
+                      >
+                        Adicionar Pedágio
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                    </div>
+              ))}
+            </div>
               </>
             )}
-
+            
             {currentStep === OrderFormStep.RouteDetails && (
               <div className="route-details-page">
                 <div className="step-title-container">
                   <div className="step-navigation-buttons">
-                    <button 
-                      className="back-button"
+                <button 
+                  className="back-button"
                       onClick={goToPreviousStep}
-                    >
+                >
                       Voltar
-                    </button>
+                </button>
                   </div>
                   <h2 className="step-title">Detalhes da Rota</h2>
                   <div className="step-navigation-buttons">
-                    <button 
+                  <button 
                       className="submit-button"
                       onClick={() => handleSubmit()}
                     >
                       Criar Solicitação
-                    </button>
-                  </div>
+                  </button>
                 </div>
-                {routeDistance && (
-                  <>
+              </div>
+            {routeDistance && (
+                <>
                     {/* Route Distance Summary */}
-                    <div className="route-distance-summary">
+              <div className="route-distance-summary">
                       <h2>Resumo da Rota</h2>
                       <div className="route-summary-container">
-                        <div className="route-summary-card">
-                          <div className="route-summary-icon">
+                      <div className="route-summary-card">
+                        <div className="route-summary-icon">
                             <FaRoad />
-                          </div>
-                          <div className="route-summary-content">
-                            <h3>Distância Total</h3>
-                            <p>{routeDistance.totalDistance.toFixed(2)} km</p>
-                          </div>
                         </div>
-                        <div className="route-summary-card">
-                          <div className="route-summary-icon">
-                            <FaTruck />
-                          </div>
-                          <div className="route-summary-content">
-                            <h3>Tempo Total</h3>
-                            <p>{routeDistance.totalDuration.toFixed(1)} minutos</p>
-                          </div>
-                        </div>
-                        <div className="route-summary-card">
-                          <div className="route-summary-icon">
-                            <FaMapMarkerAlt />
-                          </div>
-                          <div className="route-summary-content">
-                            <h3>Total de Etapas</h3>
-                            <p>{routeDistance.totalSteps}</p>
-                          </div>
+                        <div className="route-summary-content">
+                          <h3>Distância Total</h3>
+                          <p>{routeDistance.totalDistance.toFixed(2)} km</p>
                         </div>
                       </div>
+                      <div className="route-summary-card">
+                        <div className="route-summary-icon">
+                            <FaTruck />
+                        </div>
+                        <div className="route-summary-content">
+                            <h3>Tempo Total</h3>
+                          <p>{routeDistance.totalDuration.toFixed(1)} minutos</p>
+                        </div>
+                      </div>
+                      <div className="route-summary-card">
+                        <div className="route-summary-icon">
+                            <FaMapMarkerAlt />
+                        </div>
+                        <div className="route-summary-content">
+                            <h3>Total de Etapas</h3>
+                          <p>{routeDistance.totalSteps}</p>
+                        </div>
+                      </div>
+                    </div>
                     </div>
 
                     {/* Route Price Summary */}
                     {routePrice && pricing && (
-                      <div className="route-price-container">
+                    <div className="route-price-container">
                         <h3>Detalhes de Preço</h3>
-                        <div className="route-price-summary">
-                          <div className="route-price-card">
-                            <div className="route-price-icon">
+                      <div className="route-price-summary">
+                        <div className="route-price-card">
+                          <div className="route-price-icon">
                               <FaRoad />
-                            </div>
-                            <div className="route-price-content">
-                              <h3>Preço por KM</h3>
-                              <p>R$ {pricing.kmRate.toFixed(2)}</p>
-                            </div>
                           </div>
+                          <div className="route-price-content">
+                            <h3>Preço por KM</h3>
+                              <p>R$ {pricing.kmRate.toFixed(2)}</p>
+                          </div>
+                        </div>
+                        <div className="route-price-card">
+                          <div className="route-price-icon">
+                              <FaMoneyBillWave />
+                          </div>
+                          <div className="route-price-content">
+                            <h3>Preço Base</h3>
+                              <p>R$ {routePrice.kmBasedPrice.toFixed(2)}</p>
+                          </div>
+                        </div>
+                          {routePrice.minimumPrice !== null && (
                           <div className="route-price-card">
                             <div className="route-price-icon">
-                              <FaMoneyBillWave />
+                                <FaMapMarkerAlt />
                             </div>
                             <div className="route-price-content">
-                              <h3>Preço Base</h3>
-                              <p>R$ {routePrice.kmBasedPrice.toFixed(2)}</p>
+                              <h3>Preço Mínimo</h3>
+                              <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
+                </div>
+              </div>
+            )}
+                          {routePrice.tollsTotal && routePrice.tollsTotal > 0 && (
+                          <div className="route-price-card toll-card">
+                            <div className="route-price-icon">
+                                <FaRoad />
+                            </div>
+                            <div className="route-price-content">
+                              <h3>Total de Pedágios</h3>
+                              <p>R$ {routePrice.tollsTotal.toFixed(2)}</p>
                             </div>
                           </div>
-                          {routePrice.minimumPrice !== null && (
-                            <div className="route-price-card">
-                              <div className="route-price-icon">
-                                <FaMapMarkerAlt />
-                              </div>
-                              <div className="route-price-content">
-                                <h3>Preço Mínimo</h3>
-                                <p>R$ {routePrice.minimumPrice.toFixed(2)}</p>
-                              </div>
-                            </div>
-                          )}
-                          {routePrice.tollsTotal && routePrice.tollsTotal > 0 && (
-                            <div className="route-price-card toll-card">
-                              <div className="route-price-icon">
-                                <FaRoad />
-                              </div>
-                              <div className="route-price-content">
-                                <h3>Total de Pedágios</h3>
-                                <p>R$ {routePrice.tollsTotal.toFixed(2)}</p>
-                              </div>
-                            </div>
-                          )}
-                          <div className="route-price-card final-price">
-                            <div className="route-price-icon">
+                        )}
+                        <div className="route-price-card final-price">
+                          <div className="route-price-icon">
                               <FaMoneyBillWave />
-                            </div>
-                            <div className="route-price-content">
-                              <h3>Preço Final</h3>
+              </div>
+                          <div className="route-price-content">
+                            <h3>Preço Final</h3>
                               <p className="final-price-value">R$ {routePrice.finalPrice.toFixed(2)}</p>
-                            </div>
                           </div>
                         </div>
                       </div>
+                    </div>
                     )}
 
                     {/* Route Segments */}
@@ -1797,20 +1797,20 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                               <div className="route-segment-from">{segment.from}</div>
                               <div className="route-segment-arrow">→</div>
                               <div className="route-segment-to">{segment.to}</div>
-                            </div>
-                          </div>
+                </div>
+              </div>
                           <div className="route-segment-details">
                             <div className="route-segment-distance">
                               Distância: {segment.distance.toFixed(2)} km
-                            </div>
+            </div>
                             <div className="route-segment-duration">
                               Duração: {segment.duration.toFixed(1)} minutos
-                            </div>
-                          </div>
-                        </div>
+          </div>
+          </div>
+                </div>
                       ))}
-                    </div>
-
+              </div>
+              
                     {/* Toll Points */}
                     {routePoints.filter(point => point.isToll).length > 0 && (
                       <div className="route-toll-points-container">
@@ -1819,17 +1819,17 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                           <div key={index} className="toll-point">
                             <div className="toll-point-icon">
                               <FaRoad />
-                            </div>
+                </div>
                             <div className="toll-point-content">
                               <h3>{tollPoint.name}</h3>
                               <p>{tollPoint.address}</p>
-                            </div>
+                </div>
                             <div className="toll-point-actions">
                               <span>R$ {tollPoint.tollValue?.toFixed(2)}</span>
-                            </div>
-                          </div>
+              </div>
+            </div>
                         ))}
-                      </div>
+            </div>
                     )}
                   </>
                 )}
@@ -1839,13 +1839,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   <div className="error-message">
                     <p>{routeDistanceError}</p>
                     <div className="error-actions">
-                      <button 
+            <button 
                         className="continue-button" 
                         onClick={handleProceedToRouteDetails}
-                      >
+            >
                         Tentar Novamente
-                      </button>
-                      <button 
+            </button>
+            <button 
                         className="submit-button"
                         onClick={() => {
                           // Force advance to next step even with error
@@ -1853,11 +1853,11 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                         }}
                       >
                         Continuar Mesmo Assim
-                      </button>
-                    </div>
-                  </div>
+            </button>
+          </div>
+        </div>
                 )}
-              </div>
+      </div>
             )}
           </div>
         </div>
@@ -1911,33 +1911,33 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
             </div>
             <div className="form-group">
               <label htmlFor="tollValue">Valor do Pedágio (R$)</label>
-              <input
-                type="number"
-                id="tollValue"
-                value={tollValue}
-                onChange={(e) => setTollValue(e.target.value)}
+                <input
+                  type="number"
+                  id="tollValue"
+                  value={tollValue}
+                  onChange={(e) => setTollValue(e.target.value)}
                 placeholder="Digite o valor do pedágio"
-                step="0.01"
+                  step="0.01"
                 min="0"
-              />
-            </div>
+                />
+              </div>
             <div className="modal-actions">
-              <button 
+            <button 
                 className="cancel-button" 
-                onClick={closeTollModal}
-              >
-                Cancelar
-              </button>
-              <button 
+              onClick={closeTollModal}
+            >
+              Cancelar
+            </button>
+            <button 
                 className="confirm-button" 
-                onClick={addToll}
+              onClick={addToll}
                 disabled={!tollValue || parseFloat(tollValue) <= 0}
-              >
+            >
                 Adicionar Pedágio
-              </button>
-            </div>
+            </button>
           </div>
         </div>
+      </div>
       )}
     </div>
   );
