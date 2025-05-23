@@ -13,7 +13,6 @@ import Settings from './screens/settings';
 import UsersList from './screens/users/list';
 import UserForm from './screens/users/form';
 import Drivers from './screens/drivers';
-import Profile from './screens/profile';
 
 // Componente para auto-login em desenvolvimento
 const AutoLogin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -135,14 +134,6 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <Drivers />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <Profile />
                 </ProtectedRoute>
               } 
             />

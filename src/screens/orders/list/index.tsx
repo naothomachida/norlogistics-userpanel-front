@@ -265,14 +265,17 @@ const getLocationDetails = (point: any) => {
 };
 
 const OrderList: React.FC = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const orders = useSelector((state: RootState) => state.orders.orders);
   const { userProfile, users } = useSelector((state: RootState) => state.auth);
-  const dispatch: AppDispatch = useDispatch();
-  const navigate = useNavigate();
 
-  // Add pagination state
+  // Loading state and minimum time control
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMinimumLoadingTimePassed, setIsMinimumLoadingTimePassed] = useState(false);
+
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  // Add items per page state
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Update initial state to include sorting
@@ -291,8 +294,8 @@ const OrderList: React.FC = () => {
 
   // Refs for managing dropdowns
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const actionsDropdownRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const dropdownTriggerRef = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const actionsDropdownRef = useRef<{ [orderId: string]: HTMLDivElement }>({});
+  const dropdownTriggerRef = useRef<{ [orderId: string]: HTMLButtonElement }>({});
 
   // Function to position dropdown
   const positionDropdown = useCallback((triggerEl: HTMLButtonElement) => {
@@ -910,6 +913,25 @@ const OrderList: React.FC = () => {
     };
   }, [openDropdownId]);
 
+  // Effects
+  useEffect(() => {
+    // Simulate initial loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Effect to ensure minimum loading time of 1 second
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMinimumLoadingTimePassed(true);
+    }, 1000); // 1 second minimum loading time
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="orders-page">
       <Header />
@@ -1149,6 +1171,70 @@ const OrderList: React.FC = () => {
               </div>
 
               <div className="orders-table-wrapper">
+              {(isLoading || !isMinimumLoadingTimePassed) ? (
+                // Skeleton Loading
+                <div className="orders-skeleton">
+                  <div className="skeleton-table">
+                    <div className="skeleton-header">
+                      <div className="skeleton-header-cell"></div>
+                      <div className="skeleton-header-cell"></div>
+                      <div className="skeleton-header-cell"></div>
+                      <div className="skeleton-header-cell"></div>
+                      <div className="skeleton-header-cell"></div>
+                      <div className="skeleton-header-cell"></div>
+                      {userProfile?.role !== 'driver' && <div className="skeleton-header-cell"></div>}
+                      <div className="skeleton-header-cell"></div>
+                    </div>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((row) => (
+                      <div key={row} className="skeleton-row">
+                        <div className="skeleton-cell skeleton-origin-cell">
+                          <div className="skeleton-origin-icon"></div>
+                        </div>
+                        <div className="skeleton-cell skeleton-status-cell">
+                          <div className="skeleton-status-badge"></div>
+                          <div className="skeleton-transport-badge"></div>
+                        </div>
+                        <div className="skeleton-cell">
+                          <div className="skeleton-text skeleton-vehicle"></div>
+                        </div>
+                        <div className="skeleton-cell skeleton-route-cell">
+                          <div className="skeleton-route-text"></div>
+                          <div className="skeleton-route-arrow"></div>
+                          <div className="skeleton-route-text"></div>
+                        </div>
+                        <div className="skeleton-cell skeleton-route-info-cell">
+                          <div className="skeleton-route-info-item">
+                            <div className="skeleton-icon"></div>
+                            <div className="skeleton-text-small"></div>
+                          </div>
+                          <div className="skeleton-route-info-item">
+                            <div className="skeleton-icon"></div>
+                            <div className="skeleton-text-small"></div>
+                          </div>
+                        </div>
+                        <div className="skeleton-cell skeleton-value-cell">
+                          <div className="skeleton-value-item">
+                            <div className="skeleton-icon"></div>
+                            <div className="skeleton-text-small"></div>
+                          </div>
+                          <div className="skeleton-value-item">
+                            <div className="skeleton-icon"></div>
+                            <div className="skeleton-text-small"></div>
+                          </div>
+                        </div>
+                        {userProfile?.role !== 'driver' && (
+                          <div className="skeleton-cell">
+                            <div className="skeleton-driver-icon"></div>
+                          </div>
+                        )}
+                        <div className="skeleton-cell">
+                          <div className="skeleton-actions-button"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
               <table className="orders-table">
                 <thead>
                   <tr>
@@ -1278,6 +1364,7 @@ const OrderList: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
       </div>
           </div>

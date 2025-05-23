@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../../store';
@@ -124,6 +124,10 @@ const OrderDetail: React.FC = () => {
   const users = useSelector((state: RootState) => state.auth.users);
   const userProfile = useSelector((state: RootState) => state.auth.userProfile);
   
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMinimumLoadingTimePassed, setIsMinimumLoadingTimePassed] = useState(false);
+  
   const order = useMemo(() => {
     return orders.find(order => order.id === id);
   }, [orders, id]);
@@ -146,6 +150,24 @@ const OrderDetail: React.FC = () => {
     type: 'increase' as 'increase' | 'decrease'
   });
   const [showExtraFinancialSuccess, setShowExtraFinancialSuccess] = useState(false);
+
+  // Simulate initial loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Effect to ensure minimum loading time of 1 second
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMinimumLoadingTimePassed(true);
+    }, 1000); // 1 second minimum loading time
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Filtrar apenas usuários com role="driver" e status="active"
   const activeDrivers = useMemo(() => {
@@ -508,10 +530,52 @@ const OrderDetail: React.FC = () => {
     <div className="order-detail-page">
       <Header />
       <main className="order-detail-main">
-        {!order ? (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>Carregando detalhes da ordem...</p>
+        {!order || isLoading || !isMinimumLoadingTimePassed ? (
+          // Skeleton Loading
+          <div className="order-detail-skeleton">
+            <div className="skeleton-header">
+              <div className="skeleton-title"></div>
+              <div className="skeleton-id"></div>
+            </div>
+            
+            <div className="skeleton-section">
+              <div className="skeleton-section-title"></div>
+              <div className="skeleton-info-cards">
+                {[...Array(4)].map((_, index) => (
+                  <div key={index} className="skeleton-info-card">
+                    <div className="skeleton-card-icon"></div>
+                    <div className="skeleton-card-content">
+                      <div className="skeleton-card-title"></div>
+                      <div className="skeleton-card-value"></div>
+                      <div className="skeleton-card-subtitle"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="skeleton-section">
+              <div className="skeleton-section-title"></div>
+              <div className="skeleton-route-container">
+                <div className="skeleton-route-point">
+                  <div className="skeleton-route-icon"></div>
+                  <div className="skeleton-route-text"></div>
+                </div>
+                <div className="skeleton-route-arrow"></div>
+                <div className="skeleton-route-point">
+                  <div className="skeleton-route-icon"></div>
+                  <div className="skeleton-route-text"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="skeleton-section">
+              <div className="skeleton-section-title"></div>
+              <div className="skeleton-form-group">
+                <div className="skeleton-label"></div>
+                <div className="skeleton-select"></div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="order-detail-content">

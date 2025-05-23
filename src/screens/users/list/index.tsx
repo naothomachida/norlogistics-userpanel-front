@@ -29,10 +29,22 @@ const UsersList: React.FC = () => {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
 
+  // Estado para controlar tempo mínimo de loading
+  const [isMinimumLoadingTimePassed, setIsMinimumLoadingTimePassed] = useState(false);
+
   // Carregar usuários quando o componente é montado
   useEffect(() => {
     dispatch(fetchUsers() as any);
   }, [dispatch]);
+
+  // Effect to ensure minimum loading time of 1 second
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMinimumLoadingTimePassed(true);
+    }, 1000); // 1 second minimum loading time
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Função para atualizar os filtros
   const updateFilter = (filterType: keyof UserFilters, value: string) => {
@@ -294,10 +306,47 @@ const UsersList: React.FC = () => {
           </div>
 
           <div className="users-table-container">
-            {usersLoading ? (
-              <div className="table-loading">
-                <div className="loading-spinner"></div>
-                <p>Carregando usuários...</p>
+            {(usersLoading || !isMinimumLoadingTimePassed) ? (
+              // Skeleton Loading
+              <div className="users-skeleton">
+                <div className="skeleton-table">
+                  <div className="skeleton-header">
+                    <div className="skeleton-header-cell"></div>
+                    <div className="skeleton-header-cell"></div>
+                    <div className="skeleton-header-cell"></div>
+                    <div className="skeleton-header-cell"></div>
+                    <div className="skeleton-header-cell"></div>
+                    <div className="skeleton-header-cell"></div>
+                  </div>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((row) => (
+                    <div key={row} className="skeleton-row">
+                      <div className="skeleton-cell skeleton-user-cell">
+                        <div className="skeleton-avatar"></div>
+                        <div className="skeleton-user-info">
+                          <div className="skeleton-name"></div>
+                        </div>
+                      </div>
+                      <div className="skeleton-cell">
+                        <div className="skeleton-text skeleton-email"></div>
+                      </div>
+                      <div className="skeleton-cell">
+                        <div className="skeleton-badge"></div>
+                      </div>
+                      <div className="skeleton-cell">
+                        <div className="skeleton-text skeleton-manager"></div>
+                      </div>
+                      <div className="skeleton-cell">
+                        <div className="skeleton-text skeleton-count"></div>
+                      </div>
+                      <div className="skeleton-cell">
+                        <div className="skeleton-actions">
+                          <div className="skeleton-action-button"></div>
+                          <div className="skeleton-action-button"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : filteredUsers.length === 0 ? (
             <div className="no-users">

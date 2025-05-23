@@ -83,6 +83,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   
   // State hooks - keep a consistent order
   const [currentStep, setCurrentStep] = useState<OrderFormStep>(OrderFormStep.TransportType);
+  const [isMinimumLoadingTimePassed, setIsMinimumLoadingTimePassed] = useState(false);
   const [formData, setFormData] = useState({
     transportType: '',
     vehicleType: '',
@@ -159,20 +160,73 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     }
   }, [googleMapsError]);
 
-  // Render loading state if Google Maps is not loaded
-  if (!isLoaded) {
+  // Effect to ensure minimum loading time of 2 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMinimumLoadingTimePassed(true);
+    }, 1000); // 1 second minimum loading time
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Render loading state if Google Maps is not loaded OR minimum loading time hasn't passed
+  if (!isLoaded || !isMinimumLoadingTimePassed) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">
-          <FaSpinner className="spinner-icon" />
-          <p>Carregando mapa...</p>
-        </div>
-        {googleMapsError && (
-          <div className="error-message">
-            <p>Erro ao carregar o Google Maps</p>
-            <p>{googleMapsError.message}</p>
+      <div className="order-form-page">
+        <Header />
+        <div className="order-form-content">
+          <div className="order-form-main">
+            <div className="skeleton-container">
+              {/* Header skeleton */}
+              <div className="skeleton-header">
+                <div className="skeleton-title"></div>
+                <div className="skeleton-subtitle"></div>
+              </div>
+
+              {/* Steps indicator skeleton */}
+              <div className="skeleton-steps">
+                {[1, 2, 3, 4, 5, 6].map((step) => (
+                  <div key={step} className="skeleton-step">
+                    <div className="skeleton-step-circle"></div>
+                    <div className="skeleton-step-label"></div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Form content skeleton */}
+              <div className="skeleton-form-container">
+                <div className="skeleton-form-title"></div>
+                
+                {/* Transport type cards skeleton */}
+                <div className="skeleton-cards-grid">
+                  <div className="skeleton-card">
+                    <div className="skeleton-card-icon"></div>
+                    <div className="skeleton-card-title"></div>
+                    <div className="skeleton-card-description"></div>
+                  </div>
+                  <div className="skeleton-card">
+                    <div className="skeleton-card-icon"></div>
+                    <div className="skeleton-card-title"></div>
+                    <div className="skeleton-card-description"></div>
+                  </div>
+                </div>
+
+                {/* Form buttons skeleton */}
+                <div className="skeleton-buttons">
+                  <div className="skeleton-button"></div>
+                  <div className="skeleton-button skeleton-button-primary"></div>
+                </div>
+              </div>
+
+              {googleMapsError && (
+                <div className="error-message">
+                  <p>Erro ao carregar o Google Maps</p>
+                  <p>{googleMapsError.message}</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }

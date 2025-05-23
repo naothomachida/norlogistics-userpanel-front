@@ -38,7 +38,7 @@ const Header: React.FC = () => {
   };
 
   const navigateToProfile = () => {
-    navigate('/profile');
+    navigate('/settings?tab=profile');
     setShowDropdown(false);
   };
 

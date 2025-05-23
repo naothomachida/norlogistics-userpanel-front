@@ -13,6 +13,11 @@ export interface UserProfile {
   status: 'active' | 'inactive';
   permissions?: string[];
   avatarUrl?: string;
+  // Novos campos para perfil completo
+  phone?: string;
+  department?: string;
+  location?: string;
+  bio?: string;
   // Referência ao gerente (para usuários que têm um gerente)
   managerId?: string;
   // Lista de IDs de usuários gerenciados (para gerentes)

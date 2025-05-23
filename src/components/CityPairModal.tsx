@@ -78,127 +78,127 @@ const CityPairModal: React.FC<CityPairModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content modal-content-wide">
         <div className="modal-header">
           <h2>{editMode ? 'Editar Rota' : 'Adicionar Nova Rota'}</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="modal-close" onClick={onClose}>×</button>
         </div>
         
-        <form onSubmit={handleSubmit} className="city-pair-form">
-          <div className="form-section">
-            <h3>Origem</h3>
-            <div className="form-row" style={{display: 'flex', gap: '15px'}}>
-              <div style={{flex: '3'}}>
-                <label htmlFor="fromCity">Cidade de Origem</label>
+        <div className="modal-body">
+          <form onSubmit={handleSubmit}>
+            {/* Origem */}
+            <div className="form-section">
+              <h3>🛫 Origem</h3>
+              <div className="form-row">
+                <div className="form-group" style={{ flex: '2' }}>
+                  <label htmlFor="fromCity">Cidade</label>
+                  <input
+                    type="text"
+                    id="fromCity"
+                    name="fromCity"
+                    value={formData.fromCity}
+                    onChange={handleChange}
+                    required
+                    placeholder="São Paulo"
+                  />
+                </div>
+                
+                <div className="form-group" style={{ flex: '1' }}>
+                  <label htmlFor="fromState">Estado</label>
+                  <select
+                    id="fromState"
+                    name="fromState"
+                    value={formData.fromState}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">UF</option>
+                    {states.map(state => (
+                      <option key={`from-${state}`} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Destino */}
+            <div className="form-section">
+              <h3>🏁 Destino</h3>
+              <div className="form-row">
+                <div className="form-group" style={{ flex: '2' }}>
+                  <label htmlFor="toCity">Cidade</label>
+                  <input
+                    type="text"
+                    id="toCity"
+                    name="toCity"
+                    value={formData.toCity}
+                    onChange={handleChange}
+                    required
+                    placeholder="Campinas"
+                  />
+                </div>
+                
+                <div className="form-group" style={{ flex: '1' }}>
+                  <label htmlFor="toState">Estado</label>
+                  <select
+                    id="toState"
+                    name="toState"
+                    value={formData.toState}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">UF</option>
+                    {states.map(state => (
+                      <option key={`to-${state}`} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Preço Mínimo */}
+            <div className="form-section">
+              <h3>💰 Preço Mínimo</h3>
+              <div className="form-group">
+                <label htmlFor="minimumPrice">Valor (R$)</label>
                 <input
-                  type="text"
-                  id="fromCity"
-                  name="fromCity"
-                  value={formData.fromCity}
+                  type="number"
+                  id="minimumPrice"
+                  name="minimumPrice"
+                  value={formData.minimumPrice}
                   onChange={handleChange}
                   required
-                  placeholder="Ex: São Paulo"
-                  className="city-field"
-                  style={{width: '100%'}}
+                  min="0"
+                  step="0.01"
+                  placeholder="150.00"
+                  style={{ maxWidth: '200px' }}
                 />
-              </div>
-              
-              <div style={{flex: '1'}}>
-                <label htmlFor="fromState">Estado</label>
-                <select
-                  id="fromState"
-                  name="fromState"
-                  value={formData.fromState}
-                  onChange={handleChange}
-                  required
-                  className="state-field"
-                  style={{width: '100%'}}
-                >
-                  <option value="">Selecione</option>
-                  {states.map(state => (
-                    <option key={`from-${state}`} value={state}>
-                      {state}
-                    </option>
-                  ))}
-                </select>
+                <small className="form-hint">Valor mínimo para esta rota específica</small>
               </div>
             </div>
-          </div>
-          
-          <div className="form-section">
-            <h3>Destino</h3>
-            <div className="form-row" style={{display: 'flex', gap: '15px'}}>
-              <div style={{flex: '3'}}>
-                <label htmlFor="toCity">Cidade de Destino</label>
-                <input
-                  type="text"
-                  id="toCity"
-                  name="toCity"
-                  value={formData.toCity}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ex: Campinas"
-                  className="city-field"
-                  style={{width: '100%'}}
-                />
-              </div>
-              
-              <div style={{flex: '1'}}>
-                <label htmlFor="toState">Estado</label>
-                <select
-                  id="toState"
-                  name="toState"
-                  value={formData.toState}
-                  onChange={handleChange}
-                  required
-                  className="state-field"
-                  style={{width: '100%'}}
-                >
-                  <option value="">Selecione</option>
-                  {states.map(state => (
-                    <option key={`to-${state}`} value={state}>
-                      {state}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-          
-          <div className="form-section">
-            <h3>Preço Mínimo</h3>
-            <div className="form-group">
-              <label htmlFor="minimumPrice">Valor (R$)</label>
-              <input
-                type="number"
-                id="minimumPrice"
-                name="minimumPrice"
-                value={formData.minimumPrice}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
-                placeholder="Ex: 150.00"
-              />
-            </div>
-          </div>
-          
-          <div className="modal-actions">
-            <button 
-              type="button" 
-              className="cancel-button" 
-              onClick={onClose}
-            >
-              Cancelar
-            </button>
-            <button 
-              type="submit" 
-              className="save-button"
-            >
-              Salvar
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
+        
+        <div className="form-actions">
+          <button 
+            type="button" 
+            className="cancel-button" 
+            onClick={onClose}
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            className="submit-button"
+            onClick={handleSubmit}
+          >
+            {editMode ? 'Atualizar Rota' : 'Salvar Rota'}
+          </button>
+        </div>
       </div>
     </div>
   );
