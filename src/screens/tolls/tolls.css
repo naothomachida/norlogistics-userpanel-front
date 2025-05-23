@@ -1,0 +1,724 @@
+.tolls-page {
+  background-color: #ffffff;
+  color: #000000;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tolls-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.tolls-header {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(107,70,193,0.05) 0%, rgba(107,70,193,0.02) 100%);
+  border-radius: 1rem;
+  padding: 2rem;
+  border: 1px solid rgba(107, 70, 193, 0.1);
+}
+
+.tolls-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #6b46c1;
+  margin: 0 0 0.5rem 0;
+}
+
+.tolls-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tolls-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.tolls-form-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.tolls-results-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.tolls-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(107, 70, 193, 0.08);
+  border: 1px solid rgba(107, 70, 193, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.tolls-card:hover {
+  box-shadow: 0 8px 30px rgba(107, 70, 193, 0.12);
+  transform: translateY(-2px);
+}
+
+.tolls-card-header {
+  background: linear-gradient(135deg, #6b46c1 0%, #8b5cf6 100%);
+  color: white;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(107, 70, 193, 0.1);
+}
+
+.tolls-card-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tolls-form {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #6b46c1;
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.1);
+}
+
+.form-input:disabled {
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.error-message {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6b46c1 0%, #8b5cf6 100%);
+  color: white;
+  flex: 1;
+  box-shadow: 0 4px 12px rgba(107, 70, 193, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(107, 70, 193, 0.3);
+}
+
+.btn-primary:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.results-summary {
+  padding: 2rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.summary-card {
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+  background: #f1f5f9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.summary-card.total {
+  background: linear-gradient(135deg, rgba(107, 70, 193, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-color: rgba(107, 70, 193, 0.2);
+}
+
+.summary-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.summary-icon.distance {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.summary-icon.time {
+  background: linear-gradient(135deg, #10b981, #047857);
+}
+
+.summary-icon.fuel {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.summary-card.total .summary-icon {
+  background: linear-gradient(135deg, #6b46c1, #8b5cf6);
+}
+
+.summary-content h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.summary-content p {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.tolls-details {
+  padding: 2rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.details-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.tolls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.toll-item {
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.toll-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.toll-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+}
+
+.toll-location {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.toll-type {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.toll-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #6b46c1;
+}
+
+.route-info {
+  padding: 2rem;
+}
+
+.route-endpoints {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.endpoint {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+}
+
+.endpoint-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b46c1;
+  flex-shrink: 0;
+}
+
+.endpoint.origin .endpoint-icon {
+  color: #10b981;
+}
+
+.endpoint.destination .endpoint-icon {
+  color: #ef4444;
+}
+
+.api-info-section {
+  margin-top: 2rem;
+}
+
+.api-info-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 1rem;
+  padding: 2rem;
+  border: 1px solid #e2e8f0;
+}
+
+.api-info-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.api-info-card p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+.api-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.api-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.api-detail strong {
+  color: #333;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.api-detail span,
+.api-detail a {
+  color: #6b46c1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  background: rgba(107, 70, 193, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.api-detail a {
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.api-detail a:hover {
+  background: rgba(107, 70, 193, 0.15);
+  transform: translateY(-1px);
+}
+
+.route-summary {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+}
+
+.cost-breakdown h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.cost-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cost-item:last-child {
+  border-bottom: none;
+}
+
+.cost-item.total-cost {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid #6b46c1;
+  background: rgba(107, 70, 193, 0.05);
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-radius: 0.5rem;
+}
+
+.cost-item span {
+  font-size: 1rem;
+  color: #333;
+}
+
+.cost-item.total-cost span {
+  font-size: 1.125rem;
+  color: #6b46c1;
+}
+
+.route-id-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(107, 70, 193, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(107, 70, 193, 0.2);
+}
+
+.route-id-info p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #333;
+}
+
+.toll-tag-value {
+  font-size: 0.875rem;
+  color: #10b981;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.api-info-card ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.api-info-card ol li {
+  margin: 0.5rem 0;
+}
+
+.api-info-card code {
+  background: rgba(107, 70, 193, 0.1);
+  color: #6b46c1;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+}
+
+.api-credentials {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.api-credentials h4 {
+  margin: 0 0 1rem 0;
+  color: #1e40af;
+  font-size: 1rem;
+}
+
+.credential-item {
+  margin: 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.credential-item strong {
+  color: #333;
+  min-width: 80px;
+}
+
+.credential-item code {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.license-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.license-warning h4 {
+  margin: 0 0 1rem 0;
+  color: #d97706;
+  font-size: 1rem;
+}
+
+.license-warning p {
+  margin: 0.75rem 0;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.license-warning ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  color: #92400e;
+}
+
+.license-warning ul li {
+  margin: 0.5rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .tolls-main {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .tolls-content {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+  
+  .tolls-title {
+    font-size: 2rem;
+  }
+  
+  .tolls-subtitle {
+    font-size: 1rem;
+  }
+  
+  .tolls-header {
+    padding: 1.5rem;
+  }
+  
+  .tolls-form {
+    padding: 1.5rem;
+  }
+  
+  .results-summary {
+    padding: 1.5rem;
+  }
+  
+  .tolls-details {
+    padding: 1.5rem;
+  }
+  
+  .route-info {
+    padding: 1.5rem;
+  }
+  
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .toll-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .toll-value {
+    align-self: flex-end;
+  }
+  
+  .api-detail {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .api-detail span,
+  .api-detail a {
+    word-break: break-all;
+  }
+}
+
+@media (max-width: 480px) {
+  .tolls-title {
+    font-size: 1.75rem;
+  }
+  
+  .tolls-card-header {
+    padding: 1rem;
+  }
+  
+  .tolls-card-header h2 {
+    font-size: 1.1rem;
+  }
+  
+  .tolls-form {
+    padding: 1rem;
+  }
+  
+  .results-summary,
+  .tolls-details,
+  .route-info {
+    padding: 1rem;
+  }
+  
+  .summary-card {
+    padding: 1rem;
+  }
+  
+  .api-info-card {
+    padding: 1.5rem;
+  }
+} 

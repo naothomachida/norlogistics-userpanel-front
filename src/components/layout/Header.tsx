@@ -5,7 +5,7 @@ import { RootState } from '../../store';
 import { logout } from '../../store/authSlice';
 import './Header.css';
 import norLogo from '../../assets/logo-nor.png';
-import { FiHome, FiSettings, FiUsers, FiClock, FiPlusSquare, FiBell, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiSettings, FiUsers, FiClock, FiPlusSquare, FiBell, FiLogOut, FiTruck } from 'react-icons/fi';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -133,6 +133,12 @@ const Header: React.FC = () => {
             className={`header-nav-link ${isActive('/users') ? 'active' : ''}`}
           >
             <FiUsers style={{ marginRight: 6 }} /> Lista de usuários
+          </Link>
+          <Link 
+            to="/tolls" 
+            className={`header-nav-link ${isActive('/tolls') ? 'active' : ''}`}
+          >
+            <FiTruck style={{ marginRight: 6 }} /> Pedágios
           </Link>
           <Link 
             to="/settings" 

@@ -729,7 +729,7 @@ const Settings: React.FC = () => {
                 </span>
                 Perfil do Usuário
               </h2>
-
+              
               {showProfileSuccess && (
                 <div className="settings-success-message">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -737,7 +737,7 @@ const Settings: React.FC = () => {
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                   </svg>
                   Perfil atualizado com sucesso!
-                </div>
+              </div>
               )}
 
               <div className="profile-modern-grid">
@@ -753,7 +753,7 @@ const Settings: React.FC = () => {
                             target.src = `https://ui-avatars.com/api/?name=${profileData.firstName}+${profileData.lastName}&background=6B46C1&color=fff`;
                           }}
                         />
-                      </div>
+                          </div>
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -762,11 +762,11 @@ const Settings: React.FC = () => {
                         style={{ display: 'none' }}
                       />
                       <button className="photo-upload-btn" onClick={triggerFileInput}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" fill="currentColor"/>
-                        </svg>
+                            </svg>
                         Alterar foto
-                      </button>
+                          </button>
                     </div>
 
                     <div className="profile-basic-info">
@@ -777,14 +777,14 @@ const Settings: React.FC = () => {
                       )}
                       {profileData.location && (
                         <p className="profile-location">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z" fill="currentColor"/>
-                          </svg>
+                            </svg>
                           {profileData.location}
                         </p>
                       )}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
                   <div className="profile-edit-form">
                     <div className="form-section">
@@ -800,7 +800,7 @@ const Settings: React.FC = () => {
                             value={profileData.firstName}
                             onChange={handleProfileInputChange}
                           />
-                        </div>
+                    </div>
                         <div className="settings-form-group">
                           <label htmlFor="lastName">Sobrenome</label>
                           <input
@@ -811,8 +811,8 @@ const Settings: React.FC = () => {
                             value={profileData.lastName}
                             onChange={handleProfileInputChange}
                           />
+                          </div>
                         </div>
-                      </div>
                       <div className="settings-form-row">
                         <div className="settings-form-group">
                           <label htmlFor="email">Email</label>
@@ -901,31 +901,31 @@ const Settings: React.FC = () => {
                       </div>
                       
                       <div className="profile-form-actions">
-                        <button 
+                          <button 
                           type="button"
                           className="profile-cancel-btn"
                           onClick={handleProfileCancel}
-                        >
+                          >
                           Cancelar
-                        </button>
-                        <button 
+                          </button>
+                          <button 
                           className="profile-save-btn"
                           onClick={handleProfileSave}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" fill="currentColor"/>
-                          </svg>
+                            </svg>
                           Salvar Perfil
-                        </button>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
         );
-
+      
       case 'vehicles':
         return (
           <div className="settings-card">
@@ -983,23 +983,23 @@ const Settings: React.FC = () => {
                           <span className="capacity-label">Capacidade:</span>
                           <span className="capacity-value">{vehicle.capacity}</span>
                           </div>
-                        </div>
+                          </div>
                         <div className="vehicle-actions">
                           <button 
                             className="action-button edit-button"
                             onClick={() => handleOpenVehicleModal('edit', vehicle)}
-                          aria-label="Editar"
+                            aria-label="Editar"
                           >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
                             </svg>
                           </button>
                           <button 
                             className="action-button delete-button"
                             onClick={() => handleDeleteVehicle(vehicle.id)}
-                          aria-label="Excluir"
+                            aria-label="Excluir"
                           >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/>
                             </svg>
                           </button>
@@ -1018,9 +1018,9 @@ const Settings: React.FC = () => {
                           >
                       Adicionar primeiro veículo
                           </button>
-                        </div>
+                    </div>
                 )}
-              </div>
+                          </div>
             </div>
           </div>
         );
@@ -1097,7 +1097,7 @@ const Settings: React.FC = () => {
                           >
                       Adicionar primeiro local
                           </button>
-                        </div>
+                    </div>
                 )}
               </div>
             </div>
@@ -1465,15 +1465,15 @@ const Settings: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="settings-main">
-            <div className="settings-sidebar">
-            {renderSidebarTabs()}
-            </div>
-            
-            <div className="settings-card-container">
-              {renderTabContent()}
-            </div>
+        <div className="settings-main">
+          <div className="settings-sidebar">
+          {renderSidebarTabs()}
           </div>
+          
+          <div className="settings-card-container">
+            {renderTabContent()}
+          </div>
+        </div>
         )}
       </div>
       
