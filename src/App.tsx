@@ -9,6 +9,7 @@ import Login from './screens/login';
 import OrderList from './screens/orders/list';
 import OrderForm from './screens/orders/form';
 import OrderDetail from './screens/orders/detail';
+import OrderExport from './screens/orders/export';
 import Settings from './screens/settings';
 import Tolls from './screens/tolls';
 import UsersList from './screens/users/list';
@@ -70,6 +71,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <OrderForm />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/orders/export" 
+              element={
+                <ProtectedRoute>
+                  <OrderExport />
                 </ProtectedRoute>
               } 
             />

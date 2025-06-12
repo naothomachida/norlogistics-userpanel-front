@@ -1066,7 +1066,10 @@ const OrderList: React.FC = () => {
                   }}>
                     <h1 className="orders-title">{pageTitle}</h1>
                     <div className="action-buttons">
-                      <button className="outlined-export-btn">
+                      <button 
+                        className="outlined-export-btn"
+                        onClick={() => navigate('/orders/export')}
+                      >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor" />
               </svg>
