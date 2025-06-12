@@ -771,7 +771,7 @@ const OrderExport: React.FC = () => {
           <div className="export-sidebar">
             {/* Seleção de Formato */}
             <div className="export-section">
-              <h3><span className="step-number">1</span><FaDownload /> Formato de Exportação</h3>
+              <h3><span className="step-number">1</span><FaDownload /> Formato</h3>
               <div className="format-grid">
                 {formatOptions.map(format => (
                   <div
@@ -787,7 +787,7 @@ const OrderExport: React.FC = () => {
                       <h4>{format.name}</h4>
                       <p>{format.description}</p>
                       <div className="format-features">
-                        {format.features.map((feature, idx) => (
+                        {format.features.slice(0, 2).map((feature, idx) => (
                           <span key={idx} className="feature-tag">{feature}</span>
                         ))}
                       </div>
@@ -801,15 +801,94 @@ const OrderExport: React.FC = () => {
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="export-main">
+            {/* Filtros */}
+            <div className="export-section">
+              <h3><span className="step-number">2</span><FaFilter /> Filtros</h3>
+              
+              <div className="filters-compact">
+                {/* Filtro de Data */}
+                <div className="filter-group-compact">
+                  <label><FaCalendarAlt /> Período</label>
+                  <div className="date-range-compact">
+                    <input
+                      type="date"
+                      value={exportOptions.dateRange.start}
+                      onChange={(e) => setExportOptions(prev => ({
+                        ...prev,
+                        dateRange: { ...prev.dateRange, start: e.target.value }
+                      }))}
+                    />
+                    <span>até</span>
+                    <input
+                      type="date"
+                      value={exportOptions.dateRange.end}
+                      onChange={(e) => setExportOptions(prev => ({
+                        ...prev,
+                        dateRange: { ...prev.dateRange, end: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Filtro de Status */}
+                <div className="filter-group-compact">
+                  <label>Status</label>
+                  <div className="status-filters-compact">
+                    {statusOptions.map(status => (
+                      <label
+                        key={status.value}
+                        className="status-checkbox-compact"
+                        style={{ '--status-color': status.color } as React.CSSProperties}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={exportOptions.statusFilter.includes(status.value)}
+                          onChange={() => handleStatusFilterToggle(status.value)}
+                        />
+                        <span className="status-tag-compact">
+                          {status.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filtro de Tipo de Transporte - Simplificado */}
+                <div className="filter-group-compact">
+                  <label>Transporte</label>
+                  <select
+                    className="transport-select"
+                    value={exportOptions.transportTypeFilter.length === 1 ? exportOptions.transportTypeFilter[0] : 'all'}
+                    onChange={(e) => {
+                      if (e.target.value === 'all') {
+                        setExportOptions(prev => ({ ...prev, transportTypeFilter: [] }));
+                      } else {
+                        setExportOptions(prev => ({ ...prev, transportTypeFilter: [e.target.value] }));
+                      }
+                    }}
+                  >
+                    <option value="all">Todos os tipos</option>
+                    {transportTypeOptions.map(type => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
 
             {/* Campos a Incluir */}
             <div className="export-section">
-              <h3><span className="step-number">2</span><FaCog /> Campos a Incluir</h3>
-              <div className="fields-grid">
+              <h3><span className="step-number">3</span><FaCog /> Campos</h3>
+              <div className="fields-grid-compact">
                 {availableFields.map(field => (
                   <label
                     key={field.id}
-                    className={`field-checkbox ${field.required ? 'required' : ''}`}
+                    className={`field-checkbox-compact ${field.required ? 'required' : ''}`}
                   >
                     <input
                       type="checkbox"
@@ -817,10 +896,10 @@ const OrderExport: React.FC = () => {
                       onChange={() => handleFieldToggle(field.id)}
                       disabled={field.required}
                     />
-                    <span className="checkmark">
+                    <span className="checkmark-compact">
                       {exportOptions.includeFields.includes(field.id) && <FaCheck />}
                     </span>
-                    <span className="field-name">
+                    <span className="field-name-compact">
                       {field.name}
                       {field.required && <span className="required-star">*</span>}
                     </span>
@@ -828,89 +907,10 @@ const OrderExport: React.FC = () => {
                 ))}
               </div>
             </div>
-          </div>
-
-          <div className="export-main">
-            {/* Filtros */}
-            <div className="export-section">
-              <h3><span className="step-number">3</span><FaFilter /> Filtros</h3>
-              
-              {/* Filtro de Data */}
-              <div className="filter-group">
-                <label><FaCalendarAlt /> Período</label>
-                <div className="date-range">
-                  <input
-                    type="date"
-                    value={exportOptions.dateRange.start}
-                    onChange={(e) => setExportOptions(prev => ({
-                      ...prev,
-                      dateRange: { ...prev.dateRange, start: e.target.value }
-                    }))}
-                  />
-                  <span>até</span>
-                  <input
-                    type="date"
-                    value={exportOptions.dateRange.end}
-                    onChange={(e) => setExportOptions(prev => ({
-                      ...prev,
-                      dateRange: { ...prev.dateRange, end: e.target.value }
-                    }))}
-                  />
-                </div>
-              </div>
-
-              {/* Filtro de Status */}
-              <div className="filter-group">
-                <label>Status</label>
-                <div className="status-filters">
-                  {statusOptions.map(status => (
-                    <label
-                      key={status.value}
-                      className="status-checkbox"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={exportOptions.statusFilter.includes(status.value)}
-                        onChange={() => handleStatusFilterToggle(status.value)}
-                      />
-                      <span 
-                        className="status-tag"
-                        style={{ backgroundColor: status.color }}
-                      >
-                        {status.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filtro de Tipo de Transporte */}
-              <div className="filter-group">
-                <label>Tipo de Transporte</label>
-                <div className="transport-filters">
-                  {transportTypeOptions.map(type => (
-                    <label
-                      key={type.value}
-                      className="transport-checkbox"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={exportOptions.transportTypeFilter.includes(type.value)}
-                        onChange={() => handleTransportTypeFilterToggle(type.value)}
-                      />
-                      <span className="transport-tag">
-                        <span className="transport-icon">{type.icon}</span>
-                        {type.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
 
             {/* Opções Avançadas */}
             <div className="export-section">
-              <h3><span className="step-number">4</span><FaStar /> Opções Avançadas</h3>
+              <h3><span className="step-number">4</span><FaStar /> Opções</h3>
               
               <div className="advanced-options">
                 <label className="option-row">
@@ -971,7 +971,7 @@ const OrderExport: React.FC = () => {
             {/* Preview */}
             <div className="export-section">
               <div className="section-header">
-                <h3><span className="step-number">5</span><FaEye /> Preview dos Dados</h3>
+                <h3><span className="step-number">5</span><FaEye /> Preview</h3>
                 <button
                   className="toggle-preview"
                   onClick={() => setShowPreview(!showPreview)}

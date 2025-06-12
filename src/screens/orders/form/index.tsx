@@ -165,7 +165,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   // Memoized values
   const hasValidItems = useMemo(() => {
     if (formData.transportType === 'person') {
-      return formData.items.some(item => item.name && item.address);
+    return formData.items.some(item => item.name && item.address);
     } else if (formData.transportType === 'cargo' || formData.transportType === 'motoboy') {
       // Para carga/motoboy, precisa ter pelo menos um item com endereço e dimensões válidas
       return formData.items.some(item => 
@@ -283,8 +283,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     if (type === 'motoboy') {
       setCurrentStep(OrderFormStep.Details);
     } else {
-      // Automatically advance to the next step
-      setCurrentStep(OrderFormStep.VehicleType);
+    // Automatically advance to the next step
+    setCurrentStep(OrderFormStep.VehicleType);
     }
   };
 
@@ -474,29 +474,29 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       if (selectedVehicle && formData.items.length >= Number(selectedVehicle.capacity)) {
         alert(`Capacidade máxima do veículo (${selectedVehicle.capacity} passageiros) atingida.`);
         return;
-      }
-      
+    }
+    
       // Para pessoas, adicionar item normalmente
-      setFormData({
-        ...formData,
-        items: [
-          ...formData.items,
-          {
-            name: '',
-            phone: '',
-            address: '',
-            weight: '',
+    setFormData({
+      ...formData,
+      items: [
+        ...formData.items,
+        {
+          name: '',
+          phone: '',
+          address: '',
+          weight: '',
             volume: '',
             m3: '',
-            dimensions: {
-              length: '',
-              width: '',
-              height: '',
-            },
-            detailedAddress: undefined
-          }
-        ],
-      });
+          dimensions: {
+            length: '',
+            width: '',
+            height: '',
+          },
+          detailedAddress: undefined
+        }
+      ],
+    });
     } else if (formData.transportType === 'cargo' || formData.transportType === 'motoboy') {
       // Para carga/motoboy, primeiro pedir endereço
       openAddressModal(formData.items.length);
@@ -1123,7 +1123,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   };
 
   const handleAddressSave = (addressData: DetailedAddress) => {
-    const newItems = [...formData.items];
+      const newItems = [...formData.items];
     
     if (isEditingAddress && addressBeingEdited) {
       // Editando um endereço existente - atualizar todos os itens com este endereço
@@ -1161,21 +1161,21 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         });
       } else if (currentItemIndex >= 0) {
         // Se é um item existente, apenas atualizar o endereço
-        newItems[currentItemIndex] = {
-          ...newItems[currentItemIndex],
-          address: addressData.fullAddress,
-          detailedAddress: addressData
-        };
+      newItems[currentItemIndex] = {
+        ...newItems[currentItemIndex],
+        address: addressData.fullAddress,
+        detailedAddress: addressData
+      };
       }
     }
-    
-    setFormData({
-      ...formData,
-      items: newItems
-    });
-    
-    setCurrentItemIndex(null);
-    setIsAddressModalOpen(false);
+      
+      setFormData({
+        ...formData,
+        items: newItems
+      });
+      
+      setCurrentItemIndex(null);
+      setIsAddressModalOpen(false);
   };
 
   // Update the calculateRoutePrice function to handle toll points more explicitly
@@ -1412,10 +1412,10 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
     // Add last passenger option for end location
     if (type === 'end') {
-              allLocations.push({
+      allLocations.push({
           id: 'last-address',
           name: 'Último Endereço',
-          icon: <FaHome className="location-card-icon" />,
+        icon: <FaHome className="location-card-icon" />,
           type: 'last-address'
       });
     }
@@ -1649,14 +1649,14 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   ) : (
                     // Para outros tipos, mostrar veículos normalmente
                     (formData.transportType === 'person' ? personVehicles : cargoVehicles).map(vehicle => (
-                      <div 
-                        key={vehicle.id}
-                        className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
-                        onClick={() => handleVehicleTypeSelect(vehicle.id)}
-                      >
-                        <h3>{vehicle.name}</h3>
-                        <p>{vehicle.description}</p>
-                      </div>
+                <div 
+                  key={vehicle.id}
+                  className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
+                  onClick={() => handleVehicleTypeSelect(vehicle.id)}
+                >
+                  <h3>{vehicle.name}</h3>
+                  <p>{vehicle.description}</p>
+                </div>
                     ))
                   )}
             </div>
@@ -1938,14 +1938,14 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                           + Mesmo Endereço
                         </button>
                       )}
-                      {formData.items.length > 1 && (
-                        <button 
-                          className="remove-item-button"
-                          onClick={() => removeItem(index)}
-                        >
-                          Remover
-                        </button>
-                      )}
+                    {formData.items.length > 1 && (
+                      <button 
+                        className="remove-item-button"
+                        onClick={() => removeItem(index)}
+                      >
+                        Remover
+                      </button>
+                    )}
                     </div>
                   </div>
                       <div className="form-row">
@@ -2064,7 +2064,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   <div className="form-actions">
                     {(formData.transportType === 'cargo' || formData.transportType === 'motoboy') ? (
                       <>
-                        <button 
+                    <button 
                           className="add-address-button primary-action"
                           onClick={addNewAddress}
                         >
@@ -2083,11 +2083,11 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                       <>
                         <button 
                           className="add-item-button primary-action"
-                          onClick={addItem}
-                        >
+                      onClick={addItem}
+                    >
                           <span className="button-icon">+</span>
                           <span className="button-text">Adicionar Item</span>
-                        </button>
+                    </button>
                         <button 
                           className="continue-button secondary-action"
                           onClick={navigateToNextStep}
@@ -2097,9 +2097,9 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                         </button>
                       </>
                     )}
-                  </div>
-                </div>
-              </div>
+                      </div>
+                        </div>
+                        </div>
             )}
 
             {currentStep === OrderFormStep.StartEnd && (
