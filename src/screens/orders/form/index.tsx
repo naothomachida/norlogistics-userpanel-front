@@ -5,6 +5,7 @@ import { addOrder, RoutePoint, Order } from '../../../store/ordersSlice';
 import { RootState } from '../../../store';
 import Header from '../../../components/layout/Header';
 import './order-form.css';
+import './improved-styles.css';
 import { Location } from '../../../store/locationSlice';
 import { MdBusinessCenter } from 'react-icons/md';
 import { FaBox, FaHotel, FaPlane, FaMapMarkerAlt, FaBuilding, FaWarehouse, FaHome, FaSpinner, FaUser, FaRoad, FaTruck, FaMoneyBillWave, FaUserTie, FaMotorcycle } from 'react-icons/fa';
@@ -116,6 +117,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [addressBeingEdited, setAddressBeingEdited] = useState<string>('');
   const [isCustomLocationAddressModalOpen, setIsCustomLocationAddressModalOpen] = useState(false);
   const [isTollModalOpen, setIsTollModalOpen] = useState(false);
   const [tollValue, setTollValue] = useState<string>('');
@@ -135,6 +138,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     approvalType: 'manager',
     approvedBy: '',
   });
+  const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
+  const [submissionMode, setSubmissionMode] = useState<'direct' | 'manager'>('manager');
   const [routeDistance, setRouteDistance] = useState<RouteDistanceResult | null>(null);
   const [routeDistanceError, setRouteDistanceError] = useState<string | null>(null);
   const [routePrice, setRoutePrice] = useState<{
@@ -258,9 +263,9 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       // Reset vehicle type when transport type changes, but set moto for motoboy
       vehicleType: type === 'motoboy' ? 'moto' : '',
       // Reset items based on transport type
-      items: [{
+      items: type === 'person' ? [{
         name: '',
-        phone: type === 'person' ? '' : '',
+        phone: '',
         address: '',
         weight: '',
         volume: '',
@@ -271,7 +276,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
           height: ''
         },
         detailedAddress: undefined
-      }]
+      }] : [] // Para carga/motoboy, começar com lista vazia
     });
 
     // For motoboy, skip vehicle selection and go directly to details
@@ -470,28 +475,32 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         alert(`Capacidade máxima do veículo (${selectedVehicle.capacity} passageiros) atingida.`);
         return;
       }
+      
+      // Para pessoas, adicionar item normalmente
+      setFormData({
+        ...formData,
+        items: [
+          ...formData.items,
+          {
+            name: '',
+            phone: '',
+            address: '',
+            weight: '',
+            volume: '',
+            m3: '',
+            dimensions: {
+              length: '',
+              width: '',
+              height: '',
+            },
+            detailedAddress: undefined
+          }
+        ],
+      });
+    } else if (formData.transportType === 'cargo' || formData.transportType === 'motoboy') {
+      // Para carga/motoboy, primeiro pedir endereço
+      openAddressModal(formData.items.length);
     }
-    
-    setFormData({
-      ...formData,
-      items: [
-        ...formData.items,
-        {
-          name: '',
-          phone: '',
-          address: '',
-          weight: '',
-          volume: '',
-          m3: '',
-          dimensions: {
-            length: '',
-            width: '',
-            height: '',
-          },
-          detailedAddress: undefined
-        }
-      ],
-    });
   };
 
   const removeItem = (index: number) => {
@@ -529,6 +538,25 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     });
   };
 
+  const addNewAddress = () => {
+    // Para carga/motoboy, primeiro pedir endereço para novo item
+    if (formData.transportType === 'cargo' || formData.transportType === 'motoboy') {
+      openAddressModal(formData.items.length);
+    }
+  };
+
+  const editAddressModal = (currentAddress: string, detailedAddress?: DetailedAddress) => {
+    // Salvar o endereço atual que será editado
+    setAddressBeingEdited(currentAddress);
+    setIsEditingAddress(true);
+    
+    // Abrir modal com os dados atuais
+    setIsAddressModalOpen(true);
+    
+    // Não precisa setar currentItemIndex pois estamos editando um endereço completo
+    setCurrentItemIndex(-1);
+  };
+
   const handleChangeOriginDestination = (field: string, value: string) => {
     setFormData({
       ...formData,
@@ -554,13 +582,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     let originLocation = locations.find(loc => loc.id === formData.startLocationId);
     let destinationLocation: Location | undefined;
     
-    // Caso especial para "último passageiro"
-    let useLastPassengerAsDestination = false;
-    if (formData.endLocationId === 'last-passenger') {
-      useLastPassengerAsDestination = true;
+    // Caso especial para "último endereço"
+    let useLastAddressAsDestination = false;
+    if (formData.endLocationId === 'last-address') {
+      useLastAddressAsDestination = true;
       // Verificar se há itens válidos
       if (!hasValidItems) {
-        alert('É necessário cadastrar pelo menos um passageiro para usar a opção "Último passageiro".');
+        alert('É necessário cadastrar pelo menos um item para usar a opção "Último endereço".');
         return;
       }
     } else {
@@ -635,13 +663,13 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     // Preparar ponto de destino
     let destinationPoint: RoutePoint;
     
-    if (useLastPassengerAsDestination) {
-      // Last passenger as destination
-      const lastPassenger = itemPoints[itemPoints.length - 1];
+    if (useLastAddressAsDestination) {
+      // Last address as destination
+      const lastAddress = itemPoints[itemPoints.length - 1];
       destinationPoint = {
-          id: lastPassenger.id,
-          name: lastPassenger.name,
-          address: lastPassenger.address,
+          id: lastAddress.id,
+          name: lastAddress.name,
+          address: lastAddress.address,
           isLastPassenger: true
         };
     } else if (['airport', 'hotel', 'other'].includes(formData.endLocationId)) {
@@ -671,8 +699,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
     // Construir array de pontos de rota
     let routePointsArray: RoutePoint[];
-    if (useLastPassengerAsDestination) {
-      // Remove last passenger from intermediate points
+    if (useLastAddressAsDestination) {
+      // Remove last address from intermediate points
       const intermediatePoints = itemPoints.slice(0, -1);
       routePointsArray = [originPoint, ...intermediatePoints, destinationPoint];
     } else {
@@ -1095,22 +1123,59 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   };
 
   const handleAddressSave = (addressData: DetailedAddress) => {
-    if (currentItemIndex !== null) {
-      const newItems = [...formData.items];
-      newItems[currentItemIndex] = {
-        ...newItems[currentItemIndex],
-        address: addressData.fullAddress,
-        detailedAddress: addressData
-      };
-      
-      setFormData({
-        ...formData,
-        items: newItems
+    const newItems = [...formData.items];
+    
+    if (isEditingAddress && addressBeingEdited) {
+      // Editando um endereço existente - atualizar todos os itens com este endereço
+      newItems.forEach((item, index) => {
+        if (item.address === addressBeingEdited) {
+          newItems[index] = {
+            ...item,
+            address: addressData.fullAddress,
+            detailedAddress: addressData
+          };
+        }
       });
       
-      setCurrentItemIndex(null);
-      setIsAddressModalOpen(false);
+      // Resetar estados de edição
+      setIsEditingAddress(false);
+      setAddressBeingEdited('');
+    } else if (currentItemIndex !== null) {
+      // Fluxo normal de adicionar/editar item individual
+      
+      // Se é um novo item (índice igual ao tamanho do array), criar o item
+      if (currentItemIndex === formData.items.length) {
+        newItems.push({
+          name: '',
+          phone: '',
+          address: addressData.fullAddress,
+          weight: '',
+          volume: '',
+          m3: '',
+          dimensions: {
+            length: '',
+            width: '',
+            height: '',
+          },
+          detailedAddress: addressData
+        });
+      } else if (currentItemIndex >= 0) {
+        // Se é um item existente, apenas atualizar o endereço
+        newItems[currentItemIndex] = {
+          ...newItems[currentItemIndex],
+          address: addressData.fullAddress,
+          detailedAddress: addressData
+        };
+      }
     }
+    
+    setFormData({
+      ...formData,
+      items: newItems
+    });
+    
+    setCurrentItemIndex(null);
+    setIsAddressModalOpen(false);
   };
 
   // Update the calculateRoutePrice function to handle toll points more explicitly
@@ -1347,11 +1412,11 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
     // Add last passenger option for end location
     if (type === 'end') {
-      allLocations.push({
-        id: 'last-passenger',
-        name: 'Último Passageiro',
-        icon: <FaHome className="location-card-icon" />,
-        type: 'last-passenger'
+              allLocations.push({
+          id: 'last-address',
+          name: 'Último Endereço',
+          icon: <FaHome className="location-card-icon" />,
+          type: 'last-address'
       });
     }
 
@@ -1697,7 +1762,160 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                 </div>
                 
                 <div className="details-form">
-              {formData.items.map((item, index) => (
+              {(formData.transportType === 'cargo' || formData.transportType === 'motoboy') ? (
+                // Para carga/motoboy: agrupar por endereço
+                (() => {
+                  if (formData.items.length === 0) {
+                    return (
+                      <div className="no-items-message">
+                        <p>Clique em "+ Novo Endereço" para adicionar o primeiro item</p>
+                      </div>
+                    );
+                  }
+
+                  const groupedItems = formData.items.reduce((groups: {[key: string]: any[]}, item, index) => {
+                    const address = item.address || 'Sem endereço';
+                    if (!groups[address]) {
+                      groups[address] = [];
+                    }
+                    groups[address].push({...item, originalIndex: index});
+                    return groups;
+                  }, {});
+
+                  return Object.entries(groupedItems).map(([address, items]) => (
+                    <div key={address} className="address-group">
+                      <div className="address-group-header">
+                        <div className="address-info">
+                          <div className="address-icon">📍</div>
+                          <div className="address-details">
+                            <h3 className="address-title">{address}</h3>
+                            <span className="volumes-count">{items.length} volume{items.length > 1 ? 's' : ''}</span>
+                          </div>
+                          <button 
+                            className="edit-address-button"
+                            onClick={() => editAddressModal(address, items[0].detailedAddress)}
+                            title="Editar este endereço"
+                          >
+                            <span className="edit-icon">✏️</span>
+                          </button>
+                        </div>
+                        <div className="address-actions">
+                          <button 
+                            className="add-volume-button"
+                            onClick={() => duplicateItemSameAddress(items[0].originalIndex)}
+                            title="Adicionar mais um volume neste endereço"
+                          >
+                            <span className="button-icon">+</span>
+                            <span className="button-text">Volume</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="items-in-address">
+                        {items.map((item, itemIndex) => (
+                          <div key={item.originalIndex} className="item-details volume-item">
+                            <div className="volume-header">
+                              <div className="volume-info">
+                                <div className="volume-badge">
+                                  <span className="volume-number">{itemIndex + 1}</span>
+                                </div>
+                                <h4 className="volume-title">Volume {itemIndex + 1}</h4>
+                              </div>
+                              <div className="volume-actions">
+                                {items.length > 1 && (
+                                  <button 
+                                    className="remove-volume-button"
+                                    onClick={() => removeItem(item.originalIndex)}
+                                    title="Remover este volume"
+                                  >
+                                    <span className="remove-icon">✕</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {/* Resto dos campos do item */}
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label>Nome/Descrição</label>
+                                <input
+                                  type="text"
+                                  value={item.name}
+                                  onChange={(e) => handleItemChange(item.originalIndex, 'name', e.target.value)}
+                                  placeholder="Descrição do item"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label>Peso (kg)</label>
+                                <input
+                                  type="number"
+                                  value={item.weight}
+                                  onChange={(e) => handleItemChange(item.originalIndex, 'weight', e.target.value)}
+                                  placeholder="Peso em kg"
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label>Volume</label>
+                                <input
+                                  type="text"
+                                  value={item.volume}
+                                  onChange={(e) => handleItemChange(item.originalIndex, 'volume', e.target.value)}
+                                  placeholder="Volume"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label>Comprimento (cm)</label>
+                                <input
+                                  type="number"
+                                  value={item.dimensions.length}
+                                  onChange={(e) => handleItemChange(item.originalIndex, 'dimensions.length', e.target.value)}
+                                  placeholder="Comprimento"
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label>Largura (cm)</label>
+                                <input
+                                  type="number"
+                                  value={item.dimensions.width}
+                                  onChange={(e) => handleItemChange(item.originalIndex, 'dimensions.width', e.target.value)}
+                                  placeholder="Largura"
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label>Altura (cm)</label>
+                                <input
+                                  type="number"
+                                  value={item.dimensions.height}
+                                  onChange={(e) => handleItemChange(item.originalIndex, 'dimensions.height', e.target.value)}
+                                  placeholder="Altura"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label>M³ Calculado</label>
+                                <input
+                                  type="text"
+                                  value={item.m3}
+                                  readOnly
+                                  placeholder="M³ será calculado automaticamente"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()
+              ) : (
+                // Para pessoas: renderização normal
+                formData.items.map((item, index) => (
                 <div key={index} className="item-details">
                   <div className="item-header">
                         <h3>Item {index + 1}
@@ -1841,17 +2059,47 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                     </>
                   )}
                         </div>
-                  ))}
+                  ))
+              )}
                   <div className="form-actions">
-                    <button 
-                      className="add-item-button"
-                      onClick={addItem}
-                    >
-                      Adicionar Item
-                    </button>
-                      </div>
-                        </div>
-                        </div>
+                    {(formData.transportType === 'cargo' || formData.transportType === 'motoboy') ? (
+                      <>
+                        <button 
+                          className="add-address-button primary-action"
+                          onClick={addNewAddress}
+                        >
+                          <span className="button-icon">📍</span>
+                          <span className="button-text">Novo Endereço</span>
+                        </button>
+                        <button 
+                          className="continue-button secondary-action"
+                          onClick={navigateToNextStep}
+                          disabled={!formData.items.some(item => item.name && item.address)}
+                        >
+                          <span className="button-text">Continuar</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button 
+                          className="add-item-button primary-action"
+                          onClick={addItem}
+                        >
+                          <span className="button-icon">+</span>
+                          <span className="button-text">Adicionar Item</span>
+                        </button>
+                        <button 
+                          className="continue-button secondary-action"
+                          onClick={navigateToNextStep}
+                          disabled={!formData.items.some(item => item.name && item.address)}
+                        >
+                          <span className="button-text">Continuar</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
 
             {currentStep === OrderFormStep.StartEnd && (
@@ -1996,7 +2244,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   <div className="step-navigation-buttons">
                   <button 
                       className="submit-button"
-                      onClick={() => handleSubmit()}
+                      onClick={() => setIsSubmissionModalOpen(true)}
                     >
                       Criar Solicitação
                   </button>
@@ -2177,9 +2425,18 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       {isAddressModalOpen && (
         <AddressModal
           isOpen={isAddressModalOpen}
-          onClose={() => setIsAddressModalOpen(false)}
+          onClose={() => {
+            setIsAddressModalOpen(false);
+            setIsEditingAddress(false);
+            setAddressBeingEdited('');
+            setCurrentItemIndex(null);
+          }}
           onSave={handleAddressSave}
-          initialAddress={currentItemIndex !== null ? formData.items[currentItemIndex].detailedAddress : undefined}
+          initialAddress={
+            isEditingAddress && addressBeingEdited 
+              ? formData.items.find(item => item.address === addressBeingEdited)?.detailedAddress
+              : (currentItemIndex !== null && currentItemIndex < formData.items.length ? formData.items[currentItemIndex].detailedAddress : undefined)
+          }
         />
       )}
 
@@ -2194,6 +2451,82 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
       {/* Add Location Type Confirmation Modal */}
       {isLocationTypeConfirmationOpen && <LocationTypeConfirmationModal />}
+
+      {/* Modal de Submissão */}
+      {isSubmissionModalOpen && (
+        <div className="submission-modal">
+          <div className="submission-modal-content">
+            <div className="submission-modal-header">
+              <h3>Modo de Aprovação</h3>
+              <button 
+                className="close-modal-button"
+                onClick={() => setIsSubmissionModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="submission-modal-body">
+              <p className="submission-description">
+                Escolha como deseja que sua solicitação seja processada:
+              </p>
+              
+              <div className="approval-options">
+                <div 
+                  className={`approval-option ${submissionMode === 'direct' ? 'selected' : ''}`}
+                  onClick={() => setSubmissionMode('direct')}
+                >
+                  <div className="approval-option-icon">⚡</div>
+                  <div className="approval-option-content">
+                    <h4>Aprovação Direta</h4>
+                    <p>Sua solicitação será aprovada automaticamente e o gestor receberá uma notificação informativa.</p>
+                    <span className="approval-status approved">✓ Aprovada imediatamente</span>
+                  </div>
+                </div>
+                
+                <div 
+                  className={`approval-option ${submissionMode === 'manager' ? 'selected' : ''}`}
+                  onClick={() => setSubmissionMode('manager')}
+                >
+                  <div className="approval-option-icon">👤</div>
+                  <div className="approval-option-content">
+                    <h4>Aprovação via Gestor</h4>
+                    <p>O gestor receberá uma notificação e precisará aprovar sua solicitação antes do processamento.</p>
+                    <span className="approval-status pending">⏳ Aguardando aprovação</span>
+                  </div>
+                </div>
+              </div>
+              
+              {userProfile?.managerId && (
+                <div className="manager-info">
+                  <p className="manager-label">Gestor responsável:</p>
+                  <p className="manager-name">ID: {userProfile.managerId}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="submission-modal-actions">
+              <button 
+                className="cancel-button"
+                onClick={() => setIsSubmissionModalOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="confirm-submission-button"
+                onClick={() => {
+                  setIsSubmissionModalOpen(false);
+                  const status = submissionMode === 'direct' ? 'approved' : 'pending';
+                  const approvedBy = submissionMode === 'direct' ? 'Sistema' : '';
+                  handleSubmit(undefined, status, approvedBy);
+                }}
+              >
+                Criar Solicitação
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Pedágio */}
       {isTollModalOpen && tollPosition !== null && (
