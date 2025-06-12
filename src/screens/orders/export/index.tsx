@@ -771,7 +771,7 @@ const OrderExport: React.FC = () => {
           <div className="export-sidebar">
             {/* Seleção de Formato */}
             <div className="export-section">
-              <h3><FaDownload /> Formato de Exportação</h3>
+              <h3><span className="step-number">1</span><FaDownload /> Formato de Exportação</h3>
               <div className="format-grid">
                 {formatOptions.map(format => (
                   <div
@@ -804,7 +804,7 @@ const OrderExport: React.FC = () => {
 
             {/* Campos a Incluir */}
             <div className="export-section">
-              <h3><FaCog /> Campos a Incluir</h3>
+              <h3><span className="step-number">2</span><FaCog /> Campos a Incluir</h3>
               <div className="fields-grid">
                 {availableFields.map(field => (
                   <label
@@ -828,10 +828,12 @@ const OrderExport: React.FC = () => {
                 ))}
               </div>
             </div>
+          </div>
 
+          <div className="export-main">
             {/* Filtros */}
             <div className="export-section">
-              <h3><FaFilter /> Filtros</h3>
+              <h3><span className="step-number">3</span><FaFilter /> Filtros</h3>
               
               {/* Filtro de Data */}
               <div className="filter-group">
@@ -908,7 +910,7 @@ const OrderExport: React.FC = () => {
 
             {/* Opções Avançadas */}
             <div className="export-section">
-              <h3><FaStar /> Opções Avançadas</h3>
+              <h3><span className="step-number">4</span><FaStar /> Opções Avançadas</h3>
               
               <div className="advanced-options">
                 <label className="option-row">
@@ -966,13 +968,10 @@ const OrderExport: React.FC = () => {
                 </label>
               </div>
             </div>
-          </div>
-
-          <div className="export-main">
             {/* Preview */}
             <div className="export-section">
               <div className="section-header">
-                <h3><FaEye /> Preview dos Dados</h3>
+                <h3><span className="step-number">5</span><FaEye /> Preview dos Dados</h3>
                 <button
                   className="toggle-preview"
                   onClick={() => setShowPreview(!showPreview)}
