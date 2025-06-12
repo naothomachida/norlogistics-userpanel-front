@@ -11,20 +11,27 @@
 
 .order-detail-content {
   width: 100%;
-  max-width: none;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0.5rem 3rem !important;
+  padding: 0 1rem;
 }
 
 .order-detail-main {
-  padding: 1rem 0;
-  margin-top: 80px;
+  padding: 1.5rem 0;
+  margin-top: 42px;
 }
 
-.order-detail-title {
-  font-size: 2rem;
+@media (max-width: 768px) {
+  .order-detail-main {
+    margin-top: 50px;
+  }
+}
+
+.order-title {
+  font-size: 1.1rem;
   font-weight: bold;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: #111827;
 }
 
 .order-detail-id {
@@ -68,12 +75,12 @@
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
   color: #333;
   position: relative;
-  padding-bottom: 0.4rem;
+  padding-bottom: 0.2rem;
 }
 
 .section-title:after {
@@ -100,7 +107,7 @@
 }
 
 .info-label {
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   color: #777;
   font-weight: 500;
 }
@@ -678,22 +685,22 @@
 }
 
 .price-info-content h3 {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 600;
   color: #4b5563;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
   letter-spacing: -0.01em;
 }
 
 .price-info-content p.price-value {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #111827;
   margin: 0;
 }
 
 .price-info-content p.price-calculation {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: #666;
   margin: 0;
 }

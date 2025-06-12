@@ -15,15 +15,15 @@
 }
 
 .driver-assigned-icon svg {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
 }
 
 /* Ensure all driver icons are circular */
 .driver-assigned-icon,
 .driver-assigned-icon.not-assigned {
-  width: 32px;
-  height: 32px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;

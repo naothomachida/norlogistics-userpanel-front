@@ -18,13 +18,13 @@
 
 .orders-main {
   padding: 1.5rem 0;
-  margin-top: 50px;
+  margin-top: 38px;
 }
 
 .orders-title {
-  margin-top: 1rem;
-  font-size: 2rem;
+  font-size: 1rem;
   font-weight: bold;
+  margin-bottom: 0.5rem;
 }
 
 .orders-title-row {
@@ -54,13 +54,13 @@
   background-color: #f5f5f5;
   color: #000000;
   border: none;
-  padding: 0.3rem 0.6rem;
-  border-radius: 0.375rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   cursor: pointer;
   transition: all 0.25s ease;
 }
@@ -116,15 +116,13 @@
 }
 
 .search-input {
-  background-color: #f5f5f5;
-  color: #000000;
-  border: none;
-  padding: 0.3rem 0.6rem;
-  border-radius: 0.375rem;
-  width: 200px;
-  font-size: 0.7rem;
-  display: flex;
-  align-items: center;
+  height: 34px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  width: 100%;
+  max-width: 300px;
 }
 
 .search-input input {
@@ -249,12 +247,12 @@
 }
 
 .orders-table th {
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 0.3rem;
   text-align: left;
   font-weight: 500;
   color: #777;
   border-bottom: 1px solid #eaeaea;
-  font-size: 0.8rem;
+  font-size: 0.6rem;
 }
 
 .orders-table td {
@@ -603,14 +601,14 @@ td .driver-assigned {
 /* Updated sidebar layout */
 .orders-layout {
   display: flex;
-  gap: 2.5rem;
+  gap: 2rem;
   height: 100vh;
 }
 
 .orders-filters-sidebar {
-  width: 400px;
+  width: 280px;
   background: linear-gradient(to bottom right, #ffffff 0%, #f4f3ff 30%, #e6e6fa 70%, #f0e6ff 100%);
-  padding: 2rem;
+  padding: 1.5rem;
   border-right: 1px solid #f0f0f0;
   height: 100%;
   overflow-y: auto;
@@ -640,16 +638,16 @@ td .driver-assigned {
   background-color: #ffffff;
   border: 1px solid #d6bcfa;
   border-radius: 0.375rem;
-  padding: 0.375rem 0.5rem 0.375rem 4.5rem;
-  padding-left: 42px !important;
-  font-size: 0.75rem;
+  padding: 0.375rem 0.5rem 0.375rem 3.5rem;
+  padding-left: 36px !important;
+  font-size: 0.7rem;
   line-height: 1.2;
-  height: 2.5rem;
+  height: 2.2rem;
   color: #6b46c1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b46c1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b46c1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: 0.75rem center;
-  background-size: 16px;
+  background-position: 0.6rem center;
+  background-size: 14px;
   transition: all 0.2s ease;
 }
 
@@ -793,8 +791,8 @@ td .driver-assigned {
 }
 
 .order-route-icon-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   background-color: #8b5cf6;
   border-radius: 50%;
   display: flex;
@@ -804,8 +802,8 @@ td .driver-assigned {
 }
 
 .order-route-icon-wrapper svg {
-  width: 20px;
-  height: 20px;
+  width: 12px;
+  height: 12px;
   color: white;
 }
 
@@ -916,8 +914,8 @@ td .driver-assigned {
 }
 
 .new-order-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
 }
 
 .new-order-btn:hover {

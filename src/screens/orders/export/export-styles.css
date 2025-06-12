@@ -81,7 +81,7 @@
 
 .export-content {
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: 14px;
   align-items: start;
 }
@@ -438,15 +438,16 @@
   font-weight: 500;
   color: #2d3748;
   min-width: 100px;
+  font-size: 0.65rem !important; /* TEXTO PADRÃO */
 }
 
 .option-row input,
 .option-row select {
   flex: 1;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 0.65rem !important; /* TEXTO PADRÃO */
   transition: border-color 0.2s ease;
 }
 
@@ -472,7 +473,7 @@
 }
 
 .toggle-preview {
-  padding: 8px 16px;
+  padding: 6px 12px;
   background: #f8f9fa;
   border: 2px solid #e9ecef;
   border-radius: 6px;
@@ -480,6 +481,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.65rem !important; /* TEXTO PADRÃO */
 }
 
 .toggle-preview:hover {
@@ -500,14 +502,15 @@
 .preview-table table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 0.55rem !important; /* TABELA */
 }
 
 .preview-table th,
 .preview-table td {
-  padding: 8px 12px;
+  padding: 6px 8px;
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
+  font-size: 0.55rem !important; /* TABELA */
 }
 
 .preview-table th {
@@ -516,6 +519,7 @@
   font-weight: 600;
   position: sticky;
   top: 0;
+  font-size: 0.55rem !important; /* TABELA */
 }
 
 .preview-table td {
@@ -528,12 +532,13 @@
 
 .preview-more {
   text-align: center;
-  padding: 16px;
+  padding: 12px;
   color: #4a5568;
   font-style: italic;
   background: white;
   border-radius: 6px;
   margin-top: 12px;
+  font-size: 0.5rem !important; /* TEXTO PEQUENO */
 }
 
 .no-preview {
@@ -544,7 +549,7 @@
 
 .no-preview p {
   margin: 0;
-  font-size: 16px;
+  font-size: 0.5rem !important; /* TEXTO PEQUENO */
 }
 
 /* Export Action */
@@ -676,7 +681,7 @@
 /* Responsive Design */
 @media (max-width: 1200px) {
   .export-content {
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 260px 1fr;
   }
 }
 
@@ -939,4 +944,22 @@
   font-size: 12px;
 }
 
-/* Duplicate removed */ 
+/* Duplicate removed */
+
+/* Seção Header */
+.export-form h1 {
+  font-size: 0.9rem !important; /* TÍTULO PRINCIPAL */
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.export-form h2 {
+  font-size: 0.75rem !important; /* SUBTÍTULO */
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 0.8rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.3rem;
+} 

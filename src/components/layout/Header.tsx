@@ -120,31 +120,31 @@ const Header: React.FC = () => {
             to="/orders" 
             className={`header-nav-link ${isActive('/orders') && !isActive('/orders/new') ? 'active' : ''}`}
           >
-            <FiClock style={{ marginRight: 6 }} /> Histórico
+            <FiClock style={{ marginRight: 2, fontSize: '10px' }} /> Histórico
           </Link>
           <Link 
             to="/orders/new" 
             className={`header-nav-link ${isActive('/orders/new') ? 'active' : ''}`}
           >
-            <FiPlusSquare style={{ marginRight: 6 }} /> Nova solicitação
+            <FiPlusSquare style={{ marginRight: 2, fontSize: '10px' }} /> Nova solicitação
           </Link>
           <Link 
             to="/users" 
             className={`header-nav-link ${isActive('/users') ? 'active' : ''}`}
           >
-            <FiUsers style={{ marginRight: 6 }} /> Lista de usuários
+            <FiUsers style={{ marginRight: 2, fontSize: '10px' }} /> Lista de usuários
           </Link>
           <Link 
             to="/tolls" 
             className={`header-nav-link ${isActive('/tolls') ? 'active' : ''}`}
           >
-            <FiTruck style={{ marginRight: 6 }} /> Pedágios
+            <FiTruck style={{ marginRight: 2, fontSize: '10px' }} /> Pedágios
           </Link>
           <Link 
             to="/settings" 
             className={`header-nav-link ${isActive('/settings') ? 'active' : ''}`}
           >
-            <FiSettings style={{ marginRight: 6 }} /> Configuração
+            <FiSettings style={{ marginRight: 2, fontSize: '10px' }} /> Configuração
           </Link>
         </>
       );
@@ -158,13 +158,13 @@ const Header: React.FC = () => {
             to="/orders" 
             className={`header-nav-link ${isActive('/orders') && !isActive('/orders/new') ? 'active' : ''}`}
           >
-            <FiClock style={{ marginRight: 6 }} /> Histórico
+            <FiClock style={{ marginRight: 2, fontSize: '10px' }} /> Histórico
           </Link>
           <Link 
             to="/orders/new" 
             className={`header-nav-link ${isActive('/orders/new') ? 'active' : ''}`}
           >
-            <FiPlusSquare style={{ marginRight: 6 }} /> Nova solicitação
+            <FiPlusSquare style={{ marginRight: 2, fontSize: '10px' }} /> Nova solicitação
           </Link>
         </>
       );
@@ -177,7 +177,7 @@ const Header: React.FC = () => {
           to="/orders" 
           className={`header-nav-link ${isActive('/orders') ? 'active' : ''}`}
         >
-          <FiClock style={{ marginRight: 6 }} /> Histórico
+          <FiClock style={{ marginRight: 2, fontSize: '10px' }} /> Histórico
         </Link>
       );
     }
@@ -189,7 +189,7 @@ const Header: React.FC = () => {
           to="/orders" 
           className={`header-nav-link ${isActive('/orders') ? 'active' : ''}`}
         >
-          <FiClock style={{ marginRight: 6 }} /> Histórico
+          <FiClock style={{ marginRight: 2, fontSize: '10px' }} /> Histórico
         </Link>
       );
     }
@@ -200,7 +200,7 @@ const Header: React.FC = () => {
         to="/orders" 
         className={`header-nav-link ${isActive('/orders') ? 'active' : ''}`}
       >
-        <FiClock style={{ marginRight: 6 }} /> Histórico
+        <FiClock style={{ marginRight: 2, fontSize: '10px' }} /> Histórico
       </Link>
     );
   };
@@ -219,7 +219,7 @@ const Header: React.FC = () => {
       <div className="header-actions">
         <div className="notification-container">
         <button className="notification-button">
-            <FiBell size={24} />
+            <FiBell size={16} />
           <div className="notification-indicator"></div>
         </button>
           <span className="notification-tooltip">Notificações</span>
@@ -248,10 +248,10 @@ const Header: React.FC = () => {
               <div className="dropdown-divider"></div>
               <div className="dropdown-menu">
               <div className="dropdown-item" onClick={navigateToProfile}>
-                  <FiSettings size={16} /> Perfil
+                  <FiSettings size={12} /> Perfil
               </div>
               <div className="dropdown-item" onClick={handleLogout}>
-                  <FiLogOut size={16} /> Sair
+                  <FiLogOut size={12} /> Sair
                 </div>
               </div>
             </div>

@@ -9,18 +9,25 @@ import {
   FaMoneyBillWave  // Adicionar ícone de pedágio
 } from 'react-icons/fa';
 
-// Define keywords for location type detection
-const AIRPORT_KEYWORDS = ['aeroporto', 'airport', 'congonhas', 'internacional'];
-const HOTEL_KEYWORDS = ['hotel', 'mercure', 'pullman', 'renaissance'];
-const WAREHOUSE_KEYWORDS = ['depósito', 'centro de distribuição', 'warehouse'];
+// Keywords for location type detection
+const AIRPORT_KEYWORDS = ['aeroporto', 'airport', 'gru', 'cgh', 'vcp', 'gig', 'sdu', 'confins', 'pinto martins'];
+const HOTEL_KEYWORDS = ['hotel', 'pousada', 'resort', 'hostel', 'apart'];
+const WAREHOUSE_KEYWORDS = ['galpão', 'armazém', 'depósito', 'centro de distribuição', 'cd ', 'warehouse'];
 
-// Utility to get company/location initials
-export const getInitials = (name: string, fallback: string = 'LO'): string => {
-  if (!name) return fallback;
-  const words = name.split(/\s+/);
-  return words.length > 1 
-    ? words[0][0].toUpperCase() + words[1][0].toUpperCase()
-    : words[0].slice(0, 2).toUpperCase();
+// Utility function to get initials from company name
+const getInitials = (name: string): string => {
+  if (!name || name.trim().length === 0) return 'XX';
+  
+  const words = name.trim().split(' ').filter(word => word.length > 0);
+  
+  if (words.length === 0) return 'XX';
+  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+  
+  // Get first letter of first word and first letter of last word
+  const firstLetter = words[0].charAt(0).toUpperCase();
+  const lastLetter = words[words.length - 1].charAt(0).toUpperCase();
+  
+  return `${firstLetter}${lastLetter}`;
 };
 
 // Centralized location icon selection
@@ -37,7 +44,7 @@ export const getLocationIcon = (
   } = {}
 ) => {
   const { name = '', locationType, isCompany, isToll } = point;
-  const { size = 20, className = '' } = options;
+  const { size = 12, className = '' } = options;
 
   const nameLower = (name || '').toLowerCase();
 
@@ -73,7 +80,7 @@ export const getLocationIcon = (
     const CompanyInitialsIcon = () => (
       <div 
         className={`
-          w-8 h-8 rounded-full 
+          w-5 h-5 rounded-full 
           bg-purple-100 text-purple-600 
           flex items-center justify-center 
           font-bold text-xs

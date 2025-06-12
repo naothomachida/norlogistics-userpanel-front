@@ -29,7 +29,7 @@
 }
 
 .login-logo h1 {
-  font-size: 1.5rem;
+  font-size: 0.9rem !important;
   font-weight: bold;
   color: #8334e3;
   letter-spacing: 2px;
@@ -46,7 +46,7 @@
 }
 
 .login-card h2 {
-  font-size: 1.75rem;
+  font-size: 0.75rem !important;
   font-weight: 600;
   color: #212529;
   margin-bottom: 0.75rem;
@@ -54,7 +54,7 @@
 
 .login-subtitle {
   color: #6c757d;
-  font-size: 0.9rem;
+  font-size: 0.5rem !important;
   margin-bottom: 2rem;
 }
 
@@ -63,7 +63,7 @@
   color: #ef4444;
   padding: 0.75rem 1rem;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 0.5rem !important;
   margin-bottom: 1.5rem;
 }
 
@@ -81,7 +81,7 @@
   font-weight: 500;
   margin-bottom: 0.5rem;
   color: #343a40;
-  font-size: 0.9rem;
+  font-size: 0.65rem !important;
 }
 
 .form-group input {
@@ -89,7 +89,7 @@
   padding: 0.8rem 1rem;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.65rem !important;
   transition: all 0.3s;
 }
 
@@ -106,7 +106,7 @@
 }
 
 .forgot-password {
-  font-size: 0.8rem;
+  font-size: 0.5rem !important;
   color: #8334e3;
   text-decoration: none;
 }
