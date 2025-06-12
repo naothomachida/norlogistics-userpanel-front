@@ -7,7 +7,7 @@ import Header from '../../../components/layout/Header';
 import './order-form.css';
 import { Location } from '../../../store/locationSlice';
 import { MdBusinessCenter } from 'react-icons/md';
-import { FaBox, FaHotel, FaPlane, FaMapMarkerAlt, FaBuilding, FaWarehouse, FaHome, FaSpinner, FaUser, FaRoad, FaTruck, FaMoneyBillWave, FaUserTie } from 'react-icons/fa';
+import { FaBox, FaHotel, FaPlane, FaMapMarkerAlt, FaBuilding, FaWarehouse, FaHome, FaSpinner, FaUser, FaRoad, FaTruck, FaMoneyBillWave, FaUserTie, FaMotorcycle } from 'react-icons/fa';
 import AddressModal, { DetailedAddress } from './AddressModal';
 import { useGoogleMapsLoader } from '../../../hooks/useGoogleMapsLoader';
 import { MdLocationCity } from 'react-icons/md';
@@ -87,11 +87,21 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
   const [formData, setFormData] = useState({
     transportType: '',
     vehicleType: '',
+    // Campos opcionais
+    costCenter: '',
+    transportTime: '',
+    observations: '',
+    // Campos para carga/motoboy
+    danfeNumber: '',
+    cteNumber: '',
+    requesterName: '',
     items: [{
       name: '',
       phone: '',
       address: '',
       weight: '',
+      volume: '',
+      m3: '',
       dimensions: {
         length: '',
         width: '',
@@ -149,8 +159,18 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
 
   // Memoized values
   const hasValidItems = useMemo(() => {
+    if (formData.transportType === 'person') {
+      return formData.items.some(item => item.name && item.address);
+    } else if (formData.transportType === 'cargo' || formData.transportType === 'motoboy') {
+      // Para carga/motoboy, precisa ter pelo menos um item com endereço e dimensões válidas
+      return formData.items.some(item => 
+        item.name && 
+        item.address && 
+        (item.weight || item.volume || (item.dimensions.length && item.dimensions.width && item.dimensions.height))
+      );
+    }
     return formData.items.some(item => item.name && item.address);
-  }, [formData.items]);
+  }, [formData.items, formData.transportType]);
 
   // Effects
   useEffect(() => {
@@ -231,27 +251,36 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
     );
   }
 
-  const handleTransportTypeSelect = (type: 'person' | 'cargo') => {
+  const handleTransportTypeSelect = (type: 'person' | 'cargo' | 'motoboy') => {
     setFormData({
       ...formData,
       transportType: type,
-      // Reset vehicle type when transport type changes
-      vehicleType: '',
+      // Reset vehicle type when transport type changes, but set moto for motoboy
+      vehicleType: type === 'motoboy' ? 'moto' : '',
       // Reset items based on transport type
       items: [{
         name: '',
         phone: type === 'person' ? '' : '',
         address: '',
-        weight: type === 'cargo' ? '' : '',
-        dimensions: type === 'cargo' 
-          ? { length: '', width: '', height: '' }
-          : { length: '', width: '', height: '' },
+        weight: '',
+        volume: '',
+        m3: '',
+        dimensions: {
+          length: '',
+          width: '',
+          height: ''
+        },
         detailedAddress: undefined
       }]
     });
 
-    // Automatically advance to the next step
-    setCurrentStep(OrderFormStep.VehicleType);
+    // For motoboy, skip vehicle selection and go directly to details
+    if (type === 'motoboy') {
+      setCurrentStep(OrderFormStep.Details);
+    } else {
+      // Automatically advance to the next step
+      setCurrentStep(OrderFormStep.VehicleType);
+    }
   };
 
   const handleVehicleTypeSelect = (vehicleId: string) => {
@@ -390,6 +419,22 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
       };
     }
     
+    // Calcular m³ automaticamente se as dimensões foram alteradas
+    if (field.startsWith('dimensions.') && (formData.transportType === 'cargo' || formData.transportType === 'motoboy')) {
+      const item = newItems[index];
+      const { length, width, height } = item.dimensions;
+      if (length && width && height) {
+        const lengthM = parseFloat(length) / 100; // converter cm para m
+        const widthM = parseFloat(width) / 100;
+        const heightM = parseFloat(height) / 100;
+        const m3 = (lengthM * widthM * heightM).toFixed(4);
+        newItems[index] = {
+          ...newItems[index],
+          m3: m3
+        };
+      }
+    }
+    
     setFormData({
       ...formData,
       items: newItems,
@@ -436,6 +481,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
           phone: '',
           address: '',
           weight: '',
+          volume: '',
+          m3: '',
           dimensions: {
             length: '',
             width: '',
@@ -456,6 +503,30 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         items: newItems,
       });
     }
+  };
+
+  const duplicateItemSameAddress = (index: number) => {
+    const itemToDuplicate = formData.items[index];
+    const newItem = {
+      ...itemToDuplicate,
+      name: '', // Limpar o nome para permitir inserir novo nome
+      weight: '', // Limpar os dados específicos do item
+      volume: '',
+      m3: '',
+      dimensions: {
+        length: '',
+        width: '',
+        height: ''
+      }
+    };
+    
+    const newItems = [...formData.items];
+    newItems.splice(index + 1, 0, newItem);
+    
+    setFormData({
+      ...formData,
+      items: newItems,
+    });
   };
 
   const handleChangeOriginDestination = (field: string, value: string) => {
@@ -511,7 +582,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
         // Adicionar detalhes específicos para passageiros ou cargas
         if (formData.transportType === 'person') {
           basePoint.phone = item.phone;
-        } else if (formData.transportType === 'cargo') {
+        } else if (formData.transportType === 'cargo' || formData.transportType === 'motoboy') {
           basePoint.weight = item.weight;
           basePoint.dimensions = item.dimensions;
         }
@@ -1400,8 +1471,8 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
               { step: 2, name: 'Tipo de Veículo' },
               { step: 3, name: 'Detalhes' },
               { step: 4, name: 'Origem/Destino' },
-              { step: 5, name: 'Organizar Rota' },
-              { step: 6, name: 'Detalhes da Rota' }
+              { step: 5, name: 'Roteirizador' },
+              { step: 6, name: 'Dados da Rota' }
             ].map((stepInfo, index, array) => (
               <React.Fragment key={stepInfo.step}>
                 <div 
@@ -1459,11 +1530,21 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                 className={`transport-card ${formData.transportType === 'cargo' ? 'selected' : ''}`}
                 onClick={() => handleTransportTypeSelect('cargo')}
               >
-                <div className="transport-icon box-icon">
-                  <FaBox />
+                <div className="transport-icon truck-icon">
+                  <FaTruck />
                 </div>
                     <h3>Transporte de Cargas</h3>
                     <p>Entregas e logística</p>
+              </div>
+              <div 
+                className={`transport-card ${formData.transportType === 'motoboy' ? 'selected' : ''}`}
+                onClick={() => handleTransportTypeSelect('motoboy')}
+              >
+                <div className="transport-icon motoboy-icon">
+                  <FaMotorcycle />
+                </div>
+                    <h3>Motoboy</h3>
+                    <p>Entregas rápidas</p>
               </div>
             </div>
           </div>
@@ -1492,16 +1573,27 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                   </div>
                 </div>
             <div className="vehicle-type-selection">
-                  {(formData.transportType === 'person' ? personVehicles : cargoVehicles).map(vehicle => (
-                <div 
-                  key={vehicle.id}
-                  className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
-                  onClick={() => handleVehicleTypeSelect(vehicle.id)}
-                >
-                  <h3>{vehicle.name}</h3>
-                  <p>{vehicle.description}</p>
-                </div>
-              ))}
+                  {formData.transportType === 'motoboy' ? (
+                    // Para motoboy, mostrar apenas moto
+                    <div 
+                      className="vehicle-card selected"
+                    >
+                      <h3>Moto</h3>
+                      <p>Entregas rápidas com motocicleta</p>
+                    </div>
+                  ) : (
+                    // Para outros tipos, mostrar veículos normalmente
+                    (formData.transportType === 'person' ? personVehicles : cargoVehicles).map(vehicle => (
+                      <div 
+                        key={vehicle.id}
+                        className={`vehicle-card ${formData.vehicleType === vehicle.id ? 'selected' : ''}`}
+                        onClick={() => handleVehicleTypeSelect(vehicle.id)}
+                      >
+                        <h3>{vehicle.name}</h3>
+                        <p>{vehicle.description}</p>
+                      </div>
+                    ))
+                  )}
             </div>
           </div>
             )}
@@ -1517,7 +1609,7 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                       Voltar
                     </button>
                   </div>
-                  <h2 className="step-title">Detalhes dos {formData.transportType === 'person' ? 'Passageiros' : 'Itens'}</h2>
+                  <h2 className="step-title">Detalhes dos {formData.transportType === 'person' ? 'Passageiros' : formData.transportType === 'motoboy' ? 'Itens para Entrega' : 'Itens'}</h2>
                   <div className="step-navigation-buttons">
                     <button 
                       className="continue-button"
@@ -1528,19 +1620,115 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                     </button>
                   </div>
                 </div>
+                
+                {/* Campos opcionais gerais */}
+                <div className="optional-fields">
+                  <h3>Informações Adicionais (Opcionais)</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Centro de Custo (CC)</label>
+                      <input
+                        type="text"
+                        value={formData.costCenter}
+                        onChange={(e) => setFormData({...formData, costCenter: e.target.value})}
+                        placeholder="Centro de custo"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Horário do Transporte</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.transportTime}
+                        onChange={(e) => setFormData({...formData, transportTime: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Observações</label>
+                      <textarea
+                        value={formData.observations}
+                        onChange={(e) => setFormData({...formData, observations: e.target.value})}
+                        placeholder="Observações adicionais"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Campos específicos para carga e motoboy */}
+                  {(formData.transportType === 'cargo' || formData.transportType === 'motoboy') && (
+                    <div className="cargo-specific-fields">
+                      <h4>Informações da Carga</h4>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Número da DANFE</label>
+                          <input
+                            type="text"
+                            value={formData.danfeNumber}
+                            onChange={(e) => setFormData({...formData, danfeNumber: e.target.value})}
+                            placeholder="Número da DANFE"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Número do CT-e</label>
+                          <input
+                            type="text"
+                            value={formData.cteNumber}
+                            onChange={(e) => setFormData({...formData, cteNumber: e.target.value})}
+                            placeholder="Número do CT-e"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Nome do Solicitante</label>
+                          <input
+                            type="text"
+                            value={formData.requesterName}
+                            onChange={(e) => setFormData({...formData, requesterName: e.target.value})}
+                            placeholder="Nome do solicitante"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 <div className="details-form">
               {formData.items.map((item, index) => (
                 <div key={index} className="item-details">
                   <div className="item-header">
-                        <h3>Item {index + 1}</h3>
-                    {formData.items.length > 1 && (
-                      <button 
-                        className="remove-item-button"
-                        onClick={() => removeItem(index)}
-                      >
-                        Remover
-                      </button>
-                    )}
+                        <h3>Item {index + 1}
+                          {/* Mostrar indicador se há itens com mesmo endereço */}
+                          {(formData.transportType === 'cargo' || formData.transportType === 'motoboy') && 
+                           item.address && 
+                           formData.items.filter(i => i.address === item.address).length > 1 && (
+                            <span className="same-address-indicator">
+                              ({formData.items.filter(i => i.address === item.address).length} itens neste endereço)
+                            </span>
+                          )}
+                        </h3>
+                    <div className="item-actions">
+                      {(formData.transportType === 'cargo' || formData.transportType === 'motoboy') && (
+                        <button 
+                          className="duplicate-item-button"
+                          onClick={() => duplicateItemSameAddress(index)}
+                          title="Adicionar outro item no mesmo endereço"
+                        >
+                          + Mesmo Endereço
+                        </button>
+                      )}
+                      {formData.items.length > 1 && (
+                        <button 
+                          className="remove-item-button"
+                          onClick={() => removeItem(index)}
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
                   </div>
                       <div className="form-row">
                         <div className="form-group">
@@ -1584,6 +1772,74 @@ const OrderForm: React.FC<OrderFormProps> = (): React.ReactNode => {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Campos específicos para carga e motoboy */}
+                  {(formData.transportType === 'cargo' || formData.transportType === 'motoboy') && (
+                    <>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Peso (kg)</label>
+                          <input
+                            type="number"
+                            value={item.weight}
+                            onChange={(e) => handleItemChange(index, 'weight', e.target.value)}
+                            placeholder="Peso em kg"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Volume</label>
+                          <input
+                            type="text"
+                            value={item.volume}
+                            onChange={(e) => handleItemChange(index, 'volume', e.target.value)}
+                            placeholder="Volume"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Dimensões - Comprimento (cm)</label>
+                          <input
+                            type="number"
+                            value={item.dimensions.length}
+                            onChange={(e) => handleItemChange(index, 'dimensions.length', e.target.value)}
+                            placeholder="Comprimento"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Largura (cm)</label>
+                          <input
+                            type="number"
+                            value={item.dimensions.width}
+                            onChange={(e) => handleItemChange(index, 'dimensions.width', e.target.value)}
+                            placeholder="Largura"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Altura (cm)</label>
+                          <input
+                            type="number"
+                            value={item.dimensions.height}
+                            onChange={(e) => handleItemChange(index, 'dimensions.height', e.target.value)}
+                            placeholder="Altura"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>M³ Calculado</label>
+                          <input
+                            type="text"
+                            value={item.m3}
+                            readOnly
+                            placeholder="M³ será calculado automaticamente"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                         </div>
                   ))}
                   <div className="form-actions">

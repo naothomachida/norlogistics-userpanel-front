@@ -2,38 +2,94 @@ import React, { useState } from 'react';
 import Header from '../../components/layout/Header';
 import './tolls.css';
 
-interface RouteResponse {
-  idRota: number;
-  indiceRota: number;
-  distancia: number;
-  tempo: number;
-  custo_combustivel: number;
-  origem: string;
-  destino: string;
+interface TollStation {
+  id: number;
+  ladoCobranca: string;
   status: string;
-  message?: string;
+  sistemasTag: string[];
+  pais: string;
+  estado: string;
+  rodovia: string;
+  nomeRodovia: string;
+  dinheiro: string;
+  localidade: string;
+  moeda: string;
+  custosDinheiro: {
+    moto2eixos: number | null;
+    auto2eixos: number;
+    auto3eixos: number;
+    auto4eixos: number;
+    valorPorEixoCaminhao: number;
+    onibus2Eixos: number;
+    motorHome2eixos: number;
+    motorHome3eixos: number;
+    motorHome4eixos: number;
+  };
+  custoTag: {
+    moto2eixos: number | null;
+    auto2eixos: number;
+    auto3eixos: number;
+    auto4eixos: number;
+    valorPorEixoCaminhao: number;
+    onibus2Eixos: number;
+    motorHome2eixos: number;
+    motorHome3eixos: number;
+    motorHome4eixos: number;
+  };
+  atualizado: string;
+  ultimaAlteracao: string;
+}
+
+interface ApiResponse {
+  status: string;
+  dados: {
+    pais: string;
+    moeda: string;
+    pedagiosRota: TollStation[];
+    custoTotalPedagiosDinheiro: {
+      moto2eixos: number;
+      auto2eixos: number;
+      auto3eixos: number;
+      auto4eixos: number;
+      valorPorEixoCaminhao: number;
+      onibus2Eixos: number;
+      motorHome2eixos: number;
+      motorHome3eixos: number;
+      motorHome4eixos: number;
+    };
+    custoTotalPedagiosTag: {
+      moto2eixos: number;
+      auto2eixos: number;
+      auto3eixos: number;
+      auto4eixos: number;
+      valorPorEixoCaminhao: number;
+      onibus2Eixos: number;
+      motorHome2eixos: number;
+      motorHome3eixos: number;
+      motorHome4eixos: number;
+    };
+  };
+  polyline?: {
+    coordinates: number[][];
+  };
 }
 
 interface TollData {
-  idRota: number;
-  indiceRota: number;
   origem: string;
   destino: string;
-  distancia: number;
-  tempo: number;
-  custo_combustivel: number;
   pedagios: Array<{
     nome: string;
     valor: number;
     valorTag?: number;
     tipo: string;
     localizacao: string;
-    latitude?: number;
-    longitude?: number;
-    km?: number;
     rodovia?: string;
+    estado?: string;
+    moeda?: string;
   }>;
-  custo_total: number;
+  custoTotalDinheiro: number;
+  custoTotalTag: number;
+  totalPedagios: number;
   status: string;
   message?: string;
 }
@@ -44,11 +100,23 @@ const Tolls: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [tollData, setTollData] = useState<TollData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [vehicleType, setVehicleType] = useState<string>('auto2eixos');
 
-  const API_BASE_URL = 'https://way-hml.webrouter.com.br';
-  const API_CALCULAR_URL = `${API_BASE_URL}/RouterService/router/api/calcular`;
-  const API_PEDAGIOS_URL = `${API_BASE_URL}/router/rota/pedagios`;
-  const API_TOKEN = 'ACWFAOEFOJINOFUTFJV3ECWFADWFAOEFOJW3AMWFGO';
+  // Nova API da calcularpedagio.com.br via proxy local do Vite
+  const API_BASE_URL = '/api/pedagios';
+  const API_KEY = 'cfadc738-1785-40a5-90b2-c6288457a587';
+
+  const vehicleTypes = [
+    { value: 'auto2eixos', label: 'Carro (2 eixos)' },
+    { value: 'auto3eixos', label: 'Carro (3 eixos)' },
+    { value: 'auto4eixos', label: 'Carro (4 eixos)' },
+    { value: 'valorPorEixoCaminhao', label: 'Caminhão (por eixo)' },
+    { value: 'onibus2Eixos', label: 'Ônibus (2 eixos)' },
+    { value: 'moto2eixos', label: 'Moto (2 eixos)' },
+    { value: 'motorHome2eixos', label: 'Motor Home (2 eixos)' },
+    { value: 'motorHome3eixos', label: 'Motor Home (3 eixos)' },
+    { value: 'motorHome4eixos', label: 'Motor Home (4 eixos)' }
+  ];
 
   const handleCalculateTolls = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,35 +131,97 @@ const Tolls: React.FC = () => {
     setTollData(null);
 
     try {
-      // ETAPA 1: Criar a rota
-      console.log('ETAPA 1: Criando rota...');
-      const routeData = await createRoute(origem.trim(), destino.trim());
+      console.log('Calculando pedágios usando API calcularpedagio.com.br...');
       
-      if (!routeData.idRota) {
-        throw new Error('Não foi possível obter o ID da rota');
+      // Normalizar formato das cidades
+      const normalizeCity = (city: string) => {
+        // Remove espaços extras
+        let normalized = city.trim();
+        
+        // Se não tem separador, adiciona um formato padrão
+        if (!normalized.includes('/') && !normalized.includes('-') && !normalized.includes(',')) {
+          return normalized; // Deixa como está se não tem separador
+        }
+        
+        // Converte diferentes separadores para o formato padrão
+        if (normalized.includes('-')) {
+          normalized = normalized.replace('-', '/');
+        }
+        if (normalized.includes(',')) {
+          normalized = normalized.replace(',', '/');
+        }
+        
+        return normalized;
+      };
+      
+      console.log('Usando API real calcularpedagio.com.br...');
+      
+      const requestBody = {
+        pontos: [
+          normalizeCity(origem),
+          normalizeCity(destino)
+        ]
+      };
+
+      console.log('Dados da requisição:', requestBody);
+      console.log('URL da requisição:', API_BASE_URL);
+
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('Status da resposta:', response.status);
+      
+      const responseText = await response.text();
+      console.log('Resposta raw da API:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erro ao fazer parse JSON:', e);
+        throw new Error(`Resposta inválida da API: ${responseText}`);
       }
 
-      console.log('Rota criada com sucesso:', routeData);
+      if (!response.ok) {
+        console.error('Erro da API:', responseText);
+        throw new Error(`Erro ${response.status}: ${responseText}`);
+      }
 
-      // ETAPA 2: Consultar pedágios da rota
-      console.log('ETAPA 2: Consultando pedágios...');
-      const tollsData = await getTollsByRouteId(routeData.idRota, routeData.indiceRota || 0);
+      console.log('Resposta da API:', data);
 
-      // Combinar dados da rota com dados dos pedágios
+      if (data.status !== 'OK') {
+        throw new Error(data.status || 'Erro desconhecido da API');
+      }
+
+      // Processar dados dos pedágios
+      const pedagiosProcessados = data.dados.pedagiosRota.map((pedagio: TollStation) => ({
+        nome: pedagio.localidade,
+        valor: getVehicleValue(pedagio.custosDinheiro, vehicleType),
+        valorTag: getVehicleValue(pedagio.custoTag, vehicleType),
+        tipo: 'Pedágio',
+        localizacao: `${pedagio.localidade}, ${pedagio.estado}`,
+        rodovia: pedagio.nomeRodovia,
+        estado: pedagio.estado,
+        moeda: pedagio.moeda
+      }));
+
       const processedData: TollData = {
-        idRota: routeData.idRota,
-        indiceRota: routeData.indiceRota || 0,
-        origem: routeData.origem || origem,
-        destino: routeData.destino || destino,
-        distancia: routeData.distancia || 0,
-        tempo: routeData.tempo || 0,
-        custo_combustivel: routeData.custo_combustivel || 0,
-        pedagios: tollsData || [],
-        custo_total: (routeData.custo_combustivel || 0) + getTotalTollValue(tollsData || []),
+        origem: origem.trim(),
+        destino: destino.trim(),
+        pedagios: pedagiosProcessados,
+        custoTotalDinheiro: getVehicleValue(data.dados.custoTotalPedagiosDinheiro, vehicleType),
+        custoTotalTag: getVehicleValue(data.dados.custoTotalPedagiosTag, vehicleType),
+        totalPedagios: data.dados.pedagiosRota.length,
         status: 'success'
       };
 
-      console.log('Dados finais processados:', processedData);
+      console.log('Dados processados:', processedData);
       setTollData(processedData);
 
     } catch (err: any) {
@@ -100,15 +230,15 @@ const Tolls: React.FC = () => {
       let errorMessage = 'Erro ao calcular pedágios. ';
       
       if (err.message.includes('404')) {
-        errorMessage += 'Serviço não encontrado. Verifique a URL da API.';
+        errorMessage += 'Rota não encontrada. Verifique os nomes das cidades.';
       } else if (err.message.includes('401') || err.message.includes('403')) {
-        errorMessage += 'Erro de autenticação. Verifique as credenciais.';
+        errorMessage += 'Erro de autenticação. Chave API inválida.';
       } else if (err.message.includes('500')) {
         errorMessage += 'Erro interno do servidor. Tente novamente em alguns minutos.';
       } else if (err.message.includes('Failed to fetch')) {
         errorMessage += 'Erro de conexão. Verifique sua internet e tente novamente.';
       } else {
-        errorMessage += err.message || 'Verifique os endereços e tente novamente.';
+        errorMessage += err.message || 'Verifique os nomes das cidades e tente novamente.';
       }
       
       setError(errorMessage);
@@ -117,177 +247,9 @@ const Tolls: React.FC = () => {
     }
   };
 
-  const createRoute = async (origem: string, destino: string): Promise<RouteResponse> => {
-    const requestData = {
-      autenticacao: {
-        chaveAcesso: API_TOKEN
-      },
-      rota: {
-        codigo: `ROTA_${Date.now()}`,
-        descricao: `Rota de ${origem} para ${destino}`,
-        enderecos: [
-          {
-            ordemPassagem: 1,
-            codigo: "01",
-            logradouro: "",
-            numero: "",
-            cep: "",
-            cidade: {
-              pais: "Brasil",
-              uf: "",
-              cidade: origem,
-              codigoIbge: ""
-            },
-            latLng: {
-              latitude: 0,
-              longitude: 0
-            },
-            informacaoParada: {
-              peso: 0,
-              volume: 0,
-              descricao: "",
-              dias: 0,
-              horas: 0,
-              minutos: 0
-            }
-          },
-          {
-            ordemPassagem: 2,
-            codigo: "02",
-            logradouro: "",
-            numero: "",
-            cep: "",
-            cidade: {
-              pais: "Brasil",
-              uf: "",
-              cidade: destino,
-              codigoIbge: ""
-            },
-            latLng: {
-              latitude: 0,
-              longitude: 0
-            },
-            informacaoParada: {
-              peso: 0,
-              volume: 0,
-              descricao: "",
-              dias: 0,
-              horas: 0,
-              minutos: 0
-            }
-          }
-        ],
-        params: {
-          dataHoraInicio: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          evitarBalsa: false,
-          evitarPedagio: false,
-          evitarRodovia: false,
-          calcularVolta: false,
-          calculaDistanciaUrbana: false,
-          polylineSimplificada: false,
-          ordenaRota: false,
-          voltarPeloMesmoCaminho: false,
-          valorCombustivel: 6.50,
-          consumo: 17.00,
-          capacidadeTanque: 50,
-          litrosTanqueInicio: 20,
-          categoriaVeiculo: "1",
-          tipoCombustivel: "GASOLINA",
-          alturaVeiculo: 0,
-          raioPesquisaPosto: 0,
-          perfilVeiculo: "CAMINHAO",
-          tipoCaminho: "RAPIDA",
-          priorizarRodovias: true,
-          usaTrafego: false,
-          ignorarRestricao: false
-        }
-      },
-      salvarRota: true
-    };
-
-    console.log('Enviando dados para criar rota:', requestData);
-
-    const response = await fetch(API_CALCULAR_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(requestData)
-    });
-
-    console.log('Status da resposta (criar rota):', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Erro na resposta (criar rota):', errorText);
-      throw new Error(`Erro na API de criação de rota: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('Dados recebidos (criar rota):', data);
-    
-    // Verificar erro específico de licença
-    if (data.status === 'LICENCA_INVALIDA') {
-      throw new Error(`LICENÇA INVÁLIDA: A chave de acesso "${API_TOKEN}" não é válida ou não possui licença ativa. Entre em contato com o suporte da AILOG (0800 580 0844) para verificar sua licença.`);
-    }
-    
-    // Verificar outros erros
-    if (data.status === 'error' || data.erro) {
-      throw new Error(data.message || data.erro || 'Erro desconhecido ao criar rota');
-    }
-
-    // Verificar se retornou rotas
-    if (!data.rotas || data.rotas.length === 0) {
-      throw new Error('Nenhuma rota foi retornada pela API. Verifique os endereços informados.');
-    }
-
-    // Pegar a primeira rota
-    const rota = data.rotas[0];
-    
-    return {
-      idRota: rota.idRota || rota.id || data.idRota,
-      indiceRota: data.indiceRota || 0,
-      distancia: parseFloat(rota.distancia) || 0,
-      tempo: parseInt(rota.tempo) || 0,
-      custo_combustivel: parseFloat(rota.custo_combustivel) || parseFloat(rota.custoCombustivel) || 0,
-      origem: rota.origem || origem,
-      destino: rota.destino || destino,
-      status: data.status || 'success',
-      message: data.message
-    };
-  };
-
-  const getTollsByRouteId = async (idRota: number, indiceRota: number = 0): Promise<any[]> => {
-    const url = `${API_PEDAGIOS_URL}/${idRota}/${indiceRota}`;
-    
-    console.log('Consultando pedágios na URL:', url);
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'chaveAcesso': API_TOKEN
-      }
-    });
-
-    console.log('Status da resposta (consultar pedágios):', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Erro na resposta (consultar pedágios):', errorText);
-      throw new Error(`Erro na API de consulta de pedágios: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('Dados recebidos (consultar pedágios):', data);
-    
-    if (data.status === 'error' || data.erro) {
-      throw new Error(data.message || data.erro || 'Erro desconhecido ao consultar pedágios');
-    }
-
-    return data.pedagios || data || [];
+  const getVehicleValue = (costs: any, vehicleType: string): number => {
+    const value = costs[vehicleType];
+    return value !== null && value !== undefined ? value : 0;
   };
 
   const handleClearForm = () => {
@@ -304,18 +266,112 @@ const Tolls: React.FC = () => {
     }).format(value);
   };
 
-  const formatDistance = (value: number): string => {
-    return `${value.toFixed(1)} km`;
+  const getVehicleTypeLabel = (): string => {
+    const vehicleTypeObj = vehicleTypes.find(v => v.value === vehicleType);
+    return vehicleTypeObj ? vehicleTypeObj.label : 'Carro (2 eixos)';
   };
 
-  const formatTime = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
-  };
+  // Função para testar a API diretamente com coordenadas geocode
+  // Útil para testar se a API está funcionando corretamente
+  const handleTestGeocode = async () => {
+    setLoading(true);
+    setError(null);
+    setTollData(null);
 
-  const getTotalTollValue = (pedagios: any[] = []): number => {
-    return pedagios.reduce((total, pedagio) => total + (pedagio.valor || 0), 0);
+    try {
+      console.log('🧪 Teste direto com geocodes...');
+      
+      const testCoordinates = [
+        '-28.2625,-52.4082', // Passo Fundo/RS
+        '-23.5505,-46.6333'  // São Paulo/SP
+      ];
+
+      const requestBody = {
+        pontos: testCoordinates
+      };
+
+      console.log('📍 Enviando coordenadas para teste:', requestBody);
+      console.log('🌐 URL da requisição:', API_BASE_URL);
+
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('📊 Status da resposta:', response.status);
+      
+      const responseText = await response.text();
+      console.log('📋 Resposta raw da API:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('❌ Erro ao fazer parse JSON:', e);
+        throw new Error(`Resposta inválida da API: ${responseText}`);
+      }
+
+      if (!response.ok) {
+        console.error('❌ Erro da API:', responseText);
+        throw new Error(`Erro ${response.status}: ${responseText}`);
+      }
+
+      console.log('✅ Resposta da API:', data);
+
+      if (data.status !== 'OK') {
+        throw new Error(data.status || 'Erro desconhecido da API');
+      }
+
+      // Processar dados dos pedágios
+      const pedagiosProcessados = data.dados.pedagiosRota.map((pedagio: TollStation) => ({
+        nome: pedagio.localidade,
+        valor: getVehicleValue(pedagio.custosDinheiro, vehicleType),
+        valorTag: getVehicleValue(pedagio.custoTag, vehicleType),
+        tipo: 'Pedágio',
+        localizacao: `${pedagio.localidade}, ${pedagio.estado}`,
+        rodovia: pedagio.nomeRodovia,
+        estado: pedagio.estado,
+        moeda: pedagio.moeda
+      }));
+
+      const processedData: TollData = {
+        origem: 'Passo Fundo/RS (Geocode)',
+        destino: 'São Paulo/SP (Geocode)',
+        pedagios: pedagiosProcessados,
+        custoTotalDinheiro: getVehicleValue(data.dados.custoTotalPedagiosDinheiro, vehicleType),
+        custoTotalTag: getVehicleValue(data.dados.custoTotalPedagiosTag, vehicleType),
+        totalPedagios: data.dados.pedagiosRota.length,
+        status: 'success'
+      };
+
+      console.log('✅ Dados processados:', processedData);
+      setTollData(processedData);
+
+    } catch (err: any) {
+      console.error('❌ Erro no teste de geocodes:', err);
+      
+      let errorMessage = '🧪 Erro no teste de geocodes: ';
+      
+      if (err.message.includes('404')) {
+        errorMessage += 'Rota não encontrada com as coordenadas fornecidas.';
+      } else if (err.message.includes('401') || err.message.includes('403')) {
+        errorMessage += 'Erro de autenticação. Chave API inválida.';
+      } else if (err.message.includes('500')) {
+        errorMessage += 'Erro interno do servidor. Tente novamente em alguns minutos.';
+      } else if (err.message.includes('Failed to fetch')) {
+        errorMessage += 'Erro de conexão. Verifique sua internet e tente novamente.';
+      } else {
+        errorMessage += err.message || 'Erro desconhecido no teste.';
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -325,7 +381,7 @@ const Tolls: React.FC = () => {
         <div className="tolls-header">
           <h1 className="tolls-title">Calculadora de Pedágios</h1>
           <p className="tolls-subtitle">
-            Calcule os custos de pedágios para suas rotas usando a API WebRouter (Processo em 2 etapas)
+            Calcule os custos de pedágios para suas rotas usando a API calcularpedagio.com.br
           </p>
         </div>
 
@@ -351,10 +407,13 @@ const Tolls: React.FC = () => {
                     id="origem"
                     value={origem}
                     onChange={(e) => setOrigem(e.target.value)}
-                    placeholder="Ex: São Paulo, SP ou Araras, SP"
+                    placeholder="Ex: São Paulo/SP ou São Paulo-SP"
                     className="form-input"
                     disabled={loading}
                   />
+                  <small style={{ color: '#666', fontSize: '12px' }}>
+                    Formato: Cidade/Estado ou Cidade-Estado ou apenas Cidade, Estado
+                  </small>
                 </div>
 
                 <div className="form-group">
@@ -364,10 +423,30 @@ const Tolls: React.FC = () => {
                     id="destino"
                     value={destino}
                     onChange={(e) => setDestino(e.target.value)}
-                    placeholder="Ex: Rio de Janeiro, RJ ou Franca, SP"
+                    placeholder="Ex: Rio de Janeiro/RJ ou Rio de Janeiro-RJ"
                     className="form-input"
                     disabled={loading}
                   />
+                  <small style={{ color: '#666', fontSize: '12px' }}>
+                    Formato: Cidade/Estado ou Cidade-Estado ou apenas Cidade, Estado
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="vehicleType">Tipo de Veículo</label>
+                  <select
+                    id="vehicleType"
+                    value={vehicleType}
+                    onChange={(e) => setVehicleType(e.target.value)}
+                    className="form-input"
+                    disabled={loading}
+                  >
+                    {vehicleTypes.map(type => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {error && (
@@ -380,6 +459,51 @@ const Tolls: React.FC = () => {
                 )}
 
                 <div className="form-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrigem('Tapejara/RS');
+                      setDestino('Salvador/BA');
+                    }}
+                    className="btn-secondary"
+                    disabled={loading}
+                    style={{ marginRight: '8px' }}
+                  >
+                    Exemplo Docs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrigem('Passo Fundo/RS');
+                      setDestino('São Paulo/SP');
+                    }}
+                    className="btn-secondary"
+                    disabled={loading}
+                    style={{ marginRight: '8px' }}
+                  >
+                    Exemplo RS-SP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrigem('-28.2625,-52.4082'); // Passo Fundo/RS
+                      setDestino('-23.5505,-46.6333'); // São Paulo/SP
+                    }}
+                    className="btn-secondary"
+                    disabled={loading}
+                    style={{ marginRight: '8px', backgroundColor: '#10b981', color: 'white', border: '1px solid #059669' }}
+                  >
+                    🧪 Preencher Geocodes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTestGeocode}
+                    className="btn-secondary"
+                    disabled={loading}
+                    style={{ marginRight: '8px', backgroundColor: '#3b82f6', color: 'white', border: '1px solid #2563eb' }}
+                  >
+                    🚀 Teste Direto API
+                  </button>
                   <button
                     type="button"
                     onClick={handleClearForm}
@@ -422,57 +546,45 @@ const Tolls: React.FC = () => {
                         <path d="M11.8 10.9C9.53 10.31 8.8 9.7 8.8 8.75C8.8 7.66 9.81 6.9 11.5 6.9C13.28 6.9 13.94 7.75 14 9H16.21C16.14 7.28 15.09 5.7 13 5.19V3H10V5.16C8.06 5.58 6.5 6.84 6.5 8.77C6.5 11.08 8.41 12.23 11.2 12.9C13.7 13.5 14.2 14.38 14.2 15.31C14.2 16 13.71 17.1 11.5 17.1C9.44 17.1 8.63 16.18 8.5 15H6.32C6.44 17.19 8.08 18.42 10 18.83V21H13V18.85C14.95 18.48 16.5 17.35 16.5 15.3C16.5 12.46 14.07 11.49 11.8 10.9Z" fill="currentColor"/>
                       </svg>
                     </span>
-                    Resultados dos Pedágios
+                    Resultados dos Pedágios - {getVehicleTypeLabel()}
                   </h2>
                 </div>
 
                 <div className="results-summary">
                   <div className="summary-cards">
                     <div className="summary-card">
-                      <div className="summary-icon distance">
+                      <div className="summary-icon">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M13 1.07V9H20.93C20.49 5.05 17.95 1.51 13 1.07ZM4 15C4 15.83 4.67 16.5 5.5 16.5C6.33 16.5 7 15.83 7 15C7 14.17 6.33 13.5 5.5 13.5C4.67 13.5 4 14.17 4 15ZM12.5 13.5C11.67 13.5 11 14.17 11 15C11 15.83 11.67 16.5 12.5 16.5C13.33 16.5 14 15.83 14 15C14 14.17 13.33 13.5 12.5 13.5ZM21 10.12H14.88C14.58 10.04 14.32 9.96 14.12 9.82L16.96 7L15.55 5.55L12.71 8.39C12.58 8.19 12.46 7.93 12.38 7.63V1.51C16.88 2.14 20.38 5.64 21 10.12Z" fill="currentColor"/>
+                          <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="currentColor"/>
                         </svg>
                       </div>
                       <div className="summary-content">
-                        <h3>Distância</h3>
-                        <p>{formatDistance(tollData.distancia)}</p>
+                        <h3>Total Praças</h3>
+                        <p>{tollData.totalPedagios}</p>
                       </div>
                     </div>
 
                     <div className="summary-card">
-                      <div className="summary-icon time">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2ZM17 13H11V7H12.5V11.5H17V13Z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div className="summary-content">
-                        <h3>Tempo</h3>
-                        <p>{formatTime(tollData.tempo)}</p>
-                      </div>
-                    </div>
-
-                    <div className="summary-card">
-                      <div className="summary-icon fuel">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M19.77 7.23L19.78 7.22L16.06 3.5L15 4.56L17.11 6.67C16.17 7.03 15.5 7.93 15.5 9V16.5C15.5 17.88 14.38 19 13 19H4C2.62 19 1.5 17.88 1.5 16.5V9C1.5 7.62 2.62 6.5 4 6.5H13C14.38 6.5 15.5 7.62 15.5 9H13.5V16.5H15.5V9C15.5 8.17 16.17 7.5 17 7.5C17.83 7.5 18.5 8.17 18.5 9V12.5C18.5 13.05 18.95 13.5 19.5 13.5S20.5 13.05 20.5 12.5V9C20.5 8.39 20.11 7.86 19.77 7.23Z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div className="summary-content">
-                        <h3>Combustível</h3>
-                        <p>{formatCurrency(tollData.custo_combustivel)}</p>
-                      </div>
-                    </div>
-
-                    <div className="summary-card total">
                       <div className="summary-icon">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M11.8 10.9C9.53 10.31 8.8 9.7 8.8 8.75C8.8 7.66 9.81 6.9 11.5 6.9C13.28 6.9 13.94 7.75 14 9H16.21C16.14 7.28 15.09 5.7 13 5.19V3H10V5.16C8.06 5.58 6.5 6.84 6.5 8.77C6.5 11.08 8.41 12.23 11.2 12.9C13.7 13.5 14.2 14.38 14.2 15.31C14.2 16 13.71 17.1 11.5 17.1C9.44 17.1 8.63 16.18 8.5 15H6.32C6.44 17.19 8.08 18.42 10 18.83V21H13V18.85C14.95 18.48 16.5 17.35 16.5 15.3C16.5 12.46 14.07 11.49 11.8 10.9Z" fill="currentColor"/>
                         </svg>
                       </div>
                       <div className="summary-content">
-                        <h3>Total Pedágios</h3>
-                        <p>{formatCurrency(getTotalTollValue(tollData.pedagios))}</p>
+                        <h3>Total Dinheiro</h3>
+                        <p>{formatCurrency(tollData.custoTotalDinheiro)}</p>
+                      </div>
+                    </div>
+
+                    <div className="summary-card total">
+                      <div className="summary-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M2 17H22V19H2V17ZM1.15 12.95L4 15.47L9.62 9.85L12.5 12.73L22.84 2.39L21.43 0.97L12.5 9.9L9.62 7.02L3.29 13.35L1.15 12.95Z" fill="currentColor"/>
+                        </svg>
+                      </div>
+                      <div className="summary-content">
+                        <h3>Total TAG</h3>
+                        <p>{formatCurrency(tollData.custoTotalTag)}</p>
                       </div>
                     </div>
                   </div>
@@ -488,7 +600,6 @@ const Tolls: React.FC = () => {
                             <h4>{pedagio.nome}</h4>
                             <p className="toll-location">
                               {pedagio.localizacao}
-                              {pedagio.km && ` - KM ${pedagio.km}`}
                               {pedagio.rodovia && ` - ${pedagio.rodovia}`}
                             </p>
                             <span className="toll-type">{pedagio.tipo}</span>
@@ -531,94 +642,27 @@ const Tolls: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="route-id-info">
-                    <p><strong>ID da Rota:</strong> {tollData.idRota} | <strong>Índice:</strong> {tollData.indiceRota}</p>
-                  </div>
-
-                  {tollData.custo_total > 0 && (
-                    <div className="route-summary">
-                      <div className="cost-breakdown">
-                        <h4>Resumo de Custos</h4>
-                        <div className="cost-item">
-                          <span>Pedágios:</span>
-                          <span>{formatCurrency(getTotalTollValue(tollData.pedagios))}</span>
-                        </div>
-                        <div className="cost-item">
-                          <span>Combustível:</span>
-                          <span>{formatCurrency(tollData.custo_combustivel)}</span>
-                        </div>
-                        <div className="cost-item total-cost">
-                          <span><strong>Total da Viagem:</strong></span>
-                          <span><strong>{formatCurrency(tollData.custo_total)}</strong></span>
-                        </div>
+                  <div className="route-summary">
+                    <div className="cost-breakdown">
+                      <h4>Resumo de Custos para {getVehicleTypeLabel()}</h4>
+                      <div className="cost-item">
+                        <span>Pedágios (Dinheiro):</span>
+                        <span>{formatCurrency(tollData.custoTotalDinheiro)}</span>
+                      </div>
+                      <div className="cost-item">
+                        <span>Pedágios (TAG):</span>
+                        <span>{formatCurrency(tollData.custoTotalTag)}</span>
+                      </div>
+                      <div className="cost-item total-cost">
+                        <span><strong>Economia com TAG:</strong></span>
+                        <span><strong>{formatCurrency(tollData.custoTotalDinheiro - tollData.custoTotalTag)}</strong></span>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
-
-        <div className="api-info-section">
-          <div className="api-info-card">
-            <h3>Sobre a API WebRouter (Processo em 2 Etapas)</h3>
-            <p>
-              Esta calculadora utiliza o processo oficial da API WebRouter/AILOG em duas etapas para obter 
-              informações precisas sobre pedágios e custos de combustível:
-            </p>
-            <ol>
-              <li><code>POST /router/api/calcular</code> - Cria a rota e retorna o ID</li>
-              <li><code>GET /router/rota/pedagios/{`{idRota}`}/{`{indiceRota}`}</code> - Consulta os pedágios da rota</li>
-            </ol>
-            
-            <div className="api-credentials">
-              <h4>📋 Credenciais Atuais:</h4>
-              <div className="credential-item">
-                <strong>Token:</strong> <code>{API_TOKEN}</code>
-              </div>
-              <div className="credential-item">
-                <strong>Login:</strong> <code>naotho@letsgreen.com.br</code>
-              </div>
-              <div className="credential-item">
-                <strong>Senha:</strong> <code>Brasil123@</code>
-              </div>
-            </div>
-
-            <div className="api-details">
-              <div className="api-detail">
-                <strong>Ambiente:</strong> 
-                <span>Homologação (way-hml.webrouter.com.br)</span>
-              </div>
-              <div className="api-detail">
-                <strong>Suporte:</strong> 
-                <a href="https://suporte.ailog.com.br/kb/" target="_blank" rel="noopener noreferrer">
-                  Portal de Suporte AILOG
-                </a>
-              </div>
-              <div className="api-detail">
-                <strong>Telefone:</strong>
-                <span>0800 580 0844</span>
-              </div>
-            </div>
-
-            <div className="license-warning">
-              <h4>⚠️ Problemas de Licença?</h4>
-              <p>
-                Se você receber erro de "LICENÇA INVÁLIDA", isso significa que:
-              </p>
-              <ul>
-                <li>O token de acesso pode estar expirado</li>
-                <li>A conta pode não ter licença ativa</li>
-                <li>O ambiente de homologação pode estar com restrições</li>
-              </ul>
-              <p>
-                <strong>Solução:</strong> Entre em contato com o suporte da AILOG no telefone 
-                <strong>0800 580 0844</strong> ou pelo email <strong>suporte@ailog.com.br</strong> 
-                para verificar o status da sua licença.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
