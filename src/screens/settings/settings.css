@@ -2442,6 +2442,8 @@
   border-right: 1px solid rgba(107, 70, 193, 0.1);
   padding: 1.5rem 1rem;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .skeleton-tabs {
@@ -2488,6 +2490,8 @@
   flex: 1;
   padding: 1.5rem 2rem;
   overflow-y: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .skeleton-card {
@@ -2499,6 +2503,9 @@
 }
 
 .skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #f0f0f0;
@@ -2594,6 +2601,85 @@
   border-radius: 0.25rem;
 }
 
+.skeleton-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.skeleton-system-card {
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(107, 70, 193, 0.06);
+  border: 1px solid rgba(107, 70, 193, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.skeleton-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.skeleton-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.skeleton-toggle-description {
+  height: 0.75rem;
+  width: 80%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.25rem;
+  margin-top: 0.5rem;
+  margin-left: 3rem;
+  opacity: 0.7;
+}
+
+.skeleton-theme-selector {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.skeleton-theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 80px;
+}
+
+.skeleton-theme-preview {
+  width: 60px;
+  height: 40px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+  border: 2px solid #e2e8f0;
+}
+
+.skeleton-theme-label {
+  height: 1rem;
+  width: 50px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.25rem;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -2649,6 +2735,33 @@
   .skeleton-form-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+  
+  .skeleton-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .skeleton-system-card {
+    padding: 1rem;
+  }
+  
+  .skeleton-theme-selector {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .skeleton-theme-option {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1rem;
+    min-width: auto;
+  }
+  
+  .skeleton-theme-preview {
+    width: 40px;
+    height: 30px;
   }
   
   .skeleton-title {

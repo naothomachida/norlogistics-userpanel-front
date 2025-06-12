@@ -1434,29 +1434,63 @@ const Settings: React.FC = () => {
               <div className="skeleton-content">
                 <div className="skeleton-card">
                   <div className="skeleton-header">
+                    <div className="skeleton-tab-icon"></div>
                     <div className="skeleton-title"></div>
                   </div>
                   <div className="skeleton-content-inner">
-                    <div className="skeleton-section">
-                      <div className="skeleton-section-title"></div>
-                      <div className="skeleton-form-grid">
-                        {[...Array(6)].map((_, index) => (
-                          <div key={index} className="skeleton-form-group">
-                            <div className="skeleton-label"></div>
-                            <div className="skeleton-input"></div>
-                          </div>
-                        ))}
+                    {/* System Cards Grid - matching real structure */}
+                    <div className="skeleton-cards-grid">
+                      {/* Language & Region Card */}
+                      <div className="skeleton-system-card">
+                        <div className="skeleton-card-header">
+                          <div className="skeleton-tab-icon"></div>
+                          <div className="skeleton-section-title"></div>
+                        </div>
+                        <div className="skeleton-card-content">
+                          {[...Array(4)].map((_, index) => (
+                            <div key={index} className="skeleton-form-group">
+                              <div className="skeleton-label"></div>
+                              <div className="skeleton-input"></div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="skeleton-section">
-                      <div className="skeleton-section-title"></div>
-                      <div className="skeleton-toggle-group">
-                        {[...Array(4)].map((_, index) => (
-                          <div key={index} className="skeleton-toggle-item">
-                            <div className="skeleton-toggle"></div>
-                            <div className="skeleton-toggle-label"></div>
+                      
+                      {/* Notifications Card */}
+                      <div className="skeleton-system-card">
+                        <div className="skeleton-card-header">
+                          <div className="skeleton-tab-icon"></div>
+                          <div className="skeleton-section-title"></div>
+                        </div>
+                        <div className="skeleton-card-content">
+                          {[...Array(4)].map((_, index) => (
+                            <div key={index} className="skeleton-toggle-group">
+                              <div className="skeleton-toggle-item">
+                                <div className="skeleton-toggle"></div>
+                                <div className="skeleton-toggle-label"></div>
+                              </div>
+                              <div className="skeleton-toggle-description"></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Theme Card */}
+                      <div className="skeleton-system-card">
+                        <div className="skeleton-card-header">
+                          <div className="skeleton-tab-icon"></div>
+                          <div className="skeleton-section-title"></div>
+                        </div>
+                        <div className="skeleton-card-content">
+                          <div className="skeleton-theme-selector">
+                            {[...Array(3)].map((_, index) => (
+                              <div key={index} className="skeleton-theme-option">
+                                <div className="skeleton-theme-preview"></div>
+                                <div className="skeleton-theme-label"></div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
                       </div>
                     </div>
                   </div>
