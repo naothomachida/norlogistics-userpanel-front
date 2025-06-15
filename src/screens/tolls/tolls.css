@@ -1675,9 +1675,11 @@
 }
 
 .map-container {
+  position: relative;
   height: 100%;
   width: 100%;
-  position: relative;
+  border-radius: 0;
+  overflow: hidden;
 }
 
 .toll-map {
@@ -1933,64 +1935,85 @@
 
 /* Custom Toll Icon */
 .custom-toll-icon {
-  background: transparent !important;
-  border: none !important;
-}
-
-.custom-toll-icon div {
-  animation: tollPulse 2s infinite;
   transition: all 0.3s ease;
 }
 
+.custom-toll-icon div {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
 .custom-toll-icon:hover div {
-  transform: scale(1.2) !important;
-  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5) !important;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: tollPulse 1.5s infinite;
 }
 
 @keyframes tollPulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
+  0% { transform: scale(1.1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1.1); }
 }
 
 /* Map Popups */
 .map-popup {
-  font-family: inherit;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-width: 200px;
+  max-width: 280px;
 }
 
 .map-popup h4 {
-  margin: 0 0 0.5rem 0;
-  color: #1f2937;
-  font-size: 1rem;
+  margin: 0 0 8px 0;
+  font-size: 14px;
   font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .map-popup p {
-  margin: 0.25rem 0;
+  margin: 4px 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.map-popup strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.map-popup small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
   color: #6b7280;
-  font-size: 0.875rem;
+  font-family: 'Monaco', 'Menlo', monospace;
+  background: #f3f4f6;
+  padding: 4px 6px;
+  border-radius: 4px;
 }
 
 .toll-popup .toll-prices {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid #e5e7eb;
 }
 
 .toll-popup .toll-prices p {
-  margin: 0.25rem 0;
-  font-weight: 500;
+  margin: 2px 0;
+  font-weight: 600;
+}
+
+.toll-popup .toll-prices p:first-child {
+  color: #dc2626;
+  font-size: 14px;
+}
+
+.toll-popup .toll-prices p:last-child {
   color: #059669;
+  font-size: 12px;
 }
 
 /* Results Panel */
@@ -2422,4 +2445,63 @@
   .results-header {
     padding: 1rem;
   }
+}
+
+/* Estilos para linhas de conexão no mapa */
+.leaflet-interactive {
+  cursor: pointer;
+}
+
+/* Indicador de zoom automático */
+.map-zoom-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #374151;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.3s ease;
+}
+
+.map-zoom-indicator.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Melhorias para marcadores */
+.leaflet-marker-icon {
+  transition: all 0.3s ease;
+}
+
+.leaflet-marker-icon:hover {
+  transform: scale(1.1);
+  z-index: 1000;
+}
+
+/* Estilos para polylines (linhas de rota) */
+.leaflet-interactive[stroke="#3b82f6"] {
+  stroke-dasharray: 8, 12;
+  animation: dashMove 2s linear infinite;
+}
+
+@keyframes dashMove {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 20; }
+}
+
+/* Popup customizado para origem/destino */
+.map-popup.origin-popup h4 {
+  color: #059669;
+}
+
+.map-popup.destination-popup h4 {
+  color: #dc2626;
+}
+
+.map-popup.toll-popup h4 {
+  color: #d97706;
 }

@@ -124,14 +124,68 @@ function MapBounds({ coordinates, shouldFit }: { coordinates: [number, number][]
   const map = useMap();
   
   useEffect(() => {
+    const fitMapBounds = () => {
+      if (coordinates.length > 0) {
+        console.log('🔍 MapBounds: Ajustando zoom para', coordinates.length, 'coordenadas');
+        
+        try {
+          if (coordinates.length === 1) {
+            // Se só tem um ponto, centraliza nele com zoom fixo
+            map.setView(coordinates[0], 12);
+            console.log('✅ MapBounds: Centralizado em ponto único');
+          } else {
+            // Calcular padding baseado nos painéis laterais (valores exatos do CSS)
+            const mapContainer = map.getContainer();
+            const mapWidth = mapContainer.offsetWidth;
+            const mapHeight = mapContainer.offsetHeight;
+            
+            // Dimensões exatas dos painéis baseado no CSS:
+            // .tolls-left-panel: width: 320px + left: 20px = 340px total
+            // .tolls-right-panel: width: 350px + right: 20px = 370px total
+            const leftPanelTotal = 340; // 320px + 20px margin
+            const rightPanelTotal = 370; // 350px + 20px margin
+            
+            // Calcular padding em pixels com margem extra para segurança
+            const leftPadding = leftPanelTotal + 30; // painel + margem extra
+            const rightPadding = rightPanelTotal + 30; // painel + margem extra
+            const topPadding = 100; // header (60px) + margem extra
+            const bottomPadding = 50; // margem inferior
+            
+            console.log('📐 Dimensões do mapa:', { mapWidth, mapHeight });
+            console.log('📐 Padding calculado:', { leftPadding, rightPadding, topPadding, bottomPadding });
+            
+            // Se tem múltiplos pontos, ajusta para mostrar todos
+            const bounds = L.latLngBounds(coordinates);
+            
+            map.fitBounds(bounds, { 
+              paddingTopLeft: [leftPadding, topPadding],
+              paddingBottomRight: [rightPadding, bottomPadding],
+              maxZoom: 10 // Reduzido mais um pouco para dar ainda mais espaço
+            });
+            console.log('✅ MapBounds: Ajustado para mostrar todos os pontos com padding correto dos painéis');
+          }
+        } catch (error) {
+          console.error('❌ Erro ao ajustar bounds:', error);
+        }
+      }
+    };
+
     if (shouldFit && coordinates.length > 0) {
       // Pequeno delay para garantir que todos os marcadores foram renderizados
-      const timer = setTimeout(() => {
-        const bounds = L.latLngBounds(coordinates);
-        map.fitBounds(bounds, { padding: [20, 20] });
-      }, 100);
+      const timer = setTimeout(fitMapBounds, 300);
       
-      return () => clearTimeout(timer);
+      // Listener para redimensionamento da janela
+      const handleResize = () => {
+        console.log('🔄 Janela redimensionada, reajustando mapa...');
+        setTimeout(fitMapBounds, 100);
+      };
+      
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', handleResize);
+      };
     }
   }, [coordinates, map, shouldFit]);
   
@@ -284,6 +338,7 @@ export default function MapComponent({
       }
       
       if (hasChanges) {
+        // Força o ajuste do zoom quando há mudanças nas localizações
         setShouldFitBounds(true);
       }
     };
@@ -343,6 +398,7 @@ export default function MapComponent({
       console.log('✅ Pedágios com coordenadas válidas:', validTolls.length);
       setTollCoords(validTolls);
       
+      // Força o ajuste do zoom quando há novos pedágios
       if (validTolls.length > 0) {
         setShouldFitBounds(true);
       }
@@ -351,7 +407,7 @@ export default function MapComponent({
     processTolls();
   }, [tolls, geocodeCache]);
 
-  // Atualiza coordenadas apenas quando necessário
+  // Atualiza coordenadas e força zoom quando há mudanças
   useEffect(() => {
     const coords: [number, number][] = [];
     
@@ -363,14 +419,20 @@ export default function MapComponent({
     });
     
     setAllCoordinates(coords);
+    
+    // Se temos coordenadas e houve mudança, ajusta o zoom
+    if (coords.length > 0) {
+      console.log('🎯 Ajustando zoom para mostrar', coords.length, 'pontos');
+      setShouldFitBounds(true);
+    }
   }, [startCoords, endCoords, tollCoords]);
 
-  // Reset shouldFitBounds após um tempo para evitar ajustes constantes
+  // Reset shouldFitBounds após ajustar o zoom
   useEffect(() => {
     if (shouldFitBounds) {
       const timer = setTimeout(() => {
         setShouldFitBounds(false);
-      }, 1000);
+      }, 1500); // Aumentei o tempo para garantir que o ajuste seja feito
       
       return () => clearTimeout(timer);
     }
@@ -384,6 +446,7 @@ export default function MapComponent({
   console.log('- endCoords:', endCoords);
   console.log('- tollCoords:', tollCoords.length, 'pedágios');
   console.log('- allCoordinates:', allCoordinates.length, 'coordenadas');
+  console.log('- shouldFitBounds:', shouldFitBounds);
 
   return (
     <div className="map-container">
@@ -398,33 +461,59 @@ export default function MapComponent({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
+        {/* Linha de conexão origem-destino - renderizada primeiro para ficar atrás dos marcadores */}
+        {startCoords && endCoords && (
+          <Polyline
+            positions={[startCoords, endCoords]}
+            color="#3b82f6"
+            weight={4}
+            opacity={0.7}
+            dashArray="8, 12"
+          />
+        )}
+        
+        {/* Rota detalhada se disponível */}
+        {routeCoordinates.length > 1 && (
+          <Polyline
+            positions={routeCoordinates}
+            color="#2563eb"
+            weight={5}
+            opacity={0.9}
+          />
+        )}
+        
+        {/* Marcador de origem */}
         {startCoords && (
           <Marker position={startCoords} icon={startIcon}>
             <Popup>
-              <div className="map-popup">
+              <div className="map-popup origin-popup">
                 <h4>🏁 Origem</h4>
-                <p>{startLocation}</p>
+                <p><strong>{startLocation}</strong></p>
+                <small>Coordenadas: {startCoords[0].toFixed(4)}, {startCoords[1].toFixed(4)}</small>
               </div>
             </Popup>
           </Marker>
         )}
         
+        {/* Marcador de destino */}
         {endCoords && (
           <Marker position={endCoords} icon={endIcon}>
             <Popup>
-              <div className="map-popup">
+              <div className="map-popup destination-popup">
                 <h4>🎯 Destino</h4>
-                <p>{endLocation}</p>
+                <p><strong>{endLocation}</strong></p>
+                <small>Coordenadas: {endCoords[0].toFixed(4)}, {endCoords[1].toFixed(4)}</small>
               </div>
             </Popup>
           </Marker>
         )}
         
+        {/* Marcadores de pedágios */}
         {tollCoords.map((toll, index) => (
           <Marker key={toll.key || index} position={toll.coordinates} icon={tollIcon}>
             <Popup>
               <div className="map-popup toll-popup">
-                <h4>💰 Pedágio</h4>
+                <h4>💰 Pedágio #{index + 1}</h4>
                 {toll.praca && <p><strong>Praça:</strong> {toll.praca}</p>}
                 {toll.rodovia && <p><strong>Rodovia:</strong> {toll.rodovia}</p>}
                 {toll.localizacao && <p><strong>Local:</strong> {toll.localizacao}</p>}
@@ -438,29 +527,11 @@ export default function MapComponent({
                 {toll.concessionaria && (
                   <p><strong>Concessionária:</strong> {toll.concessionaria}</p>
                 )}
+                <small>Coordenadas: {toll.coordinates[0].toFixed(4)}, {toll.coordinates[1].toFixed(4)}</small>
               </div>
             </Popup>
           </Marker>
         ))}
-        
-        {routeCoordinates.length > 1 && (
-          <Polyline
-            positions={routeCoordinates}
-            color="#2563eb"
-            weight={4}
-            opacity={0.8}
-          />
-        )}
-        
-        {routeCoordinates.length === 0 && startCoords && endCoords && (
-          <Polyline
-            positions={[startCoords, endCoords]}
-            color="#dc2626"
-            weight={3}
-            opacity={0.6}
-            dashArray="10, 10"
-          />
-        )}
         
         <MapBounds 
           coordinates={allCoordinates} 
