@@ -118,8 +118,8 @@ export default function ResultsPanel({
           {apiProvider && (
             <div className="api-badge">
               <span className="badge-label">API:</span>
-              <span className={`badge ${apiProvider === 'localhost' ? 'localhost' : 'external'}`}>
-                {apiProvider === 'localhost' ? '🏠 API Própria' : '🌐 CalcularPedagio.com.br'}
+                                <span className={`badge ${apiProvider === 'localhost' ? 'localhost' : 'external'}`}>
+                    {apiProvider === 'localhost' ? '🚛 API pedagios Lets' : '🌐 CalcularPedagio.com.br'}
               </span>
             </div>
           )}

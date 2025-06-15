@@ -108,7 +108,7 @@ const LoadingSkeleton: React.FC = () => (
   </div>
 );
 
-// Interface para API própria (localhost)
+// Interface para API pedagios Lets
 interface NewTollStation {
   id: number;
   name: string;
@@ -284,7 +284,7 @@ const Tolls: React.FC = () => {
 
   // URLs das APIs
   const API_URLS = {
-    localhost: 'http://localhost:3000/api/check-route',
+    localhost: 'https://server-homolog.letsgreen.com.br/api/check-route',
     calcularpedagio: 'https://www.calcularpedagio.com.br/api/pontos/v3'
   };
 
@@ -314,7 +314,7 @@ const Tolls: React.FC = () => {
   ];
 
   const apiOptions = [
-    { value: 'localhost' as const, label: '🏠 API Própria (Localhost)', description: 'Nossa API desenvolvida internamente' },
+    { value: 'localhost' as const, label: '🚛 API pedagios Lets', description: 'Nossa API desenvolvida internamente' },
     { value: 'calcularpedagio' as const, label: '🌐 CalcularPedagio.com.br', description: 'API externa com mais opções de veículos' }
   ];
 
@@ -336,7 +336,7 @@ const Tolls: React.FC = () => {
     setMapDestino(destino.trim());
 
     try {
-      console.log(`Calculando pedágios usando ${apiProvider === 'localhost' ? 'API própria' : 'CalcularPedagio.com.br'}...`);
+      console.log(`Calculando pedágios usando ${apiProvider === 'localhost' ? 'API pedagios Lets' : 'CalcularPedagio.com.br'}...`);
       
       // Tempo mínimo de loading para melhor UX
       const startTime = Date.now();
@@ -372,7 +372,7 @@ const Tolls: React.FC = () => {
         errorMessage += 'Erro interno do servidor. Tente novamente em alguns minutos.';
       } else if (err.message.includes('Failed to fetch')) {
         errorMessage += apiProvider === 'localhost' 
-          ? 'Erro de conexão. Verifique se a API está rodando em localhost:3000.'
+          ? 'Erro de conexão. Verifique se a API pedagios Lets está funcionando.'
           : 'Erro de conexão. Verifique sua internet e tente novamente.';
       } else {
         errorMessage += err.message || 'Verifique os nomes das cidades e tente novamente.';
@@ -390,7 +390,7 @@ const Tolls: React.FC = () => {
       axleCount: axleCount
     };
 
-    console.log('Dados da requisição (localhost):', requestBody);
+    console.log('Dados da requisição (API pedagios Lets):', requestBody);
 
     const response = await fetch(API_URLS.localhost, {
       method: 'POST',
@@ -401,7 +401,7 @@ const Tolls: React.FC = () => {
     });
 
     const responseText = await response.text();
-    console.log('Resposta raw da API (localhost):', responseText);
+    console.log('Resposta raw da API (API pedagios Lets):', responseText);
 
     let data: NewApiResponse;
     try {
@@ -420,7 +420,7 @@ const Tolls: React.FC = () => {
       throw new Error('Erro na consulta da rota');
     }
 
-    // Processar dados dos pedágios da API localhost
+    // Processar dados dos pedágios da API pedagios Lets
     const pedagiosProcessados = data.data.tolls.map((toll: NewTollStation) => ({
       nome: toll.name,
       valor: toll.cost,
@@ -446,7 +446,7 @@ const Tolls: React.FC = () => {
       apiUsed: 'localhost'
     };
 
-    console.log('Dados processados (localhost):', processedData);
+    console.log('Dados processados (API pedagios Lets):', processedData);
     setTollData(processedData);
   };
 
@@ -802,7 +802,7 @@ const Tolls: React.FC = () => {
 
             <div className="results-api-badge">
               <span>API:</span>
-              <span>{tollData.apiUsed === 'localhost' ? '🏠 API Própria' : '🌐 CalcularPedagio.com.br'}</span>
+                              <span>{tollData.apiUsed === 'localhost' ? '🚛 API pedagios Lets' : '🌐 CalcularPedagio.com.br'}</span>
             </div>
           </div>
         ) : null}
