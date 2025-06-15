@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Header from '../../components/layout/Header';
 import './tolls.css';
+import MapComponent from './MapComponent';
 
 // Componente de Loading Circular
 const CircularProgress: React.FC = () => (
@@ -61,54 +62,27 @@ const TollItemSkeleton: React.FC = () => (
 
 // Componente Principal de Loading/Skeleton
 const LoadingSkeleton: React.FC = () => (
-  <div className="tolls-results-section">
-    <div className="tolls-card">
-      <div className="tolls-card-header loading-header">
-        <div className="loading-title">
-          <CircularProgress />
-          <div>
-            <h2>Calculando Pedágios...</h2>
-            <p>Aguarde enquanto processamos sua rota</p>
-          </div>
-        </div>
+  <div className="map-loading-skeleton">
+    <div className="loading-content">
+      <CircularProgress />
+      <div className="loading-text">
+        <h3>Calculando Pedágios...</h3>
+        <p>Processando sua rota e localizando pedágios</p>
       </div>
-
-      <div className="results-summary">
-        <div className="summary-cards">
-          <SummaryCardSkeleton />
-          <SummaryCardSkeleton />
-          <SummaryCardSkeleton />
-          <SummaryCardSkeleton />
-        </div>
+    </div>
+    
+    <div className="loading-info">
+      <div className="info-item">
+        <div className="skeleton-icon"></div>
+        <div className="skeleton-text short"></div>
       </div>
-
-      <div className="tolls-details">
-        <div className="skeleton-text skeleton-details-title"></div>
-        <div className="tolls-list">
-          <TollItemSkeleton />
-          <TollItemSkeleton />
-          <TollItemSkeleton />
-          <TollItemSkeleton />
-        </div>
+      <div className="info-item">
+        <div className="skeleton-icon"></div>
+        <div className="skeleton-text medium"></div>
       </div>
-
-      <div className="route-info skeleton">
-        <div className="route-endpoints">
-          <div className="endpoint">
-            <div className="skeleton-text skeleton-endpoint"></div>
-          </div>
-          <div className="endpoint">
-            <div className="skeleton-text skeleton-endpoint"></div>
-          </div>
-        </div>
-        <div className="route-summary">
-          <div className="cost-breakdown">
-            <div className="skeleton-text skeleton-breakdown-title"></div>
-            <div className="skeleton-text skeleton-breakdown-item"></div>
-            <div className="skeleton-text skeleton-breakdown-item"></div>
-            <div className="skeleton-text skeleton-breakdown-item"></div>
-          </div>
-        </div>
+      <div className="info-item">
+        <div className="skeleton-icon"></div>
+        <div className="skeleton-text long"></div>
       </div>
     </div>
   </div>
@@ -282,7 +256,10 @@ const Tolls: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [axleCount, setAxleCount] = useState<number>(2);
   const [vehicleType, setVehicleType] = useState<string>('auto2eixos');
-  const [apiProvider, setApiProvider] = useState<ApiProvider>('localhost');
+  const [apiProvider, setApiProvider] = useState<ApiProvider>('calcularpedagio');
+  const [hoveredTollId, setHoveredTollId] = useState<string | null>(null);
+  const [mapOrigem, setMapOrigem] = useState('');
+  const [mapDestino, setMapDestino] = useState('');
 
   // URLs das APIs
   const API_URLS = {
@@ -331,6 +308,7 @@ const Tolls: React.FC = () => {
     setLoading(true);
     setError(null);
     setTollData(null);
+    updateMapLocations();
 
     try {
       console.log(`Calculando pedágios usando ${apiProvider === 'localhost' ? 'API própria' : 'CalcularPedagio.com.br'}...`);
@@ -543,6 +521,19 @@ const Tolls: React.FC = () => {
     setDestino('');
     setTollData(null);
     setError(null);
+    setMapOrigem('');
+    setMapDestino('');
+  };
+
+  const updateMapLocations = () => {
+    setMapOrigem(origem);
+    setMapDestino(destino);
+  };
+
+  const handleInputBlur = () => {
+    if (origem.trim() && destino.trim()) {
+      updateMapLocations();
+    }
   };
 
   const formatCurrency = (value: number): string => {
@@ -566,411 +557,243 @@ const Tolls: React.FC = () => {
     if (apiProvider === 'localhost') {
       const axleOption = axleOptions.find(a => a.value === axleCount);
       return axleOption ? axleOption.label : '2 eixos (Carro, Moto)';
-    } else {
+      } else {
       const vehicleOption = vehicleTypes.find(v => v.value === vehicleType);
       return vehicleOption ? vehicleOption.label : 'Carro (2 eixos)';
     }
   };
 
+  // Preparar dados dos pedágios para o mapa
+  const mapTolls = tollData?.pedagios.map((pedagio, index) => ({
+    key: index.toString(),
+    praca: pedagio.nome,
+    preco: pedagio.valor,
+    precoComTag: pedagio.valorTag,
+    rodovia: pedagio.rodovia,
+    localizacao: pedagio.localizacao,
+    km: pedagio.km,
+    concessionaria: pedagio.concessionaria,
+    city: pedagio.localizacao?.split(',')[0]?.trim(),
+    state: pedagio.estado
+  })) || [];
+
   return (
-    <div className="tolls-page">
+    <div className="tolls-page-fullscreen">
+      {/* Header with Menu */}
       <Header />
-      <div className="tolls-content">
-        <div className="tolls-header">
-          <h1 className="tolls-title">Calculadora de Pedágios</h1>
-          <p className="tolls-subtitle">
-            Calcule os custos de pedágios para suas rotas usando diferentes APIs
-          </p>
+      
+      {/* Left Panel - Route Configuration */}
+      <div className="tolls-left-panel">
+        {/* Route Configuration Card */}
+        <div className="left-panel-card">
+          <h3>📍 Configuração da Rota</h3>
+          
+          <form onSubmit={handleCalculateTolls}>
+            <div className="form-group">
+              <label className="form-label">Origem</label>
+              <input
+                type="text"
+                value={origem}
+                onChange={(e) => setOrigem(e.target.value)}
+                onBlur={handleInputBlur}
+                placeholder={apiProvider === 'localhost' ? "São Paulo, SP" : "São Paulo/SP"}
+                className="panel-input"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Destino</label>
+              <input
+                type="text"
+                value={destino}
+                onChange={(e) => setDestino(e.target.value)}
+                onBlur={handleInputBlur}
+                placeholder={apiProvider === 'localhost' ? "Rio de Janeiro, RJ" : "Rio de Janeiro/RJ"}
+                className="panel-input"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="form-actions">
+              <button 
+                type="submit" 
+                className={`panel-btn primary ${loading ? 'loading' : ''}`}
+                disabled={loading}
+              >
+                {loading ? 'Calculando...' : 'Calcular'}
+              </button>
+              <button 
+                type="button" 
+                onClick={handleClearForm}
+                className="panel-btn secondary"
+                disabled={loading}
+              >
+                Limpar
+              </button>
+            </div>
+          </form>
+
+          {error && (
+            <div className="error-message compact">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor"/>
+              </svg>
+              {error}
+            </div>
+          )}
         </div>
 
-        <div className="tolls-main">
-          <div className="tolls-form-section">
-            <div className="tolls-card">
-              <div className="tolls-card-header">
-                <h2>
-                  <span className="card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="currentColor"/>
-                    </svg>
-                  </span>
-                  Calcular Rota
-                </h2>
-              </div>
+        {/* API & Vehicle Configuration Card */}
+        <div className="left-panel-card">
+          <h3>⚙️ Configurações</h3>
+          
+          <div className="form-group">
+            <label className="form-label">API Provider</label>
+            <select
+              value={apiProvider}
+              onChange={(e) => setApiProvider(e.target.value as ApiProvider)}
+              className="panel-input"
+              disabled={loading}
+            >
+              {apiOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-              <form onSubmit={handleCalculateTolls} className="tolls-form">
-                <div className="form-group">
-                  <label htmlFor="apiProvider">Provedor da API</label>
-                  <select
-                    id="apiProvider"
-                    value={apiProvider}
-                    onChange={(e) => setApiProvider(e.target.value as ApiProvider)}
-                    className="form-select api-provider-select"
-                    disabled={loading}
-                  >
-                    {apiOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <small className="api-description">
-                    {apiOptions.find(opt => opt.value === apiProvider)?.description}
-                  </small>
-                </div>
+          <div className="form-group">
+            <label className="form-label">Tipo de Veículo</label>
+            {apiProvider === 'localhost' ? (
+              <select
+                value={axleCount}
+                onChange={(e) => setAxleCount(Number(e.target.value))}
+                className="panel-input"
+                disabled={loading}
+              >
+                {axleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={vehicleType}
+                onChange={(e) => setVehicleType(e.target.value)}
+                className="panel-input"
+                disabled={loading}
+              >
+                {vehicleTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+      </div>
 
-                <div className="form-group">
-                  <label htmlFor="origem">Cidade de Origem</label>
-                  <input
-                    type="text"
-                    id="origem"
-                    value={origem}
-                    onChange={(e) => setOrigem(e.target.value)}
-                    placeholder={apiProvider === 'localhost' ? "Ex: São Paulo, SP" : "Ex: São Paulo/SP ou São Paulo, SP"}
-                    className="form-input"
-                    disabled={loading}
-                  />
-                  <small style={{ color: '#666', fontSize: '12px' }}>
-                    Formato: {apiProvider === 'localhost' ? 'Cidade, Estado' : 'Cidade/Estado ou Cidade, Estado'}
-                  </small>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="destino">Cidade de Destino</label>
-                  <input
-                    type="text"
-                    id="destino"
-                    value={destino}
-                    onChange={(e) => setDestino(e.target.value)}
-                    placeholder={apiProvider === 'localhost' ? "Ex: Rio de Janeiro, RJ" : "Ex: Rio de Janeiro/RJ ou Rio de Janeiro, RJ"}
-                    className="form-input"
-                    disabled={loading}
-                  />
-                  <small style={{ color: '#666', fontSize: '12px' }}>
-                    Formato: {apiProvider === 'localhost' ? 'Cidade, Estado' : 'Cidade/Estado ou Cidade, Estado'}
-                  </small>
-                </div>
-
-                {apiProvider === 'localhost' ? (
-                  <div className="form-group">
-                    <label htmlFor="axleCount">Número de Eixos</label>
-                    <select
-                      id="axleCount"
-                      value={axleCount}
-                      onChange={(e) => setAxleCount(Number(e.target.value))}
-                      className="form-select"
-                      disabled={loading}
-                    >
-                      {axleOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="form-group">
-                    <label htmlFor="vehicleType">Tipo de Veículo</label>
-                    <select
-                      id="vehicleType"
-                      value={vehicleType}
-                      onChange={(e) => setVehicleType(e.target.value)}
-                      className="form-select"
-                      disabled={loading}
-                    >
-                      {vehicleTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
+      {/* Right Panel - Results */}
+      {tollData && !loading && (
+        <div className="tolls-right-panel">
+          <div className="right-panel-card">
+            <h3>📊 Resultados da Rota</h3>
+            
+            <div className="results-summary-cards">
+              <div className="results-summary-card">
+                <span className="icon">💰</span>
+                <h4>Total Pedágios</h4>
+                <div className="value">R$ {tollData.custoTotal.toFixed(2)}</div>
+                {tollData.custoTotalTag && tollData.custoTotalTag !== tollData.custoTotal && (
+                  <div className="tag-info">
+                    <span className="tag-price">Com TAG: R$ {tollData.custoTotalTag.toFixed(2)}</span>
+                    <span className="economy">Economia: R$ {(tollData.custoTotal - tollData.custoTotalTag).toFixed(2)}</span>
                   </div>
                 )}
+              </div>
 
-                <div className="form-actions">
-                  <button 
-                    type="submit" 
-                    className={`btn-primary ${loading ? 'loading' : ''}`}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <span className="btn-loading">
-                        <svg className="btn-spinner" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="31.416" strokeDashoffset="31.416">
-                            <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/>
-                            <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/>
-                          </circle>
-                        </svg>
-                        Calculando...
-                      </span>
-                    ) : (
-                      'Calcular Pedágios'
-                    )}
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={handleClearForm}
-                    className="btn-secondary"
-                    disabled={loading}
-                  >
-                    Limpar
-                  </button>
+              <div className="results-summary-card">
+                <span className="icon">🛣️</span>
+                <h4>Pedágios</h4>
+                <div className="value">{tollData.totalPedagios}</div>
+              </div>
+
+              {tollData.distanciaTotal && (
+                <div className="results-summary-card">
+                  <span className="icon">📏</span>
+                  <h4>Distância</h4>
+                  <div className="value">{tollData.distanciaTotal} km</div>
                 </div>
-              </form>
+              )}
 
-              {error && (
-                <div className="error-message">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor"/>
-                  </svg>
-                  {error}
+              {tollData.duracaoTotal && (
+                <div className="results-summary-card">
+                  <span className="icon">⏱️</span>
+                  <h4>Duração</h4>
+                  <div className="value">{formatDuration(tollData.duracaoTotal)}</div>
                 </div>
               )}
             </div>
-          </div>
 
-          {loading && (
-            <LoadingSkeleton />
-          )}
-
-          {tollData && !loading && (
-            <div className="tolls-results-section">
-              <div className="tolls-card">
-                <div className="tolls-card-header">
-                  <h2>
-                    <span className="card-icon">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M11.8 10.9C9.53 10.31 8.8 9.7 8.8 8.75C8.8 7.66 9.81 6.9 11.5 6.9C13.28 6.9 13.94 7.75 14 9H16.21C16.14 7.28 15.09 5.7 13 5.19V3H10V5.16C8.06 5.58 6.5 6.84 6.5 8.77C6.5 11.08 8.41 12.23 11.2 12.9C13.7 13.5 14.2 14.38 14.2 15.31C14.2 16 13.71 17.1 11.5 17.1C9.44 17.1 8.63 16.18 8.5 15H6.32C6.44 17.19 8.08 18.42 10 18.83V21H13V18.85C14.95 18.48 16.5 17.35 16.5 15.3C16.5 12.46 14.07 11.49 11.8 10.9Z" fill="currentColor"/>
-                      </svg>
-                    </span>
-                    Resultados dos Pedágios - {getVehicleLabel()}
-                  </h2>
-                </div>
-
-                <div className="results-summary">
-                  <div className="summary-cards">
-                    <div className="summary-card">
-                      <div className="summary-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div className="summary-content">
-                        <h3>Total Praças</h3>
-                        <p>{tollData.totalPedagios}</p>
+            {mapTolls.length > 0 && (
+              <div className="results-toll-list">
+                <h4>📍 Pedágios na Rota</h4>
+                {mapTolls.map((toll, index) => (
+                  <div 
+                    key={toll.key || index}
+                    className={`results-toll-item ${hoveredTollId === (toll.key || index.toString()) ? 'hovered' : ''}`}
+                    onMouseEnter={() => setHoveredTollId(toll.key || index.toString())}
+                    onMouseLeave={() => setHoveredTollId(null)}
+                  >
+                    <div className="results-toll-header">
+                      <div className="results-toll-number">{index + 1}</div>
+                      <div className="results-toll-prices">
+                        <div className="price">R$ {toll.preco.toFixed(2)}</div>
+                        {toll.precoComTag && toll.precoComTag !== toll.preco && (
+                          <div className="tag-price">TAG: R$ {toll.precoComTag.toFixed(2)}</div>
+                        )}
                       </div>
                     </div>
-
-                    <div className="summary-card">
-                      <div className="summary-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M11.8 10.9C9.53 10.31 8.8 9.7 8.8 8.75C8.8 7.66 9.81 6.9 11.5 6.9C13.28 6.9 13.94 7.75 14 9H16.21C16.14 7.28 15.09 5.7 13 5.19V3H10V5.16C8.06 5.58 6.5 6.84 6.5 8.77C6.5 11.08 8.41 12.23 11.2 12.9C13.7 13.5 14.2 14.38 14.2 15.31C14.2 16 13.71 17.1 11.5 17.1C9.44 17.1 8.63 16.18 8.5 15H6.32C6.44 17.19 8.08 18.42 10 18.83V21H13V18.85C14.95 18.48 16.5 17.35 16.5 15.3C16.5 12.46 14.07 11.49 11.8 10.9Z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div className="summary-content">
-                        <h3>{tollData.apiUsed === 'calcularpedagio' ? 'Total Dinheiro' : 'Total Pedágios'}</h3>
-                        <p>{formatCurrency(tollData.custoTotal)}</p>
-                      </div>
-                    </div>
-
-                    {tollData.custoTotalTag && tollData.apiUsed === 'calcularpedagio' && (
-                      <>
-                        <div className="summary-card tag-card">
-                          <div className="summary-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 18H4V8L12 13L20 8V18ZM12 11L4 6H20L12 11Z" fill="currentColor"/>
-                            </svg>
-                          </div>
-                          <div className="summary-content">
-                            <h3>Total TAG</h3>
-                            <p>{formatCurrency(tollData.custoTotalTag)}</p>
-                          </div>
-                        </div>
-                        <div className="summary-card total">
-                          <div className="summary-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M2 17H22V19H2V17ZM1.15 12.95L4 15.47L9.62 9.85L12.5 12.73L22.84 2.39L21.43 0.97L12.5 9.9L9.62 7.02L3.29 13.35L1.15 12.95Z" fill="currentColor"/>
-                            </svg>
-                          </div>
-                          <div className="summary-content">
-                            <h3>Economia com TAG</h3>
-                            <p>{formatCurrency(tollData.custoTotal - tollData.custoTotalTag)}</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {!tollData.custoTotalTag && tollData.apiUsed === 'calcularpedagio' && (
-                      <div className="cost-item">
-                        <span>💳 TAG:</span>
-                        <span style={{ color: '#6b7280', fontStyle: 'italic' }}>Sem desconto nesta rota</span>
-                      </div>
-                    )}
-
-                    <div className="summary-card total">
-                      <div className="summary-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M2 17H22V19H2V17ZM1.15 12.95L4 15.47L9.62 9.85L12.5 12.73L22.84 2.39L21.43 0.97L12.5 9.9L9.62 7.02L3.29 13.35L1.15 12.95Z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div className="summary-content">
-                        <h3>Distância Total</h3>
-                        <p>{formatDistance(tollData.distanciaTotal || 0)}</p>
-                      </div>
-                    </div>
-
-                    <div className="summary-card total">
-                      <div className="summary-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M2 17H22V19H2V17ZM1.15 12.95L4 15.47L9.62 9.85L12.5 12.73L22.84 2.39L21.43 0.97L12.5 9.9L9.62 7.02L3.29 13.35L1.15 12.95Z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div className="summary-content">
-                        <h3>Duração Total</h3>
-                        <p>{formatDuration(tollData.duracaoTotal || 0)}</p>
-                      </div>
+                    <div className="results-toll-info">
+                      {toll.praca && <h5>{toll.praca}</h5>}
+                      {toll.rodovia && <span className="highway">{toll.rodovia}</span>}
+                      {toll.localizacao && <span className="location">{toll.localizacao}</span>}
+                      {toll.km && <span className="km">KM {toll.km}</span>}
                     </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            )}
 
-                {tollData.pedagios && tollData.pedagios.length > 0 && (
-                  <div className="tolls-details">
-                    <h3 className="details-title">Detalhes dos Pedágios ({tollData.pedagios.length} praças)</h3>
-                    <div className="tolls-list">
-                      {tollData.pedagios.map((pedagio, index) => (
-                        <div key={index} className="toll-item">
-                          <div className="toll-info">
-                            <h4>{pedagio.nome}</h4>
-                            <p className="toll-location">
-                              {pedagio.localizacao}
-                              {pedagio.rodovia && ` - ${pedagio.rodovia}`}
-                              {pedagio.km && ` (KM ${pedagio.km})`}
-                            </p>
-                            {pedagio.concessionaria && (
-                              <p className="toll-concessionaire">
-                                <small>{pedagio.concessionaria}</small>
-                              </p>
-                            )}
-                            <div className="toll-badges">
-                              <span className="toll-type">{pedagio.tipo}</span>
-                              {pedagio.estado && (
-                                <span className="toll-state">{pedagio.estado}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="toll-value">
-                            <div>{formatCurrency(pedagio.valor)}</div>
-                            {pedagio.valorTag && tollData.apiUsed === 'calcularpedagio' && pedagio.valorTag !== pedagio.valor && (
-                              <div className="toll-tag-value">
-                                TAG: {formatCurrency(pedagio.valorTag)}
-                              </div>
-                            )}
-                            {pedagio.googleMapsLink && (
-                              <a 
-                                href={pedagio.googleMapsLink} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="toll-maps-link"
-                              >
-                                Ver no Maps
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+            <div className="results-api-badge">
+              <span>API:</span>
+              <span>{tollData.apiUsed === 'localhost' ? '🏠 API Própria' : '🌐 CalcularPedagio.com.br'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Map */}
+      <div className="map-section">
+        {loading && (
+          <div className="map-loading-overlay">
+            <LoadingSkeleton />
                   </div>
                 )}
 
-                <div className="route-info">
-                  <div className="route-endpoints">
-                    <div className="endpoint origin">
-                      <div className="endpoint-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <strong>Origem:</strong> {tollData.origem}
-                      </div>
-                    </div>
-                    <div className="endpoint destination">
-                      <div className="endpoint-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <strong>Destino:</strong> {tollData.destino}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="route-summary">
-                    <div className="cost-breakdown">
-                      <h4>Resumo de Custos para {getVehicleLabel()}</h4>
-                      <div className="cost-item">
-                        <span>{tollData.apiUsed === 'calcularpedagio' ? 'Pedágios (Dinheiro):' : 'Total de Pedágios:'}</span>
-                        <span>{formatCurrency(tollData.custoTotal)}</span>
-                      </div>
-                      {tollData.custoTotalTag && tollData.apiUsed === 'calcularpedagio' && (
-                        <>
-                          <div className="cost-item">
-                            <span>Pedágios (TAG):</span>
-                            <span>{formatCurrency(tollData.custoTotalTag)}</span>
-                          </div>
-                          <div className="cost-item total-cost">
-                            <span><strong>Economia com TAG:</strong></span>
-                            <span><strong>{formatCurrency(tollData.custoTotal - tollData.custoTotalTag)}</strong></span>
-                          </div>
-                        </>
-                      )}
-                      {!tollData.custoTotalTag && tollData.apiUsed === 'calcularpedagio' && (
-                        <div className="cost-item">
-                          <span>💳 TAG:</span>
-                          <span style={{ color: '#6b7280', fontStyle: 'italic' }}>Sem desconto nesta rota</span>
-                        </div>
-                      )}
-                      {tollData.distanciaTotal && (
-                        <div className="cost-item">
-                          <span>Distância Total:</span>
-                          <span>{formatDistance(tollData.distanciaTotal)}</span>
-                        </div>
-                      )}
-                      {tollData.duracaoTotal && (
-                        <div className="cost-item">
-                          <span>Duração Estimada:</span>
-                          <span>{formatDuration(tollData.duracaoTotal)}</span>
-                        </div>
-                      )}
-                      <div className="cost-item api-info">
-                        <span>API Utilizada:</span>
-                        <span className={`api-badge ${tollData.apiUsed}`}>
-                          {tollData.apiUsed === 'localhost' ? '🏠 API Própria' : '🌐 CalcularPedagio.com.br'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {tollData.routeUrl && (
-                      <div className="route-actions">
-                        <a 
-                          href={tollData.routeUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn-maps"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="currentColor"/>
-                          </svg>
-                          Ver Rota no Google Maps
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <MapComponent
+          startLocation={mapOrigem}
+          endLocation={mapDestino}
+          tolls={mapTolls}
+          isLoading={loading}
+        />
       </div>
+
+
     </div>
   );
 };
