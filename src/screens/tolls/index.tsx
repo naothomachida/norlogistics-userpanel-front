@@ -60,9 +60,11 @@ const TollItemSkeleton: React.FC = () => (
   </div>
 );
 
-// Componente Principal de Loading/Skeleton
+// Componente de Loading para o Painel Direito
 const LoadingSkeleton: React.FC = () => (
-  <div className="map-loading-skeleton">
+  <div className="right-panel-skeleton">
+    <h3>📊 Resultados da Rota</h3>
+    
     <div className="loading-content">
       <CircularProgress />
       <div className="loading-text">
@@ -71,19 +73,37 @@ const LoadingSkeleton: React.FC = () => (
       </div>
     </div>
     
-    <div className="loading-info">
-      <div className="info-item">
+    {/* Skeleton dos cards de resumo */}
+    <div className="results-summary-cards">
+      <div className="results-summary-card skeleton">
         <div className="skeleton-icon"></div>
-        <div className="skeleton-text short"></div>
+        <div className="skeleton-text skeleton-summary-title"></div>
+        <div className="skeleton-text skeleton-summary-value"></div>
       </div>
-      <div className="info-item">
+      <div className="results-summary-card skeleton">
         <div className="skeleton-icon"></div>
-        <div className="skeleton-text medium"></div>
+        <div className="skeleton-text skeleton-summary-title"></div>
+        <div className="skeleton-text skeleton-summary-value"></div>
       </div>
-      <div className="info-item">
-        <div className="skeleton-icon"></div>
-        <div className="skeleton-text long"></div>
-      </div>
+    </div>
+
+    {/* Skeleton da lista de pedágios */}
+    <div className="results-toll-list">
+      <div className="skeleton-text skeleton-list-title"></div>
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="results-toll-item skeleton">
+          <div className="results-toll-header">
+            <div className="skeleton-toll-number"></div>
+            <div className="results-toll-prices">
+              <div className="skeleton-text skeleton-price"></div>
+            </div>
+          </div>
+          <div className="results-toll-info">
+            <div className="skeleton-text skeleton-toll-name"></div>
+            <div className="skeleton-text skeleton-toll-location"></div>
+          </div>
+        </div>
+      ))}
     </div>
   </div>
 );
@@ -224,6 +244,7 @@ interface TollData {
   origem: string;
   destino: string;
   pedagios: Array<{
+    key?: string; // Key da API que contém coordenadas
     nome: string;
     valor: number;
     valorTag?: number;
@@ -308,7 +329,11 @@ const Tolls: React.FC = () => {
     setLoading(true);
     setError(null);
     setTollData(null);
-    updateMapLocations();
+    
+    // Atualizar coordenadas do mapa imediatamente
+    console.log('🔄 Atualizando coordenadas do mapa:', origem, '->', destino);
+    setMapOrigem(origem.trim());
+    setMapDestino(destino.trim());
 
     try {
       console.log(`Calculando pedágios usando ${apiProvider === 'localhost' ? 'API própria' : 'CalcularPedagio.com.br'}...`);
@@ -478,6 +503,7 @@ const Tolls: React.FC = () => {
 
     // Processar dados dos pedágios da API calcularpedagio
     const pedagiosProcessados = data.dados.pedagiosRota.map((pedagio: CalcularPedagioTollStation) => ({
+      key: pedagio.key, // Preservar o key original que contém as coordenadas
       nome: pedagio.localidade,
       valor: getVehicleValue(pedagio.custosDinheiro, vehicleType),
       valorTag: getVehicleValue(pedagio.custoTag, vehicleType),
@@ -525,15 +551,8 @@ const Tolls: React.FC = () => {
     setMapDestino('');
   };
 
-  const updateMapLocations = () => {
-    setMapOrigem(origem);
-    setMapDestino(destino);
-  };
-
   const handleInputBlur = () => {
-    if (origem.trim() && destino.trim()) {
-      updateMapLocations();
-    }
+    // Removido updateMapLocations - agora só atualiza quando calcula
   };
 
   const formatCurrency = (value: number): string => {
@@ -565,7 +584,7 @@ const Tolls: React.FC = () => {
 
   // Preparar dados dos pedágios para o mapa
   const mapTolls = tollData?.pedagios.map((pedagio, index) => ({
-    key: index.toString(),
+    key: pedagio.key || index.toString(), // Usar key da API se disponível, senão usar index
     praca: pedagio.nome,
     preco: pedagio.valor,
     precoComTag: pedagio.valorTag,
@@ -577,10 +596,16 @@ const Tolls: React.FC = () => {
     state: pedagio.estado
   })) || [];
 
+  console.log('🚗 Dados dos pedágios para o mapa:', mapTolls);
+  console.log('📍 Origem para mapa:', mapOrigem);
+  console.log('📍 Destino para mapa:', mapDestino);
+
   return (
     <div className="tolls-page-fullscreen">
       {/* Header with Menu */}
       <Header />
+      
+
       
       {/* Left Panel - Route Configuration */}
       <div className="tolls-left-panel">
@@ -698,8 +723,14 @@ const Tolls: React.FC = () => {
       </div>
 
       {/* Right Panel - Results */}
-      {tollData && !loading && (
-        <div className="tolls-right-panel">
+      <div className="tolls-right-panel">
+        {loading ? (
+          <div className="right-panel-card">
+            <div className="right-panel-loading">
+              <LoadingSkeleton />
+            </div>
+          </div>
+        ) : tollData ? (
           <div className="right-panel-card">
             <h3>📊 Resultados da Rota</h3>
             
@@ -774,22 +805,15 @@ const Tolls: React.FC = () => {
               <span>{tollData.apiUsed === 'localhost' ? '🏠 API Própria' : '🌐 CalcularPedagio.com.br'}</span>
             </div>
           </div>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       {/* Fullscreen Map */}
       <div className="map-section">
-        {loading && (
-          <div className="map-loading-overlay">
-            <LoadingSkeleton />
-                  </div>
-                )}
-
         <MapComponent
           startLocation={mapOrigem}
           endLocation={mapDestino}
           tolls={mapTolls}
-          isLoading={loading}
         />
       </div>
 

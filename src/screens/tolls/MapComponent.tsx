@@ -30,8 +30,47 @@ interface MapComponentProps {
   endLocation: string;
   tolls: TollData[];
   routeCoordinates?: [number, number][];
-  isLoading?: boolean;
 }
+
+// Coordenadas de fallback para cidades brasileiras comuns
+const FALLBACK_COORDINATES: Record<string, [number, number]> = {
+  // São Paulo
+  'sao paulo': [-23.5505, -46.6333],
+  'são paulo': [-23.5505, -46.6333],
+  'sao paulo, sp': [-23.5505, -46.6333],
+  'são paulo, sp': [-23.5505, -46.6333],
+  'sao paulo/sp': [-23.5505, -46.6333],
+  'são paulo/sp': [-23.5505, -46.6333],
+  
+  // Rio de Janeiro
+  'rio de janeiro': [-22.9068, -43.1729],
+  'rio de janeiro, rj': [-22.9068, -43.1729],
+  'rio de janeiro/rj': [-22.9068, -43.1729],
+  
+  // Outras cidades importantes
+  'belo horizonte': [-19.9167, -43.9345],
+  'belo horizonte, mg': [-19.9167, -43.9345],
+  'brasilia': [-15.7801, -47.9292],
+  'brasília': [-15.7801, -47.9292],
+  'salvador': [-12.9714, -38.5014],
+  'fortaleza': [-3.7319, -38.5267],
+  'recife': [-8.0476, -34.8770],
+  'porto alegre': [-30.0346, -51.2177],
+  'curitiba': [-25.4284, -49.2733],
+  'campinas': [-22.9099, -47.0626],
+  'sorocaba': [-23.5015, -47.4526],
+  'sorocaba, sp': [-23.5015, -47.4526],
+  'sorocaba/sp': [-23.5015, -47.4526],
+  
+  // Cidades da região metropolitana de SP
+  'osasco': [-23.5329, -46.7918],
+  'barueri': [-23.5106, -46.8761],
+  'itapevi': [-23.5489, -46.9343],
+  'itu': [-23.2644, -47.2997],
+  'itu sp': [-23.2644, -47.2997],
+  'castelinho': [-23.4117, -47.3422], // Aproximado para região de Itu
+  'castello branco': [-23.5178, -46.8141], // Região da rodovia Castello Branco
+};
 
 const startIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -99,20 +138,91 @@ function MapBounds({ coordinates, shouldFit }: { coordinates: [number, number][]
   return null;
 }
 
+// Função para extrair coordenadas do campo key da API
+function extractCoordinatesFromKey(key: string): [number, number] | null {
+  try {
+    // O key tem formato "-23.509452_-46.817171"
+    const parts = key.split('_');
+    if (parts.length === 2) {
+      const lat = parseFloat(parts[0]);
+      const lng = parseFloat(parts[1]);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        console.log('✅ Coordenadas extraídas do key:', [lat, lng]);
+        return [lat, lng];
+      }
+    }
+  } catch (error) {
+    console.error('❌ Erro ao extrair coordenadas do key:', error);
+  }
+  return null;
+}
+
+// Função para obter coordenadas de fallback
+function getFallbackCoordinates(location: string): [number, number] | null {
+  const normalizedLocation = location.toLowerCase().trim();
+  
+  // Tenta encontrar correspondência exata primeiro
+  if (FALLBACK_COORDINATES[normalizedLocation]) {
+    console.log('✅ Coordenadas de fallback encontradas para:', location);
+    return FALLBACK_COORDINATES[normalizedLocation];
+  }
+  
+  // Tenta encontrar correspondência parcial
+  for (const [key, coords] of Object.entries(FALLBACK_COORDINATES)) {
+    if (normalizedLocation.includes(key) || key.includes(normalizedLocation)) {
+      console.log('✅ Coordenadas de fallback (parcial) encontradas para:', location);
+      return coords;
+    }
+  }
+  
+  console.log('❌ Nenhuma coordenada de fallback encontrada para:', location);
+  return null;
+}
+
 async function geocodeLocation(location: string): Promise<[number, number] | null> {
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}, Brazil&limit=1`
+    console.log('🌐 Fazendo geocoding para:', location);
+    
+    // Primeiro tenta coordenadas de fallback
+    const fallbackCoords = getFallbackCoordinates(location);
+    if (fallbackCoords) {
+      return fallbackCoords;
+    }
+    
+    // Delay para evitar rate limiting
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Primeiro tenta com Brazil
+    let response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}, Brazil&limit=1&countrycodes=br`
     );
-    const data = await response.json();
+    let data = await response.json();
+    
+    console.log('📡 Resposta do geocoding (com Brazil):', data);
+    
+    // Se não encontrou, tenta sem Brazil
+    if (!data || data.length === 0) {
+      console.log('🔄 Tentando geocoding sem Brazil...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1&countrycodes=br`
+      );
+      data = await response.json();
+      console.log('📡 Resposta do geocoding (sem Brazil):', data);
+    }
     
     if (data && data.length > 0) {
-      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      const coords: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      console.log('✅ Coordenadas encontradas via geocoding:', coords);
+      return coords;
     }
+    
+    console.log('❌ Nenhuma coordenada encontrada para:', location);
     return null;
   } catch (error) {
-    console.error('Geocoding error:', error);
-    return null;
+    console.error('❌ Erro no geocoding:', error);
+    // Em caso de erro, tenta fallback novamente
+    return getFallbackCoordinates(location);
   }
 }
 
@@ -139,8 +249,7 @@ export default function MapComponent({
   startLocation, 
   endLocation, 
   tolls, 
-  routeCoordinates = [],
-  isLoading = false 
+  routeCoordinates = []
 }: MapComponentProps) {
   const [startCoords, setStartCoords] = useState<[number, number] | null>(null);
   const [endCoords, setEndCoords] = useState<[number, number] | null>(null);
@@ -157,14 +266,18 @@ export default function MapComponent({
       let hasChanges = false;
       
       if (startLocation && startLocation !== lastStartLocation) {
+        console.log('🔍 Geocoding origem:', startLocation);
         const coords = await geocodeLocationWithCache(startLocation, geocodeCache, setGeocodeCache);
+        console.log('📍 Coordenadas origem:', coords);
         setStartCoords(coords);
         setLastStartLocation(startLocation);
         hasChanges = true;
       }
       
       if (endLocation && endLocation !== lastEndLocation) {
+        console.log('🔍 Geocoding destino:', endLocation);
         const coords = await geocodeLocationWithCache(endLocation, geocodeCache, setGeocodeCache);
+        console.log('📍 Coordenadas destino:', coords);
         setEndCoords(coords);
         setLastEndLocation(endLocation);
         hasChanges = true;
@@ -178,16 +291,29 @@ export default function MapComponent({
     geocodeLocations();
   }, [startLocation, endLocation, lastStartLocation, lastEndLocation, geocodeCache]);
 
-  // Só faz geocoding dos pedágios quando a lista realmente muda
+  // Processa pedágios com coordenadas do key ou geocoding
   useEffect(() => {
-    const geocodeTolls = async () => {
+    const processTolls = async () => {
       if (tolls.length === 0) {
+        console.log('📍 Nenhum pedágio para processar');
         setTollCoords([]);
         return;
       }
 
+      console.log('🔍 Processando pedágios:', tolls.length, 'pedágios');
+
       const tollsWithCoords = await Promise.all(
-        tolls.map(async (toll) => {
+        tolls.map(async (toll, index) => {
+          // Primeiro tenta extrair coordenadas do key
+          if (toll.key) {
+            const keyCoords = extractCoordinatesFromKey(toll.key);
+            if (keyCoords) {
+              console.log(`✅ Pedágio ${index + 1} - coordenadas do key:`, keyCoords);
+              return { ...toll, coordinates: keyCoords };
+            }
+          }
+          
+          // Se não conseguiu do key, tenta geocoding
           let location = '';
           
           if (toll.praca) {
@@ -198,18 +324,23 @@ export default function MapComponent({
             location = `${toll.city}, ${toll.state}`;
           }
           
+          console.log(`🔍 Geocoding pedágio ${index + 1}:`, location);
+          
           if (location) {
             const coords = await geocodeLocationWithCache(location, geocodeCache, setGeocodeCache);
+            console.log(`📍 Coordenadas pedágio ${index + 1}:`, coords);
             if (coords) {
               return { ...toll, coordinates: coords };
             }
           }
           
+          console.log(`❌ Falha no processamento do pedágio ${index + 1}`);
           return null;
         })
       );
 
       const validTolls = tollsWithCoords.filter(Boolean) as Array<TollData & { coordinates: [number, number] }>;
+      console.log('✅ Pedágios com coordenadas válidas:', validTolls.length);
       setTollCoords(validTolls);
       
       if (validTolls.length > 0) {
@@ -217,7 +348,7 @@ export default function MapComponent({
       }
     };
 
-    geocodeTolls();
+    processTolls();
   }, [tolls, geocodeCache]);
 
   // Atualiza coordenadas apenas quando necessário
@@ -245,19 +376,14 @@ export default function MapComponent({
     }
   }, [shouldFitBounds]);
 
-  if (isLoading) {
-    return (
-      <div className="map-loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Carregando mapa...</p>
-        </div>
-      </div>
-    );
-  }
-
   const defaultCenter: [number, number] = [-23.5505, -46.6333];
   const mapCenter = allCoordinates.length > 0 ? allCoordinates[0] : defaultCenter;
+
+  console.log('🗺️ Renderizando mapa com:');
+  console.log('- startCoords:', startCoords);
+  console.log('- endCoords:', endCoords);
+  console.log('- tollCoords:', tollCoords.length, 'pedágios');
+  console.log('- allCoordinates:', allCoordinates.length, 'coordenadas');
 
   return (
     <div className="map-container">
