@@ -240,6 +240,56 @@ interface CalcularPedagioApiResponse {
   distancia: string;
 }
 
+// Interface para API QualP v4 (baseada na resposta real)
+interface QualPApiResponse {
+  distancia: {
+    texto: string;
+    valor: number;
+  };
+  duracao: {
+    texto: string;
+    valor: number;
+  };
+  endereco_inicio: string;
+  endereco_fim: string;
+  coordenada_inicio: string;
+  coordenada_fim: string;
+  pedagios: QualPTollStation[];
+  rotograma: Array<{
+    instrucao: string;
+  }>;
+  balancas: any[];
+  polilinha_simplificada: string;
+  link_site_qualp: string;
+  locais: string[];
+  id_transacao: number;
+  roteador_selecionado: string;
+  calcular_volta: boolean;
+  otimizar_rota: boolean;
+  meta_data: string;
+}
+
+interface QualPTollStation {
+  id_api: string;
+  codigo_antt: string;
+  codigo_integracao_sem_parar: number;
+  concessionaria: string;
+  nome: string;
+  uf: string;
+  municipio: string;
+  rodovia: string;
+  km: string;
+  tarifa: {
+    [eixos: string]: number;
+  };
+  special_toll: boolean;
+  porcentagem_fim_semana: number;
+  porcentagem_tag: number;
+  is_ferry: number;
+  is_free_flow: number;
+  p_index: number;
+}
+
 interface TollData {
   origem: string;
   destino: string;
@@ -267,7 +317,7 @@ interface TollData {
   apiUsed: string;
 }
 
-type ApiProvider = 'localhost' | 'calcularpedagio';
+type ApiProvider = 'localhost' | 'calcularpedagio' | 'qualp';
 
 const Tolls: React.FC = () => {
   const [origem, setOrigem] = useState('');
@@ -285,10 +335,12 @@ const Tolls: React.FC = () => {
   // URLs das APIs
   const API_URLS = {
     localhost: 'https://server-homolog.letsgreen.com.br/api/check-route',
-    calcularpedagio: 'https://www.calcularpedagio.com.br/api/pontos/v3'
+    calcularpedagio: 'https://www.calcularpedagio.com.br/api/pontos/v3',
+    qualp: 'https://api.qualp.com.br/rotas/v4' // API QualP v4 com token no header
   };
 
   const API_KEY_CALCULARPEDAGIO = 'cfadc738-1785-40a5-90b2-c6288457a587';
+  const API_ACCESS_TOKEN_QUALP = 'l8ljcFWzn53Sas8qWfvn0OoEn7Rou2Ti'; // Token de acesso QualP conforme documentação
 
   const axleOptions = [
     { value: 2, label: '2 eixos (Carro, Moto)' },
@@ -315,7 +367,8 @@ const Tolls: React.FC = () => {
 
   const apiOptions = [
     { value: 'localhost' as const, label: '🚛 API pedagios Lets', description: 'Nossa API desenvolvida internamente' },
-    { value: 'calcularpedagio' as const, label: '🌐 CalcularPedagio.com.br', description: 'API externa com mais opções de veículos' }
+    { value: 'calcularpedagio' as const, label: '🌐 CalcularPedagio.com.br', description: 'API externa com mais opções de veículos' },
+    { value: 'qualp' as const, label: '🚚 QualP API Pedagios', description: 'API QualP para cálculo de pedágios' }
   ];
 
   const handleCalculateTolls = async (e: React.FormEvent) => {
@@ -336,7 +389,11 @@ const Tolls: React.FC = () => {
     setMapDestino(destino.trim());
 
     try {
-      console.log(`Calculando pedágios usando ${apiProvider === 'localhost' ? 'API pedagios Lets' : 'CalcularPedagio.com.br'}...`);
+      console.log(`Calculando pedágios usando ${
+        apiProvider === 'localhost' ? 'API pedagios Lets' : 
+        apiProvider === 'qualp' ? 'QualP API Pedagios' : 
+        'CalcularPedagio.com.br'
+      }...`);
       
       // Tempo mínimo de loading para melhor UX
       const startTime = Date.now();
@@ -345,6 +402,8 @@ const Tolls: React.FC = () => {
       let apiPromise;
       if (apiProvider === 'localhost') {
         apiPromise = handleLocalhostApi();
+      } else if (apiProvider === 'qualp') {
+        apiPromise = handleQualPApi();
       } else {
         apiPromise = handleCalcularPedagioApi();
       }
@@ -373,6 +432,8 @@ const Tolls: React.FC = () => {
       } else if (err.message.includes('Failed to fetch')) {
         errorMessage += apiProvider === 'localhost' 
           ? 'Erro de conexão. Verifique se a API pedagios Lets está funcionando.'
+          : apiProvider === 'qualp'
+          ? 'Erro de conexão. Verifique se a API QualP está funcionando.'
           : 'Erro de conexão. Verifique sua internet e tente novamente.';
       } else {
         errorMessage += err.message || 'Verifique os nomes das cidades e tente novamente.';
@@ -537,6 +598,157 @@ const Tolls: React.FC = () => {
     setTollData(processedData);
   };
 
+  const handleQualPApi = async () => {
+    // Mapear categoria do veículo conforme documentação QualP v4
+    const getCategoriaVeiculo = (eixos: number): string => {
+      if (eixos <= 2) return 'car';
+      if (eixos <= 3) return 'truck';
+      return 'truck';
+    };
+
+    // Construir JSON body conforme documentação OFICIAL QualP v4
+    const requestBody = {
+      "locations": [
+        origem.trim(),
+        destino.trim()
+      ],
+      "config": {
+        "vehicle": {
+          "type": getCategoriaVeiculo(axleCount),
+          "axis": axleCount
+        },
+        "tolls": {
+          "retroactive_date": ""
+        },
+        "freight_table": {
+          "category": "all",
+          "freight_load": "granel_solido",
+          "axis": axleCount
+        },
+        "route": {
+          "calculate_return": false,
+          "optimized_route": false,
+          "alternative_routes": 0
+        },
+        "private_places": {
+          "max_distance_from_location_to_route": 1000,
+          "categories": true,
+          "areas": false,
+          "contacts": false,
+          "products": false,
+          "services": false
+        },
+        "router": "qualp"
+      },
+      "show": {
+        "polyline": false,
+        "simplified_polyline": true,
+        "private_places": false,
+        "static_image": false,
+        "freight_table": true,
+        "link_to_qualp": true,
+        "maneuvers": true,
+        "truck_scales": true,
+        "tolls": true
+      },
+      "format": "json",
+      "exception_key": ""
+    };
+
+    console.log('🎯 FORMATO OFICIAL v4: Usando documentação correta da API!');
+
+    console.log('🔍 URL da requisição (QualP v4):', API_URLS.qualp);
+    console.log('🔑 Token sendo usado no header:', API_ACCESS_TOKEN_QUALP);
+    console.log('📋 JSON Body enviado:', JSON.stringify(requestBody, null, 2));
+    console.log('📍 Origem original:', origem);
+    console.log('📍 Destino original:', destino);
+    console.log('📍 Origem limpa:', origem.trim());
+    console.log('📍 Destino limpo:', destino.trim());
+
+    const response = await fetch(API_URLS.qualp, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Token': API_ACCESS_TOKEN_QUALP  // Token no header conforme v4
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('Status da resposta:', response.status);
+    console.log('Headers da resposta:', Object.fromEntries(response.headers.entries()));
+    console.log('✅ Headers enviados:', {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Access-Token': API_ACCESS_TOKEN_QUALP
+    });
+    
+    const responseText = await response.text();
+    console.log('Resposta raw da API (QualP):', responseText);
+
+    // Tratamento especial para erro 401
+    if (response.status === 401) {
+      console.error('❌ Erro de autenticação QualP - Token inválido ou expirado');
+      console.error('🔑 Token completo usado:', API_ACCESS_TOKEN_QUALP);
+      console.error('🌐 URL testada:', API_URLS.qualp);
+      throw new Error(`Erro de autenticação QualP: Token "${API_ACCESS_TOKEN_QUALP}" foi rejeitado. Verifique se:
+1. O token está correto na sua conta QualP
+2. O token não expirou
+3. Sua conta tem permissões para usar a API
+4. Contate suporte QualP: (42) 99836-0043`);
+    }
+
+    if (!response.ok) {
+      console.error('Erro da API QualP:', responseText);
+      throw new Error(`Erro ${response.status}: ${responseText}`);
+    }
+
+    let data: QualPApiResponse;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Erro ao fazer parse JSON:', e);
+      throw new Error(`Resposta inválida da API: ${responseText}`);
+    }
+
+    // A API v4 do QualP não retorna status boolean, se chegou aqui é sucesso
+    if (!data.pedagios) {
+      throw new Error('Resposta da API não contém dados de pedágios');
+    }
+
+    // Processar dados dos pedágios da API QualP v4
+    const pedagiosProcessados = data.pedagios.map((pedagio: QualPTollStation) => ({
+      nome: pedagio.nome,
+      valor: pedagio.tarifa[axleCount.toString()] || pedagio.tarifa["2"] || 0, // Usar tarifa do eixo específico
+      tipo: 'Pedágio',
+      localizacao: `${pedagio.municipio}, ${pedagio.uf}`,
+      rodovia: pedagio.rodovia,
+      estado: pedagio.uf,
+      concessionaria: pedagio.concessionaria,
+      km: parseFloat(pedagio.km),
+      key: pedagio.id_api
+    }));
+
+    // Calcular custo total somando os pedágios
+    const custoTotal = pedagiosProcessados.reduce((total, pedagio) => total + pedagio.valor, 0);
+
+    const processedData: TollData = {
+      origem: data.endereco_inicio,
+      destino: data.endereco_fim,
+      pedagios: pedagiosProcessados,
+      custoTotal: custoTotal,
+      totalPedagios: data.pedagios.length,
+      distanciaTotal: data.distancia.valor,
+      duracaoTotal: Math.round(data.duracao.valor / 60), // Converter segundos para minutos
+      status: 'success',
+      routeUrl: data.link_site_qualp,
+      apiUsed: 'qualp'
+    };
+
+    console.log('Dados processados (QualP):', processedData);
+    setTollData(processedData);
+  };
+
   const getVehicleValue = (costs: any, vehicleType: string): number => {
     const value = costs[vehicleType];
     return value !== null && value !== undefined ? value : 0;
@@ -573,7 +785,7 @@ const Tolls: React.FC = () => {
   };
 
   const getVehicleLabel = (): string => {
-    if (apiProvider === 'localhost') {
+    if (apiProvider === 'localhost' || apiProvider === 'qualp') {
       const axleOption = axleOptions.find(a => a.value === axleCount);
       return axleOption ? axleOption.label : '2 eixos (Carro, Moto)';
       } else {
@@ -621,7 +833,7 @@ const Tolls: React.FC = () => {
                 value={origem}
                 onChange={(e) => setOrigem(e.target.value)}
                 onBlur={handleInputBlur}
-                placeholder={apiProvider === 'localhost' ? "São Paulo, SP" : "São Paulo/SP"}
+                placeholder={(apiProvider === 'localhost' || apiProvider === 'qualp') ? "São Paulo, SP" : "São Paulo/SP"}
                 className="panel-input"
                 disabled={loading}
               />
@@ -634,7 +846,7 @@ const Tolls: React.FC = () => {
                 value={destino}
                 onChange={(e) => setDestino(e.target.value)}
                 onBlur={handleInputBlur}
-                placeholder={apiProvider === 'localhost' ? "Rio de Janeiro, RJ" : "Rio de Janeiro/RJ"}
+                placeholder={(apiProvider === 'localhost' || apiProvider === 'qualp') ? "Rio de Janeiro, RJ" : "Rio de Janeiro/RJ"}
                 className="panel-input"
                 disabled={loading}
               />
@@ -691,7 +903,7 @@ const Tolls: React.FC = () => {
 
           <div className="form-group">
             <label className="form-label">Tipo de Veículo</label>
-            {apiProvider === 'localhost' ? (
+            {(apiProvider === 'localhost' || apiProvider === 'qualp') ? (
               <select
                 value={axleCount}
                 onChange={(e) => setAxleCount(Number(e.target.value))}
@@ -802,7 +1014,11 @@ const Tolls: React.FC = () => {
 
             <div className="results-api-badge">
               <span>API:</span>
-                              <span>{tollData.apiUsed === 'localhost' ? '🚛 API pedagios Lets' : '🌐 CalcularPedagio.com.br'}</span>
+              <span>{
+                tollData.apiUsed === 'localhost' ? '🚛 API pedagios Lets' :
+                tollData.apiUsed === 'qualp' ? '🚚 QualP API Pedagios' :
+                '🌐 CalcularPedagio.com.br'
+              }</span>
             </div>
           </div>
         ) : null}
