@@ -334,7 +334,9 @@ const Tolls: React.FC = () => {
 
   // URLs das APIs
   const API_URLS = {
-    localhost: 'https://server-homolog.letsgreen.com.br/api/check-route',
+    localhost: import.meta.env.DEV 
+      ? 'http://localhost:3000/api/check-route'
+      : 'https://server-homolog.letsgreen.com.br/api/check-route',
     calcularpedagio: 'https://www.calcularpedagio.com.br/api/pontos/v3',
     qualp: 'https://api.qualp.com.br/rotas/v4' // API QualP v4 com token no header
   };
