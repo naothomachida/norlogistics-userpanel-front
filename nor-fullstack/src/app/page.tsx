@@ -1,10 +1,10 @@
 'use client'
 
 import Link from "next/link"
-import { useAppSelector } from "@/store/hooks"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function Home() {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth)
+  const { isAuthenticated, user, logout } = useAuth()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -16,7 +16,19 @@ export default function Home() {
                 Sistema de Logística NOR
               </h1>
             </div>
-            {!isAuthenticated && (
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-600 text-sm">
+                  Olá, {user?.nome}
+                </span>
+                <button
+                  onClick={logout}
+                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Sair
+                </button>
+              </div>
+            ) : (
               <div className="flex items-center space-x-4">
                 <Link
                   href="/login"
