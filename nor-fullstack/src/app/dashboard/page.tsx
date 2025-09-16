@@ -1,0 +1,351 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
+
+interface Solicitacao {
+  id: string
+  numeroOrdem: string
+  solicitante: {
+    usuario: {
+      nome: string
+      email: string
+    }
+    cliente: {
+      nomeEmpresa: string
+    }
+  }
+  pontoColeta: string
+  pontoEntrega: string
+  valorTotal: number
+  status: string
+  createdAt: string
+}
+
+export default function DashboardPage() {
+  const { user, isAuthenticated } = useAuth()
+  const router = useRouter()
+  const [solicitacoesPendentes, setSolicitacoesPendentes] = useState<Solicitacao[]>([])
+  const [loading, setLoading] = useState(true)
+  const [processando, setProcessando] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+      return
+    }
+
+    if (user?.role !== 'GESTOR') {
+      router.push('/')
+      return
+    }
+
+    fetchSolicitacoesPendentes()
+  }, [isAuthenticated, user, router])
+
+  const fetchSolicitacoesPendentes = async () => {
+    try {
+      const response = await fetch('/api/solicitacoes?status=PENDENTE')
+      if (response.ok) {
+        const data = await response.json()
+        setSolicitacoesPendentes(data)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar solicitações:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAprovacao = async (solicitacaoId: string, aprovada: boolean, observacao?: string) => {
+    setProcessando(solicitacaoId)
+    
+    try {
+      const response = await fetch(`/api/solicitacoes/${solicitacaoId}/aprovacao`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gestorId: user?.gestor?.id,
+          aprovada,
+          observacao
+        }),
+      })
+
+      if (response.ok) {
+        // Remover da lista de pendentes
+        setSolicitacoesPendentes(prev => prev.filter(s => s.id !== solicitacaoId))
+        alert(aprovada ? 'Solicitação aprovada com sucesso!' : 'Solicitação reprovada com sucesso!')
+      } else {
+        const data = await response.json()
+        alert(`Erro: ${data.error}`)
+      }
+    } catch (error) {
+      alert('Erro de conexão')
+    } finally {
+      setProcessando(null)
+    }
+  }
+
+  const handleAprovar = (solicitacaoId: string) => {
+    if (confirm('Tem certeza que deseja aprovar esta solicitação?')) {
+      handleAprovacao(solicitacaoId, true)
+    }
+  }
+
+  const handleReprovar = (solicitacaoId: string) => {
+    const observacao = prompt('Motivo da reprovação (opcional):')
+    if (observacao !== null) { // null significa que cancelou
+      handleAprovacao(solicitacaoId, false, observacao || undefined)
+    }
+  }
+
+  if (!isAuthenticated || !user?.gestor) {
+    return <div>Carregando...</div>
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div className="md:flex md:items-center md:justify-between">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              Dashboard do Gestor
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Bem-vindo, {user.nome}! Gerencie aprovações e usuários.
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                    <span className="text-white text-sm">⏳</span>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Pendentes de Aprovação
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {solicitacoesPendentes.length}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                    <span className="text-white text-sm">✓</span>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Aprovadas Hoje
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      0
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
+                    <span className="text-white text-sm">✗</span>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Reprovadas Hoje
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      0
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                    <span className="text-white text-sm">👥</span>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Total de Usuários
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      -
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <a
+              href="/admin/usuarios"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white">👥</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="absolute inset-0" aria-hidden="true" />
+                <p className="text-sm font-medium text-gray-900">Gerenciar Usuários</p>
+                <p className="text-sm text-gray-500">Cadastrar e editar usuários</p>
+              </div>
+            </a>
+
+            <a
+              href="/admin/clientes"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white">🏢</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="absolute inset-0" aria-hidden="true" />
+                <p className="text-sm font-medium text-gray-900">Gerenciar Clientes</p>
+                <p className="text-sm text-gray-500">Cadastrar empresas e centros de custo</p>
+              </div>
+            </a>
+
+            <a
+              href="/dashboard/relatorios"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white">📊</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="absolute inset-0" aria-hidden="true" />
+                <p className="text-sm font-medium text-gray-900">Relatórios</p>
+                <p className="text-sm text-gray-500">Visualizar relatórios e estatísticas</p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        {/* Solicitações Pendentes */}
+        <div className="mt-8">
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Solicitações Pendentes de Aprovação
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                {solicitacoesPendentes.length} solicitação(ões) aguardando sua aprovação
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="px-4 py-5 text-center">
+                <div className="text-gray-500">Carregando...</div>
+              </div>
+            ) : solicitacoesPendentes.length === 0 ? (
+              <div className="px-4 py-5 text-center">
+                <div className="text-gray-500">Nenhuma solicitação pendente</div>
+              </div>
+            ) : (
+              <div className="overflow-hidden">
+                <ul className="divide-y divide-gray-200">
+                  {solicitacoesPendentes.map((solicitacao) => (
+                    <li key={solicitacao.id} className="px-4 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                {solicitacao.numeroOrdem}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {solicitacao.solicitante.cliente.nomeEmpresa}
+                              </p>
+                              <p className="text-sm text-gray-500 truncate">
+                                Solicitante: {solicitacao.solicitante.usuario.nome}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <div className="flex text-sm text-gray-500">
+                              <span className="flex-shrink-0 mr-2">📍</span>
+                              <span className="truncate">
+                                {solicitacao.pontoColeta} → {solicitacao.pontoEntrega}
+                              </span>
+                            </div>
+                            <div className="flex items-center text-sm text-gray-500 mt-1">
+                              <span className="flex-shrink-0 mr-2">💰</span>
+                              <span>R$ {solicitacao.valorTotal.toFixed(2)}</span>
+                              <span className="mx-2">•</span>
+                              <span>{new Date(solicitacao.createdAt).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleAprovar(solicitacao.id)}
+                            disabled={processando === solicitacao.id}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                          >
+                            {processando === solicitacao.id ? '...' : 'Aprovar'}
+                          </button>
+                          <button
+                            onClick={() => handleReprovar(solicitacao.id)}
+                            disabled={processando === solicitacao.id}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                          >
+                            {processando === solicitacao.id ? '...' : 'Reprovar'}
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
