@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { loginSuccess, logout } from '@/store/slices/authSlice'
+import { loginStart, loginSuccess, logout } from '@/store/slices/authSlice'
 
 export function useAuth() {
   const dispatch = useAppDispatch()
@@ -10,6 +10,7 @@ export function useAuth() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      dispatch(loginStart())
       try {
         const response = await fetch('/api/auth/me', {
           credentials: 'include'

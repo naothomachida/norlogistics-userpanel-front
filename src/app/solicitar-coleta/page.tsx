@@ -184,7 +184,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value="Cliente não configurado"
                       readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
                     />
                   </div>
                   
@@ -194,7 +194,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value={user.nome}
                       readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
                     />
                   </div>
                   
@@ -204,7 +204,7 @@ export default function SolicitarColetaPage() {
                       type="email"
                       value={user.email}
                       readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
                     />
                   </div>
                   
@@ -214,7 +214,7 @@ export default function SolicitarColetaPage() {
                       type="tel"
                       value="Telefone não configurado"
                       readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
                     />
                   </div>
                   
@@ -224,7 +224,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value="Centro de custo não configurado"
                       readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
                     />
                   </div>
                   
@@ -234,7 +234,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value="Gestor não configurado"
                       readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
                     />
                   </div>
                 </div>
@@ -253,7 +253,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value={currentSolicitacao?.pontoColeta || ''}
                       onChange={(e) => handleInputChange('pontoColeta', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -263,7 +263,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value={currentSolicitacao?.enderecoColeta || ''}
                       onChange={(e) => handleInputChange('enderecoColeta', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -273,7 +273,7 @@ export default function SolicitarColetaPage() {
                       type="date"
                       value={currentSolicitacao?.dataColeta || ''}
                       onChange={(e) => handleInputChange('dataColeta', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -283,7 +283,7 @@ export default function SolicitarColetaPage() {
                       type="time"
                       value={currentSolicitacao?.horaColeta || ''}
                       onChange={(e) => handleInputChange('horaColeta', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -293,7 +293,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value={currentSolicitacao?.pontoEntrega || ''}
                       onChange={(e) => handleInputChange('pontoEntrega', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -303,7 +303,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value={currentSolicitacao?.enderecoEntrega || ''}
                       onChange={(e) => handleInputChange('enderecoEntrega', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -313,7 +313,7 @@ export default function SolicitarColetaPage() {
                       type="date"
                       value={currentSolicitacao?.dataEntrega || ''}
                       onChange={(e) => handleInputChange('dataEntrega', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -323,7 +323,7 @@ export default function SolicitarColetaPage() {
                       type="time"
                       value={currentSolicitacao?.horaEntrega || ''}
                       onChange={(e) => handleInputChange('horaEntrega', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                 </div>
@@ -337,7 +337,7 @@ export default function SolicitarColetaPage() {
                         type="text"
                         value={currentSolicitacao?.pontoRetorno || ''}
                         onChange={(e) => handleInputChange('pontoRetorno', e.target.value)}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       />
                     </div>
                     
@@ -347,7 +347,7 @@ export default function SolicitarColetaPage() {
                         type="text"
                         value={currentSolicitacao?.enderecoRetorno || ''}
                         onChange={(e) => handleInputChange('enderecoRetorno', e.target.value)}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       />
                     </div>
                   </div>
@@ -367,7 +367,7 @@ export default function SolicitarColetaPage() {
                       value={currentSolicitacao?.descricaoMaterial || ''}
                       onChange={(e) => handleInputChange('descricaoMaterial', e.target.value)}
                       rows={3}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -377,7 +377,7 @@ export default function SolicitarColetaPage() {
                       type="number"
                       value={currentSolicitacao?.quantidadeVolumes || ''}
                       onChange={(e) => handleInputChange('quantidadeVolumes', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -388,7 +388,7 @@ export default function SolicitarColetaPage() {
                       placeholder="Ex: 100x50x30 cm"
                       value={currentSolicitacao?.dimensoes || ''}
                       onChange={(e) => handleInputChange('dimensoes', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -399,7 +399,7 @@ export default function SolicitarColetaPage() {
                       placeholder="Ex: Caixa, Pallet, etc."
                       value={currentSolicitacao?.tipoEmbalagem || ''}
                       onChange={(e) => handleInputChange('tipoEmbalagem', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -410,7 +410,7 @@ export default function SolicitarColetaPage() {
                       step="0.01"
                       value={currentSolicitacao?.pesoTotal || ''}
                       onChange={(e) => handleInputChange('pesoTotal', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -420,7 +420,7 @@ export default function SolicitarColetaPage() {
                       type="text"
                       value={currentSolicitacao?.numeroDanfe || ''}
                       onChange={(e) => handleInputChange('numeroDanfe', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -431,7 +431,7 @@ export default function SolicitarColetaPage() {
                       step="0.01"
                       value={currentSolicitacao?.valorDanfe || ''}
                       onChange={(e) => handleInputChange('valorDanfe', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                   
@@ -440,7 +440,7 @@ export default function SolicitarColetaPage() {
                     <select
                       value={currentSolicitacao?.tipoVeiculo || ''}
                       onChange={(e) => handleInputChange('tipoVeiculo', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     >
                       <option value="">Selecione o tipo</option>
                       {TIPOS_VEICULO.map((tipo) => (
@@ -457,7 +457,7 @@ export default function SolicitarColetaPage() {
                       value={currentSolicitacao?.observacoes || ''}
                       onChange={(e) => handleInputChange('observacoes', e.target.value)}
                       rows={3}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                 </div>

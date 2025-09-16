@@ -48,36 +48,26 @@ class QualPApi {
    * Geocodifica um endereço usando a API Qualp
    */
   async geocode(address: string): Promise<QualRoutePoint> {
-    try {
-      const response = await fetch(`${this.baseUrl}/geocode`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({ address })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Erro na geocodificação: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      return {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        address: data.formatted_address || address
-      }
-    } catch (error) {
-      console.error('Erro ao geocodificar endereço:', error)
-      // Fallback: tentar usar uma aproximação básica
-      return {
-        latitude: -23.5505, // São Paulo aproximado
-        longitude: -46.6333,
-        address
-      }
+    // Coordenadas básicas para cidades principais
+    const cityCoordinates: Record<string, [number, number]> = {
+      'sorocaba': [-23.5018, -47.4581],
+      'itu': [-23.2640, -47.2996],
+      'sao paulo': [-23.5505, -46.6333],
+      'campinas': [-22.9056, -47.0608],
+      'jundiai': [-23.1864, -46.8842],
+      'santos': [-23.9608, -46.3331]
     }
+
+    const cityKey = address.toLowerCase().replace(/\s+/g, '').replace(',', '')
+
+    if (cityCoordinates[cityKey]) {
+      const [lat, lng] = cityCoordinates[cityKey]
+      return { latitude: lat, longitude: lng, address }
+    }
+
+    throw new Error(`Cidade não encontrada: ${address}`)
   }
+
 
   /**
    * Calcula múltiplas rotas entre pontos usando a API Qualp
@@ -98,30 +88,74 @@ class QualPApi {
         )
       }
 
-      // Chamar API de roteamento
-      const routeResponse = await fetch(`${this.baseUrl}/router/v4/route`, {
+      // Chamar API de roteamento v4 do Qualp
+      const coordinates = [
+        [originPoint.longitude, originPoint.latitude],
+        ...waypointPoints.map(point => [point.longitude, point.latitude]),
+        [destinationPoint.longitude, destinationPoint.latitude]
+      ]
+
+      // Request body baseado na documentação oficial
+      const requestBody = {
+        "locations": [
+          `${originPoint.address}`,
+          `${destinationPoint.address}`
+        ],
+        "config": {
+          "route": {
+            "calculate_return": false,
+            "alternative_routes": true,
+            "optimized_route": false,
+            "optimized_route_destination": false,
+            "avoid_locations": false,
+            "avoid_locations_key": "",
+            "type_route": "efficient",
+            "vehicle": {
+              "type": "truck",
+              "axis": "all",
+              "top_speed": null
+            },
+            "tolls": {
+              "interactive_date": new Date().toLocaleDateString('pt-BR')
+            },
+            "freight_table": {
+              "category": "all",
+              "freight_load": "all",
+              "axis": "all"
+            },
+            "fuel_consumption": {
+              "fuel_price": params.fuelPrice || 5.5,
+              "fuel_liters": 0.0
+            },
+            "private_places": {
+              "areas": false,
+              "categorias": false,
+              "constants": false,
+              "products": false,
+              "services": false,
+              "max_distance_from_location_in_route": 1000
+            },
+            "show": {
+              "tolls": true,
+              "manoeuver": false,
+              "static_image": false,
+              "polylines": true,
+              "url": false,
+              "exception_key": false
+            },
+            "format": "JSON"
+          }
+        }
+      }
+
+      const routeResponse = await fetch(`${this.baseUrl}/rotas/v4`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Accept': 'application/json',
+          'Access-Token': this.apiKey
         },
-        body: JSON.stringify({
-          origin: {
-            latitude: originPoint.latitude,
-            longitude: originPoint.longitude
-          },
-          destination: {
-            latitude: destinationPoint.latitude,
-            longitude: destinationPoint.longitude
-          },
-          waypoints: waypointPoints.map(point => ({
-            latitude: point.latitude,
-            longitude: point.longitude
-          })),
-          vehicle_type: params.vehicleType || 'carro',
-          alternatives: 3, // Solicitar 3 alternativas
-          toll_preference: params.tollPreference || 'allow'
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!routeResponse.ok) {
@@ -130,32 +164,8 @@ class QualPApi {
 
       const routeData = await routeResponse.json()
 
-      // Processar as rotas retornadas
-      const routes = await Promise.all(
-        routeData.routes.map(async (route: any, index: number) => {
-          const estimatedCost = this.calculateEstimatedCost(
-            route.distance / 1000, // converter metros para km
-            params
-          )
-
-          const efficiency = this.calculateEfficiency(
-            route.distance / 1000,
-            route.duration / 60, // converter segundos para minutos
-            estimatedCost
-          )
-
-          return {
-            id: `route_${index + 1}`,
-            distance: Math.round((route.distance / 1000) * 10) / 10,
-            duration: Math.round(route.duration / 60),
-            estimatedCost: Math.round(estimatedCost * 100) / 100,
-            efficiency,
-            geometry: route.geometry || '',
-            points: [originPoint, ...waypointPoints, destinationPoint],
-            tollCost: (route as { toll_cost?: number }).toll_cost || 0
-          }
-        })
-      )
+      // Processar as rotas retornadas do Qualp v4
+      const routes = this.processQualPResponse(routeData, originPoint, destinationPoint, waypointPoints, params)
 
       // Determinar a melhor rota para cada critério
       const mostEfficient = routes.reduce((best, current) => {
@@ -183,8 +193,7 @@ class QualPApi {
 
     } catch (error) {
       console.error('Erro ao calcular rotas:', error)
-      // Fallback com estimativa básica
-      return this.createFallbackRoutes(params)
+      throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }
 
@@ -228,37 +237,101 @@ class QualPApi {
     return 'baixa'
   }
 
+
   /**
-   * Cria rotas de fallback quando a API falha
+   * Mapeia tipos de veículos para perfis do Qualp
    */
-  private async createFallbackRoutes(
-    params: RouteCalculationParams
-  ): Promise<QualRouteResult> {
-    // Estimativa básica baseada em distância aproximada
-    const estimatedDistance = 50 // km estimado
-    const estimatedDuration = 60 // minutos estimado
-    const estimatedCost = this.calculateEstimatedCost(estimatedDistance, params)
-
-    const fallbackRoute: QualRouteOption = {
-      id: 'fallback_route',
-      distance: estimatedDistance,
-      duration: estimatedDuration,
-      estimatedCost,
-      efficiency: 'media',
-      geometry: '',
-      points: [
-        { latitude: -23.5505, longitude: -46.6333, address: params.origin },
-        { latitude: -23.5505, longitude: -46.6333, address: params.destination }
-      ]
+  private mapVehicleTypeToProfile(vehicleType: string): string {
+    const profileMap: Record<string, string> = {
+      'carro': 'car',
+      'moto': 'car', // Usar car como fallback
+      'caminhao_pequeno': 'truck',
+      'caminhao_medio': 'truck',
+      'caminhao_grande': 'truck'
     }
 
-    return {
-      routes: [fallbackRoute],
-      mostEfficient: fallbackRoute,
-      cheapest: fallbackRoute,
-      fastest: fallbackRoute
-    }
+    return profileMap[vehicleType] || 'car'
   }
+
+  /**
+   * Processa a resposta da API Qualp v4
+   */
+  private processQualPResponse(
+    routeData: any,
+    originPoint: QualRoutePoint,
+    destinationPoint: QualRoutePoint,
+    waypointPoints: QualRoutePoint[],
+    params: RouteCalculationParams
+  ): QualRouteOption[] {
+    if (!routeData || !routeData.distancia) {
+      throw new Error('Resposta inválida da API Qualp')
+    }
+
+    // Baseado na documentação, a resposta contém:
+    // - distancia: { texto, valor }
+    // - duracao: { texto, valor }
+    // - distancia_nao_pavimentada: { texto, valor }
+    // - endereco_inicio, endereco_fim
+    // - coordenada_inicio, coordenada_fim
+    // - pedagios: []
+
+    const distanceKm = parseFloat(routeData.distancia.valor) || 0
+    const durationMin = parseFloat(routeData.duracao.valor) || 0
+
+    // Extrair geometria da rota (polyline)
+    const geometry = routeData.polyline || routeData.geometry || ''
+
+    // Extrair custos de pedágio
+    const tollCost = this.extractTollCostFromQualPResponse(routeData)
+
+    // Calcular custo estimado
+    const estimatedCost = this.calculateEstimatedCost(distanceKm, params)
+
+    // Calcular eficiência
+    const efficiency = this.calculateEfficiency(distanceKm, durationMin, estimatedCost)
+
+    // Por enquanto retornamos uma única rota, mas a API pode retornar múltiplas
+    return [{
+      id: `qualp_route_1`,
+      distance: Math.round(distanceKm * 10) / 10,
+      duration: Math.round(durationMin),
+      estimatedCost: Math.round(estimatedCost * 100) / 100,
+      efficiency,
+      geometry,
+      points: [originPoint, ...waypointPoints, destinationPoint],
+      tollCost: Math.round(tollCost * 100) / 100
+    }]
+  }
+
+  /**
+   * Extrai custos de pedágio da resposta Qualp v4
+   */
+  private extractTollCostFromQualPResponse(routeData: any): number {
+    if (!routeData.pedagios || !Array.isArray(routeData.pedagios)) {
+      return 0
+    }
+
+    return routeData.pedagios.reduce((total: number, pedagio: any) => {
+      // Baseado na documentação, os pedágios têm estrutura específica
+      return total + (parseFloat(pedagio.valor) || 0)
+    }, 0)
+  }
+
+  /**
+   * Extrai custos de pedágio dos segmentos da rota
+   */
+  private extractTollCost(segments: any[]): number {
+    if (!segments || !Array.isArray(segments)) return 0
+
+    return segments.reduce((total, segment) => {
+      // Procurar por informações de pedágio nos segmentos
+      if (segment.toll_cost || segment.tollCost) {
+        return total + (segment.toll_cost || segment.tollCost)
+      }
+      return total
+    }, 0)
+  }
+
 
   /**
    * Busca informações sobre pedágios em uma rota
@@ -272,15 +345,18 @@ class QualPApi {
     }>
   }> {
     try {
-      const response = await fetch(`${this.baseUrl}/tolls`, {
+      const response = await fetch(`${this.baseUrl}/pedagios/v1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Access-Token': this.apiKey
         },
         body: JSON.stringify({
-          geometry: route.geometry,
-          vehicle_type: 'carro'
+          polyline: route.geometry,
+          vehicle: {
+            type: 'truck',
+            axis: 'all'
+          }
         })
       })
 
@@ -289,10 +365,22 @@ class QualPApi {
       }
 
       const tollData = await response.json()
-      
+
+      const tollStations = (tollData.data?.tolls || []).map((toll: any) => ({
+        name: toll.name || toll.station_name || 'Pedágio',
+        cost: toll.cost || toll.price || 0,
+        location: {
+          latitude: toll.latitude || toll.lat || 0,
+          longitude: toll.longitude || toll.lng || 0,
+          address: toll.address || toll.name || ''
+        }
+      }))
+
+      const totalTollCost = tollStations.reduce((sum: number, station: any) => sum + station.cost, 0)
+
       return {
-        totalTollCost: tollData.total_cost || 0,
-        tollStations: tollData.toll_stations || []
+        totalTollCost,
+        tollStations
       }
     } catch (error) {
       console.error('Erro ao buscar informações de pedágio:', error)

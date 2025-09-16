@@ -66,7 +66,7 @@ interface RouteResult {
 }
 
 export default function CalcularRotasPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
   const router = useRouter()
   
   const [formData, setFormData] = useState({
@@ -80,14 +80,19 @@ export default function CalcularRotasPage() {
   })
   
   const [result, setResult] = useState<RouteResult | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const [error, setError] = useState('')
-  const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null)
+  const [selectedRouteKey, setSelectedRouteKey] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login')
-    }
+    // Dar tempo para a autenticação ser verificada
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        router.push('/login')
+      }
+    }, 1000)
+
+    return () => clearTimeout(timer)
   }, [isAuthenticated, router])
 
   const handleCalculate = async () => {
@@ -96,7 +101,7 @@ export default function CalcularRotasPage() {
       return
     }
 
-    setLoading(true)
+    setCalculating(true)
     setError('')
     
     try {
@@ -121,7 +126,7 @@ export default function CalcularRotasPage() {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Erro desconhecido')
     } finally {
-      setLoading(false)
+      setCalculating(false)
     }
   }
 
@@ -165,8 +170,25 @@ export default function CalcularRotasPage() {
     return `${remainingMinutes}min`
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!isAuthenticated) {
-    return <div>Carregando...</div>
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecionando para login...</p>
+        </div>
+      </div>
+    )
   }
 
   const routeOptions = result ? [
@@ -174,6 +196,8 @@ export default function CalcularRotasPage() {
     { key: 'fastest', ...result.routes.fastest },
     { key: 'mostEfficient', ...result.routes.mostEfficient }
   ] : []
+
+  const selectedRoute = selectedRouteKey ? routeOptions.find(option => option.key === selectedRouteKey) : null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -206,7 +230,7 @@ export default function CalcularRotasPage() {
                     type="text"
                     value={formData.origin}
                     onChange={(e) => setFormData({...formData, origin: e.target.value})}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     placeholder="Ex: São Paulo, SP"
                   />
                 </div>
@@ -219,7 +243,7 @@ export default function CalcularRotasPage() {
                     type="text"
                     value={formData.destination}
                     onChange={(e) => setFormData({...formData, destination: e.target.value})}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     placeholder="Ex: Rio de Janeiro, RJ"
                   />
                 </div>
@@ -268,7 +292,7 @@ export default function CalcularRotasPage() {
                   <select
                     value={formData.vehicleType}
                     onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                   >
                     <option value="van">Van</option>
                     <option value="caminhao_pequeno">Caminhão Pequeno</option>
@@ -287,7 +311,7 @@ export default function CalcularRotasPage() {
                       step="0.01"
                       value={formData.fuelPrice}
                       onChange={(e) => setFormData({...formData, fuelPrice: parseFloat(e.target.value) || 0})}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
 
@@ -300,7 +324,7 @@ export default function CalcularRotasPage() {
                       step="1"
                       value={formData.profitMargin}
                       onChange={(e) => setFormData({...formData, profitMargin: parseInt(e.target.value) || 0})}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
                 </div>
@@ -326,10 +350,10 @@ export default function CalcularRotasPage() {
 
                 <button
                   onClick={handleCalculate}
-                  disabled={loading}
+                  disabled={calculating}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
-                  {loading ? 'Calculando...' : 'Calcular Rotas'}
+                  {calculating ? 'Calculando...' : 'Calcular Rotas'}
                 </button>
               </div>
             </div>
@@ -344,12 +368,21 @@ export default function CalcularRotasPage() {
                   {routeOptions.map((option) => (
                     <div
                       key={option.key}
-                      className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transform transition-transform hover:scale-105 ${
-                        selectedRoute?.route.id === option.route.id ? 'ring-2 ring-blue-500' : ''
+                      className={`overflow-hidden shadow rounded-lg cursor-pointer transform transition-all duration-200 hover:scale-105 ${
+                        selectedRouteKey === option.key
+                          ? 'bg-blue-50 ring-2 ring-blue-500 border-blue-500'
+                          : 'bg-white hover:shadow-lg border border-gray-200'
                       }`}
-                      onClick={() => setSelectedRoute(option)}
+                      onClick={() => setSelectedRouteKey(option.key)}
                     >
-                      <div className="p-5">
+                      <div className="p-5 relative">
+                        {selectedRouteKey === option.key && (
+                          <div className="absolute top-2 right-2">
+                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">✓</span>
+                            </div>
+                          </div>
+                        )}
                         <div className="flex items-center">
                           <div className="flex-shrink-0">
                             <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
@@ -357,7 +390,7 @@ export default function CalcularRotasPage() {
                               option.key === 'fastest' ? 'bg-blue-500' : 'bg-purple-500'
                             }`}>
                               <span className="text-white text-sm">
-                                {option.key === 'cheapest' ? '💰' : 
+                                {option.key === 'cheapest' ? '💰' :
                                  option.key === 'fastest' ? '⚡' : '⚖️'}
                               </span>
                             </div>
@@ -406,7 +439,7 @@ export default function CalcularRotasPage() {
                 </div>
 
                 {/* Detalhamento da rota selecionada */}
-                {selectedRoute && (
+                {selectedRouteKey && (
                   <div className="bg-white shadow rounded-lg p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">
                       Detalhamento - {selectedRoute.tag}

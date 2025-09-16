@@ -393,7 +393,7 @@ export default function OperacoesPage() {
                             </div>
                             <div className="flex items-center text-sm text-gray-500 mt-1">
                               <span className="flex-shrink-0 mr-2">💰</span>
-                              <span>R$ {solicitacao.valorTotal.toFixed(2)}</span>
+                              <span>R$ {Number(solicitacao.valorTotal).toFixed(2)}</span>
                             </div>
                           </div>
                         </div>

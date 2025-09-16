@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUsuarios, useClientes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
@@ -51,8 +51,13 @@ export default function UsuariosPage() {
     role: 'SOLICITANTE'
   })
 
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'GESTOR') {
+      router.push('/')
+    }
+  }, [isAuthenticated, user?.role, router])
+
   if (!isAuthenticated || user?.role !== 'GESTOR') {
-    router.push('/')
     return null
   }
 
@@ -281,7 +286,7 @@ export default function UsuariosPage() {
                         required
                         value={formData.nome}
                         onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       />
                     </div>
 
@@ -294,7 +299,7 @@ export default function UsuariosPage() {
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       />
                     </div>
 
@@ -306,7 +311,7 @@ export default function UsuariosPage() {
                         type="tel"
                         value={formData.telefone}
                         onChange={(e) => setFormData({...formData, telefone: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       />
                     </div>
 
@@ -319,7 +324,7 @@ export default function UsuariosPage() {
                         required={!editingUser}
                         value={formData.senha}
                         onChange={(e) => setFormData({...formData, senha: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                         placeholder={editingUser ? 'Deixe em branco para não alterar' : ''}
                       />
                     </div>
@@ -332,7 +337,7 @@ export default function UsuariosPage() {
                         required
                         value={formData.role}
                         onChange={(e) => handleRoleChange(e.target.value as 'SOLICITANTE' | 'GESTOR' | 'TRANSPORTADOR' | 'MOTORISTA')}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       >
                         {ROLES.map(role => (
                           <option key={role.value} value={role.value}>
@@ -355,7 +360,7 @@ export default function UsuariosPage() {
                           <select
                             value={formData.clienteId || ''}
                             onChange={(e) => setFormData({...formData, clienteId: e.target.value})}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                           >
                             <option value="">Selecione um cliente</option>
                             {clientes.map(cliente => (
@@ -374,7 +379,7 @@ export default function UsuariosPage() {
                             step="0.01"
                             value={formData.limiteValor || ''}
                             onChange={(e) => setFormData({...formData, limiteValor: parseFloat(e.target.value)})}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                           />
                         </div>
                       </div>
@@ -393,7 +398,7 @@ export default function UsuariosPage() {
                             type="text"
                             value={formData.nomeEmpresa || ''}
                             onChange={(e) => setFormData({...formData, nomeEmpresa: e.target.value})}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                           />
                         </div>
                         <div>
@@ -404,7 +409,7 @@ export default function UsuariosPage() {
                             type="text"
                             value={formData.cnpj || ''}
                             onChange={(e) => setFormData({...formData, cnpj: e.target.value})}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                           />
                         </div>
                       </div>
@@ -422,7 +427,7 @@ export default function UsuariosPage() {
                           <select
                             value={formData.tipo || ''}
                             onChange={(e) => setFormData({...formData, tipo: e.target.value})}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                           >
                             <option value="">Selecione</option>
                             <option value="PROPRIO">Próprio</option>
@@ -437,7 +442,7 @@ export default function UsuariosPage() {
                             type="text"
                             value={formData.cnh || ''}
                             onChange={(e) => setFormData({...formData, cnh: e.target.value})}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                           />
                         </div>
                         <div>
@@ -449,7 +454,7 @@ export default function UsuariosPage() {
                             step="0.01"
                             value={formData.valorPorKm || ''}
                             onChange={(e) => setFormData({...formData, valorPorKm: parseFloat(e.target.value)})}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                           />
                         </div>
                       </div>

@@ -115,13 +115,19 @@ export function useSolicitacoes(filters?: {
   const fetchData = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }))
     const result = await apiClient.getSolicitacoes(filters)
-    
+
     if (result.error) {
       setState(prev => ({ ...prev, loading: false, error: result.error! }))
     } else {
       setState(prev => ({ ...prev, loading: false, data: result.data || [] }))
     }
-  }, [filters])
+  }, [
+    filters?.status,
+    filters?.solicitanteId,
+    filters?.gestorId,
+    filters?.transportadorId,
+    filters?.motoristaId
+  ])
 
   useEffect(() => {
     fetchData()
