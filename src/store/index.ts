@@ -1,25 +1,21 @@
-import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './authSlice';
-import ordersReducer from './ordersSlice';
-import pricingReducer from './pricingSlice';
-import locationsReducer from './locationSlice';
-import vehicleTypesReducer from './vehicleTypesSlice';
+import { configureStore } from '@reduxjs/toolkit'
+import authSlice from './slices/authSlice'
+import solicitacaoSlice from './slices/solicitacaoSlice'
+import userSlice from './slices/userSlice'
 
 export const store = configureStore({
   reducer: {
-    auth: authReducer,
-    orders: ordersReducer,
-    pricing: pricingReducer,
-    locations: locationsReducer,
-    vehicleTypes: vehicleTypesReducer,
+    auth: authSlice,
+    solicitacao: solicitacaoSlice,
+    user: userSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false,
+      serializableCheck: {
+        ignoredActions: ['persist/PERSIST'],
+      },
     }),
-});
+})
 
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
-
-export default store; 
+export type RootState = ReturnType<typeof store.getState>
+export type AppDispatch = typeof store.dispatch

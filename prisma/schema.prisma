@@ -1,0 +1,363 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  SOLICITANTE
+  GESTOR
+  TRANSPORTADOR
+  MOTORISTA
+}
+
+enum TipoMotorista {
+  PROPRIO
+  TERCEIRO
+}
+
+enum StatusSolicitacao {
+  PENDENTE
+  APROVADA
+  REPROVADA
+  EM_EXECUCAO
+  FINALIZADA
+}
+
+enum TipoVeiculo {
+  VAN
+  CAMINHONETE
+  TRUCK
+  CARRETA
+  BITRUCK
+}
+
+// Modelos principais
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  telefone  String?
+  senha     String
+  role      UserRole
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos específicos por role
+  solicitante   Solicitante?
+  gestor        Gestor?
+  transportador Transportador?
+  motorista     Motorista?
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id             String @id @default(uuid())
+  nomeEmpresa    String
+  cnpj           String @unique
+  endereco       String
+  telefone       String
+  email          String
+  ativo          Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relacionamentos
+  solicitantes   Solicitante[]
+  centrosCusto   CentroCusto[]
+  solicitacoes   Solicitacao[]
+
+  @@map("clientes")
+}
+
+model CentroCusto {
+  id        String @id @default(uuid())
+  nome      String
+  codigo    String
+  clienteId String
+  ativo     Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  cliente      Cliente       @relation(fields: [clienteId], references: [id])
+  solicitantes Solicitante[]
+  solicitacoes Solicitacao[]
+
+  @@map("centros_custo")
+}
+
+model Solicitante {
+  id            String  @id @default(uuid())
+  usuarioId     String  @unique
+  clienteId     String
+  centroCustoId String
+  gestorId      String
+  limiteValor   Decimal @default(0)
+  ativo         Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relacionamentos
+  usuario     Usuario     @relation(fields: [usuarioId], references: [id])
+  cliente     Cliente     @relation(fields: [clienteId], references: [id])
+  centroCusto CentroCusto @relation(fields: [centroCustoId], references: [id])
+  gestor      Gestor      @relation(fields: [gestorId], references: [id])
+  
+  solicitacoes Solicitacao[]
+
+  @@map("solicitantes")
+}
+
+model Gestor {
+  id        String @id @default(uuid())
+  usuarioId String @unique
+  ativo     Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  usuario      Usuario       @relation(fields: [usuarioId], references: [id])
+  solicitantes Solicitante[]
+  aprovacoes   Aprovacao[]
+  solicitacoes Solicitacao[]
+
+  @@map("gestores")
+}
+
+model Transportador {
+  id        String @id @default(uuid())
+  usuarioId String @unique
+  nomeEmpresa String
+  cnpj      String @unique
+  ativo     Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id])
+  motoristas Motorista[]
+  veiculos   Veiculo[]
+  
+  solicitacoesAtribuidas Solicitacao[]
+
+  @@map("transportadores")
+}
+
+model Motorista {
+  id              String        @id @default(uuid())
+  usuarioId       String        @unique
+  transportadorId String?
+  tipo            TipoMotorista
+  cnh             String
+  valorPorKm      Decimal?
+  ativo           Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relacionamentos
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id])
+  transportador Transportador? @relation(fields: [transportadorId], references: [id])
+  
+  solicitacoes  Solicitacao[]
+  viagens       Viagem[]
+
+  @@map("motoristas")
+}
+
+model Veiculo {
+  id              String @id @default(uuid())
+  placa           String @unique
+  modelo          String
+  tipo            TipoVeiculo
+  capacidade      String
+  transportadorId String
+  ativo           Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relacionamentos
+  transportador Transportador @relation(fields: [transportadorId], references: [id])
+  solicitacoes  Solicitacao[]
+  viagens       Viagem[]
+  manutencoes   ManutencaoVeiculo[]
+
+  @@map("veiculos")
+}
+
+model Solicitacao {
+  id                String           @id @default(uuid())
+  numeroOrdem       String           @unique
+  solicitanteId     String
+  clienteId         String
+  centroCustoId     String
+  gestorId          String?
+  transportadorId   String?
+  motoristaId       String?
+  veiculoId         String?
+  
+  // Informações da coleta/entrega
+  pontoColeta       String
+  enderecoColeta    String
+  dataColeta        DateTime
+  horaColeta        String
+  
+  pontoEntrega      String
+  enderecoEntrega   String
+  dataEntrega       DateTime
+  horaEntrega       String
+  
+  pontoRetorno      String?
+  enderecoRetorno   String?
+  dataRetorno       DateTime?
+  horaRetorno       String?
+  
+  // Informações do material
+  descricaoMaterial String
+  quantidadeVolumes Int
+  dimensoes         String
+  tipoEmbalagem     String
+  pesoTotal         Decimal
+  numeroDanfe       String?
+  valorDanfe        Decimal?
+  
+  tipoVeiculo       TipoVeiculo
+  observacoes       String?
+  
+  // Cálculos
+  kmTotal           Decimal
+  valorPedagio      Decimal @default(0)
+  valorServico      Decimal
+  valorTotal        Decimal
+  
+  status            StatusSolicitacao @default(PENDENTE)
+  
+  // CTE
+  numeroCte         String?
+  valorMotorista    Decimal?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relacionamentos
+  solicitante   Solicitante    @relation(fields: [solicitanteId], references: [id])
+  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  centroCusto   CentroCusto    @relation(fields: [centroCustoId], references: [id])
+  gestor        Gestor?        @relation(fields: [gestorId], references: [id])
+  transportador Transportador? @relation(fields: [transportadorId], references: [id])
+  motorista     Motorista?     @relation(fields: [motoristaId], references: [id])
+  veiculo       Veiculo?       @relation(fields: [veiculoId], references: [id])
+  
+  aprovacao     Aprovacao?
+  viagem        Viagem?
+  custosExtras  CustoExtra[]
+
+  @@map("solicitacoes")
+}
+
+model Aprovacao {
+  id            String   @id @default(uuid())
+  solicitacaoId String   @unique
+  gestorId      String
+  aprovada      Boolean
+  observacao    String?
+  dataAprovacao DateTime @default(now())
+
+  // Relacionamentos
+  solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id])
+  gestor      Gestor      @relation(fields: [gestorId], references: [id])
+
+  @@map("aprovacoes")
+}
+
+model Viagem {
+  id            String   @id @default(uuid())
+  solicitacaoId String   @unique
+  motoristaId   String
+  veiculoId     String
+  dataInicio    DateTime?
+  dataFim       DateTime?
+  kmInicial     Decimal?
+  kmFinal       Decimal?
+  kmRodado      Decimal?
+  observacoes   String?
+
+  // Relacionamentos
+  solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id])
+  motorista   Motorista   @relation(fields: [motoristaId], references: [id])
+  veiculo     Veiculo     @relation(fields: [veiculoId], references: [id])
+
+  @@map("viagens")
+}
+
+model CustoExtra {
+  id            String   @id @default(uuid())
+  solicitacaoId String
+  tipo          String   // "ESPERA", "PERNOITE", "ESTACIONAMENTO", "ABASTECIMENTO"
+  valor         Decimal
+  observacao    String?
+  createdAt     DateTime @default(now())
+
+  // Relacionamentos
+  solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id])
+
+  @@map("custos_extras")
+}
+
+// Módulo Financeiro
+
+model ContaReceber {
+  id            String   @id @default(uuid())
+  clienteId     String
+  numeroFatura  String
+  valor         Decimal
+  dataVencimento DateTime
+  dataPagamento DateTime?
+  aprovada      Boolean  @default(false)
+  observacoes   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("contas_receber")
+}
+
+model ContaPagar {
+  id             String   @id @default(uuid())
+  fornecedor     String
+  descricao      String
+  valor          Decimal
+  dataVencimento DateTime
+  dataPagamento  DateTime?
+  recorrente     Boolean  @default(false)
+  observacoes    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("contas_pagar")
+}
+
+model ManutencaoVeiculo {
+  id          String   @id @default(uuid())
+  veiculoId   String
+  tipo        String   // "COMBUSTIVEL", "MANUTENCAO", "DOCUMENTOS", "SEGURO"
+  descricao   String
+  valor       Decimal
+  data        DateTime
+  observacoes String?
+  createdAt   DateTime @default(now())
+
+  // Relacionamentos
+  veiculo Veiculo @relation(fields: [veiculoId], references: [id])
+
+  @@map("manutencoes_veiculos")
+}
