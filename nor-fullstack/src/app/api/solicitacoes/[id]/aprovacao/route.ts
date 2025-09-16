@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const { gestorId, aprovada, observacao } = await request.json()
 
@@ -17,7 +18,7 @@ export async function POST(
 
     // Verificar se solicitação existe
     const solicitacao = await prisma.solicitacao.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!solicitacao) {
@@ -39,7 +40,7 @@ export async function POST(
       // Criar registro de aprovação
       const aprovacao = await tx.aprovacao.create({
         data: {
-          solicitacaoId: params.id,
+          solicitacaoId: id,
           gestorId,
           aprovada,
           observacao
@@ -48,7 +49,7 @@ export async function POST(
 
       // Atualizar status da solicitação
       const solicitacaoAtualizada = await tx.solicitacao.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: aprovada ? 'APROVADA' : 'REPROVADA'
         },

@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const { transportadorId, motoristaId, veiculoId, numeroCte, valorMotorista } = await request.json()
 
@@ -17,7 +18,7 @@ export async function POST(
 
     // Verificar se solicitação existe e está aprovada
     const solicitacao = await prisma.solicitacao.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!solicitacao) {
@@ -36,7 +37,7 @@ export async function POST(
 
     // Atualizar solicitação com atribuições
     const solicitacaoAtualizada = await prisma.solicitacao.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         transportadorId,
         motoristaId,
@@ -72,7 +73,7 @@ export async function POST(
     // Criar registro de viagem
     await prisma.viagem.create({
       data: {
-        solicitacaoId: params.id,
+        solicitacaoId: id,
         motoristaId,
         veiculoId
       }

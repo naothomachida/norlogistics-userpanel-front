@@ -18,7 +18,7 @@ interface UserFormData {
   email: string
   telefone: string
   senha: string
-  role: string
+  role: 'SOLICITANTE' | 'GESTOR' | 'TRANSPORTADOR' | 'MOTORISTA'
   // Campos específicos por role
   clienteId?: string
   centroCustoId?: string
@@ -48,7 +48,7 @@ export default function UsuariosPage() {
     email: '',
     telefone: '',
     senha: '',
-    role: ''
+    role: 'SOLICITANTE'
   })
 
   if (!isAuthenticated || user?.role !== 'GESTOR') {
@@ -124,7 +124,7 @@ export default function UsuariosPage() {
       email: '',
       telefone: '',
       senha: '',
-      role: ''
+      role: 'SOLICITANTE'
     })
     setEditingUser(null)
     setSelectedRole('')
@@ -135,7 +135,7 @@ export default function UsuariosPage() {
     resetForm()
   }
 
-  const handleRoleChange = (role: string) => {
+  const handleRoleChange = (role: 'SOLICITANTE' | 'GESTOR' | 'TRANSPORTADOR' | 'MOTORISTA') => {
     setSelectedRole(role)
     setFormData({ ...formData, role })
   }
@@ -331,10 +331,9 @@ export default function UsuariosPage() {
                       <select
                         required
                         value={formData.role}
-                        onChange={(e) => handleRoleChange(e.target.value)}
+                        onChange={(e) => handleRoleChange(e.target.value as 'SOLICITANTE' | 'GESTOR' | 'TRANSPORTADOR' | 'MOTORISTA')}
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="">Selecione um role</option>
                         {ROLES.map(role => (
                           <option key={role.value} value={role.value}>
                             {role.label}

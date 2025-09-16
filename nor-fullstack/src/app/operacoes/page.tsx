@@ -81,8 +81,8 @@ export default function OperacoesPage() {
     try {
       const [solicitacoesRes, motoristasRes, veiculosRes] = await Promise.all([
         fetch('/api/solicitacoes?status=APROVADA'),
-        fetch(`/api/motoristas?transportadorId=${user?.transportador?.id}`),
-        fetch(`/api/veiculos?transportadorId=${user?.transportador?.id}`)
+        fetch(`/api/motoristas?transportadorId=${user?.id}`),
+        fetch(`/api/veiculos?transportadorId=${user?.id}`)
       ])
 
       if (solicitacoesRes.ok) {
@@ -121,7 +121,7 @@ export default function OperacoesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          transportadorId: user?.transportador?.id,
+          transportadorId: user?.id,
           motoristaId: formData.motoristaId,
           veiculoId: formData.veiculoId,
           numeroCte: formData.numeroCte,
@@ -150,7 +150,7 @@ export default function OperacoesPage() {
     }
   }
 
-  if (!isAuthenticated || !user?.transportador) {
+  if (!isAuthenticated || user?.role !== 'TRANSPORTADOR') {
     return <div>Carregando...</div>
   }
 

@@ -5,11 +5,25 @@ import { useAuth } from '@/hooks/useAuth'
 import { useSolicitacoes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
+import { Solicitacao } from '@/lib/api-types'
+
+interface SolicitacaoExtended extends Solicitacao {
+  solicitante?: {
+    usuario?: {
+      nome: string
+      email: string
+    }
+    cliente?: {
+      nomeEmpresa: string
+    }
+  }
+}
 
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
-  const { data: solicitacoesPendentes, loading, refetch } = useSolicitacoes({ status: 'PENDENTE' })
+  const { data: solicitacoesPendentesRaw, loading, refetch } = useSolicitacoes({ status: 'PENDENTE' })
+  const solicitacoesPendentes = solicitacoesPendentesRaw as SolicitacaoExtended[]
   const [processando, setProcessando] = useState<string | null>(null)
 
   useEffect(() => {
@@ -25,15 +39,15 @@ export default function DashboardPage() {
   }, [isAuthenticated, user, router])
 
   const handleAprovacao = async (solicitacaoId: string, aprovada: boolean, observacao?: string) => {
-    if (!user?.gestor?.id) {
-      alert('Erro: ID do gestor não encontrado')
+    if (!user?.id) {
+      alert('Erro: Usuário não autenticado')
       return
     }
 
     setProcessando(solicitacaoId)
     
     try {
-      const result = await apiClient.aprovarSolicitacao(solicitacaoId, aprovada, user.gestor.id, observacao)
+      const result = await apiClient.aprovarSolicitacao(solicitacaoId, aprovada, user.id, observacao)
 
       if (result.error) {
         alert(`Erro: ${result.error}`)
@@ -61,7 +75,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (!isAuthenticated || !user?.gestor) {
+  if (!isAuthenticated || user?.role !== 'GESTOR') {
     return <div>Carregando...</div>
   }
 
@@ -258,10 +272,10 @@ export default function DashboardPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">
-                                {solicitacao.solicitante.cliente.nomeEmpresa}
+                                {solicitacao.solicitante?.cliente?.nomeEmpresa || 'Cliente não informado'}
                               </p>
                               <p className="text-sm text-gray-500 truncate">
-                                Solicitante: {solicitacao.solicitante.usuario.nome}
+                                Solicitante: {solicitacao.solicitante?.usuario?.nome || 'Não informado'}
                               </p>
                             </div>
                           </div>

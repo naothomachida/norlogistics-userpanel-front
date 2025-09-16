@@ -12,6 +12,17 @@ export default function LoginPage() {
   const dispatch = useAppDispatch()
   const { loading, error } = useAppSelector((state) => state.auth)
 
+  const fillTestUser = (role: string) => {
+    const testUsers = {
+      'SOLICITANTE': 'solicitante@test.com',
+      'GESTOR': 'gestor@test.com', 
+      'TRANSPORTADOR': 'transportador@test.com',
+      'MOTORISTA': 'motorista@test.com'
+    }
+    setEmail(testUsers[role as keyof typeof testUsers])
+    setPassword('123456')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -120,15 +131,41 @@ export default function LoginPage() {
           </div>
 
           <div className="text-center">
-            <div className="text-sm text-gray-600">
-              <strong>Usuários de teste:</strong>
+            <div className="text-sm text-gray-600 mb-3">
+              <strong>Usuários de teste - Clique para preencher:</strong>
             </div>
-            <div className="mt-2 text-xs text-gray-500 space-y-1">
-              <div>📋 Solicitante: solicitante@test.com</div>
-              <div>✅ Gestor: gestor@test.com</div>
-              <div>🚛 Transportador: transportador@test.com</div>
-              <div>🗺️ Motorista: motorista@test.com</div>
-              <div className="mt-1 font-medium">Senha para todos: 123456</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => fillTestUser('SOLICITANTE')}
+                className="px-3 py-2 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md border border-blue-300 transition-colors"
+              >
+                📋 Solicitante
+              </button>
+              <button
+                type="button"
+                onClick={() => fillTestUser('GESTOR')}
+                className="px-3 py-2 text-xs bg-green-100 hover:bg-green-200 text-green-800 rounded-md border border-green-300 transition-colors"
+              >
+                ✅ Gestor
+              </button>
+              <button
+                type="button"
+                onClick={() => fillTestUser('TRANSPORTADOR')}
+                className="px-3 py-2 text-xs bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-md border border-orange-300 transition-colors"
+              >
+                🚛 Transportador
+              </button>
+              <button
+                type="button"
+                onClick={() => fillTestUser('MOTORISTA')}
+                className="px-3 py-2 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-md border border-purple-300 transition-colors"
+              >
+                🗺️ Motorista
+              </button>
+            </div>
+            <div className="mt-2 text-xs text-gray-500">
+              Senha para todos: <span className="font-medium">123456</span>
             </div>
           </div>
         </form>

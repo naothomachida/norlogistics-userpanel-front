@@ -4,11 +4,12 @@ import { hashPassword } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const usuario = await prisma.usuario.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         solicitante: {
           include: {
@@ -49,15 +50,16 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const data = await request.json()
     const { nome, email, telefone, senha, role, ...profileData } = data
 
     // Verificar se usuário existe
     const existingUser = await prisma.usuario.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!existingUser) {
@@ -72,7 +74,7 @@ export async function PUT(
       const emailInUse = await prisma.usuario.findFirst({
         where: {
           email,
-          id: { not: params.id }
+          id: { not: id }
         }
       })
 
@@ -94,13 +96,13 @@ export async function PUT(
 
     // Atualizar usuário
     const usuario = await prisma.usuario.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData
     })
 
     // Buscar usuário completo para retornar
     const usuarioCompleto = await prisma.usuario.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         solicitante: {
           include: {
@@ -129,12 +131,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     // Verificar se usuário existe
     const existingUser = await prisma.usuario.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!existingUser) {
@@ -146,7 +149,7 @@ export async function DELETE(
 
     // Soft delete - marcar como inativo ao invés de deletar
     await prisma.usuario.update({
-      where: { id: params.id },
+      where: { id },
       data: { ativo: false }
     })
 

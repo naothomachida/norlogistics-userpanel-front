@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const solicitacao = await prisma.solicitacao.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         solicitante: {
           include: {
@@ -85,14 +86,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const data = await request.json()
 
     // Verificar se solicitação existe
     const existingSolicitacao = await prisma.solicitacao.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!existingSolicitacao) {
@@ -121,7 +123,7 @@ export async function PUT(
     if (data.valorMotorista) updateData.valorMotorista = parseFloat(data.valorMotorista)
 
     const solicitacao = await prisma.solicitacao.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         solicitante: {

@@ -19,7 +19,7 @@ export default function MotoristaPage() {
   
   // Buscar solicitações do motorista
   const { data: solicitacoes, loading, error, refetch } = useSolicitacoes({
-    motoristaId: user?.motorista?.id
+    motoristaId: user?.id
   })
 
   const [showCustoModal, setShowCustoModal] = useState(false)
@@ -73,7 +73,7 @@ export default function MotoristaPage() {
     }
   }
 
-  if (!isAuthenticated || !user?.motorista) {
+  if (!isAuthenticated || user?.role !== 'MOTORISTA') {
     return <div>Carregando...</div>
   }
 
