@@ -264,10 +264,40 @@ export default function OperacoesPage() {
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <a
+              href="/calcular-rotas"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white">🗺️</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">Calcular Rotas</p>
+                <p className="text-sm text-gray-500">Compare rotas e custos</p>
+              </div>
+            </a>
+
+            <a
+              href="/registrar-viagem"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white">📝</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">Registrar Viagem</p>
+                <p className="text-sm text-gray-500">Registrar km e custos reais</p>
+              </div>
+            </a>
+
             <a
               href="/operacoes/motoristas"
-              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -282,7 +312,7 @@ export default function OperacoesPage() {
 
             <a
               href="/operacoes/veiculos"
-              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
@@ -297,7 +327,7 @@ export default function OperacoesPage() {
 
             <a
               href="/operacoes/financeiro"
-              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400"
+              className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
