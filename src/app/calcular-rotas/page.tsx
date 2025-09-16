@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import Layout from '@/components/Layout'
 
 // Dynamically import the map component to avoid SSR issues
 const RouteMap = dynamic(() => import('@/components/RouteMap'), {
@@ -229,18 +230,11 @@ export default function CalcularRotasPage() {
   const selectedRoute = selectedRouteKey ? routeOptions.find(option => option.key === selectedRouteKey) : null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout
+      title="Calculadora de Rotas"
+      description="Compare rotas e custos para suas operações logísticas"
+    >
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Calculadora de Rotas
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Compare rotas e custos para suas operações logísticas
-            </p>
-          </div>
-        </div>
 
         <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-4">
           {/* Formulário de Cálculo */}
@@ -823,6 +817,6 @@ export default function CalcularRotasPage() {
           )}
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }

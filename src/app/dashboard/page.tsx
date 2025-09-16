@@ -6,6 +6,7 @@ import { useSolicitacoes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 import { Solicitacao } from '@/lib/api-types'
+import Layout from '@/components/Layout'
 
 interface SolicitacaoExtended extends Solicitacao {
   solicitante?: {
@@ -80,18 +81,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout
+      title="Dashboard"
+      description={`Bem-vindo, ${user.nome}! Gerencie aprovações e usuários.`}
+    >
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Dashboard do Gestor
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Bem-vindo, {user.nome}! Gerencie aprovações e usuários.
-            </p>
-          </div>
-        </div>
 
         {/* Quick Stats */}
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -335,6 +329,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }
