@@ -2,32 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { useSolicitacoes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
-
-interface Solicitacao {
-  id: string
-  numeroOrdem: string
-  solicitante: {
-    usuario: {
-      nome: string
-      email: string
-    }
-    cliente: {
-      nomeEmpresa: string
-    }
-  }
-  pontoColeta: string
-  pontoEntrega: string
-  valorTotal: number
-  status: string
-  createdAt: string
-}
+import apiClient from '@/lib/api-client'
 
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
-  const [solicitacoesPendentes, setSolicitacoesPendentes] = useState<Solicitacao[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: solicitacoesPendentes, loading, refetch } = useSolicitacoes({ status: 'PENDENTE' })
   const [processando, setProcessando] = useState<string | null>(null)
 
   useEffect(() => {
@@ -40,47 +22,24 @@ export default function DashboardPage() {
       router.push('/')
       return
     }
-
-    fetchSolicitacoesPendentes()
   }, [isAuthenticated, user, router])
 
-  const fetchSolicitacoesPendentes = async () => {
-    try {
-      const response = await fetch('/api/solicitacoes?status=PENDENTE')
-      if (response.ok) {
-        const data = await response.json()
-        setSolicitacoesPendentes(data)
-      }
-    } catch (error) {
-      console.error('Erro ao buscar solicitações:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleAprovacao = async (solicitacaoId: string, aprovada: boolean, observacao?: string) => {
+    if (!user?.gestor?.id) {
+      alert('Erro: ID do gestor não encontrado')
+      return
+    }
+
     setProcessando(solicitacaoId)
     
     try {
-      const response = await fetch(`/api/solicitacoes/${solicitacaoId}/aprovacao`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          gestorId: user?.gestor?.id,
-          aprovada,
-          observacao
-        }),
-      })
+      const result = await apiClient.aprovarSolicitacao(solicitacaoId, aprovada, user.gestor.id, observacao)
 
-      if (response.ok) {
-        // Remover da lista de pendentes
-        setSolicitacoesPendentes(prev => prev.filter(s => s.id !== solicitacaoId))
-        alert(aprovada ? 'Solicitação aprovada com sucesso!' : 'Solicitação reprovada com sucesso!')
+      if (result.error) {
+        alert(`Erro: ${result.error}`)
       } else {
-        const data = await response.json()
-        alert(`Erro: ${data.error}`)
+        alert(aprovada ? 'Solicitação aprovada com sucesso!' : 'Solicitação reprovada com sucesso!')
+        refetch() // Refresh the list
       }
     } catch (error) {
       alert('Erro de conexão')

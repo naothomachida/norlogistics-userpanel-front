@@ -3,9 +3,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const cliente = await prisma.cliente.findUnique({
       where: { id: params.id },
       include: {
@@ -68,9 +69,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const { nomeEmpresa, cnpj, endereco, telefone, email } = await request.json()
 
     // Verificar se cliente existe
@@ -133,9 +135,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     // Verificar se cliente existe
     const existingClient = await prisma.cliente.findUnique({
       where: { id: params.id }
