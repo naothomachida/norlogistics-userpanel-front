@@ -49,12 +49,14 @@ export class RouteCostCalculator {
   }
 
   /**
-   * Calcula o custo detalhado de uma rota
+   * Calcula o custo detalhado de uma rota usando dados reais da tabela de frete QUALP
    */
   calculateRouteCost(
     route: QualRouteOption,
     vehicleSpecs: VehicleSpecs,
-    profitMarginPercent: number = 20
+    profitMarginPercent: number = 20,
+    freightCategory: string = 'A',
+    cargoType: string = 'geral'
   ): RouteCosting {
     const distance = route.distance
     const durationHours = route.duration / 60
@@ -68,14 +70,32 @@ export class RouteCostCalculator {
     // Custo do motorista
     const driverCost = durationHours * (vehicleSpecs.driverCostPerHour || 25)
 
-    // Custo de pedágio
+    // Custo de pedágio real da API QUALP
     const tollCost = (route.tollCost || 0) * (vehicleSpecs.tollMultiplier || 1)
 
     // Custos operacionais (seguro, documentação, etc.)
     const operationalCost = distance * 0.5 // R$ 0.50 por km
 
-    // Custo total
-    const totalCost = fuelCost + maintenanceCost + driverCost + tollCost + operationalCost
+    // Custo base da tabela de frete QUALP (se disponível)
+    let freightTableCost = 0
+    if (route.freightTableData?.dados) {
+      const axisKey = this.getVehicleAxis(vehicleSpecs.tipo)
+      try {
+        freightTableCost = route.freightTableData.dados[freightCategory]?.[axisKey]?.[cargoType] || 0
+      } catch (error) {
+        console.warn('Erro ao extrair custo da tabela de frete:', error)
+      }
+    }
+
+    // Se temos dados da tabela de frete, usamos como base; senão, calculamos tradicionalmente
+    let totalCost: number
+    if (freightTableCost > 0) {
+      // Usar valor da tabela de frete como base e ajustar com custos específicos
+      totalCost = freightTableCost + tollCost
+    } else {
+      // Cálculo tradicional
+      totalCost = fuelCost + maintenanceCost + driverCost + tollCost + operationalCost
+    }
 
     // Margem de lucro
     const profitMargin = totalCost * (profitMarginPercent / 100)
@@ -255,6 +275,19 @@ export class RouteCostCalculator {
    */
   updateFuelPrice(newPrice: number): void {
     this.fuelPricePerLiter = newPrice
+  }
+
+  /**
+   * Mapeia tipo de veículo para número de eixos da tabela de frete
+   */
+  private getVehicleAxis(vehicleType: string): string {
+    const axisMap: Record<string, string> = {
+      'Van': '2',
+      'Caminhão Pequeno': '3',
+      'Caminhão Médio': '4',
+      'Caminhão Grande': '5'
+    }
+    return axisMap[vehicleType] || '3' // padrão para caminhão médio
   }
 
   /**

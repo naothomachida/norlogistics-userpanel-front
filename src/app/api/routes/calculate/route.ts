@@ -5,14 +5,16 @@ import { routeCostCalculator, defaultVehicleSpecs } from '@/lib/route-cost-calcu
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { 
-      origin, 
-      destination, 
+    const {
+      origin,
+      destination,
       waypoints = [],
       vehicleType = 'caminhao_medio',
       fuelPrice = 5.5,
       profitMargin = 20,
-      useHistoricalData = true
+      useHistoricalData = true,
+      freightCategory = 'A',
+      cargoType = 'geral'
     } = body
 
     if (!origin || !destination) {
