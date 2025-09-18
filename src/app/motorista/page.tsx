@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useSolicitacoes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
-import Layout from '@/components/Layout'
+import { Layout } from '@/components/layout'
 
 interface CustoExtraForm {
   tipo: string

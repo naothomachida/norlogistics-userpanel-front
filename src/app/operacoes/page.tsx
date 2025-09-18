@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import Layout from '@/components/Layout'
+import { Layout } from '@/components/layout'
 
 interface Solicitacao {
   id: string

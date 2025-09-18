@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import Layout from '@/components/Layout'
+import { Layout } from '@/components/layout'
 
 // Dynamically import the map component to avoid SSR issues
 const RouteMap = dynamic(() => import('@/components/RouteMap'), {
