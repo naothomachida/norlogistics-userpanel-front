@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SolicitationDetailsModal } from './solicitation-details-modal'
 import { APP_TEXT, FORMAT_TEXT } from '@/lib/text-constants'
 import { cn } from '@/lib/utils'
-import { MapPin, DollarSign, Calendar, User, Building2 } from 'lucide-react'
+import { MapPin, DollarSign, Calendar, User, Building2, Eye } from 'lucide-react'
 
 interface SolicitacaoExtended {
   id: string
@@ -45,6 +46,9 @@ export function SolicitacaoCard({
   showActions = true
 }: SolicitacaoCardProps) {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [detailedSolicitacao, setDetailedSolicitacao] = useState<any>(null)
+  const [loadingDetails, setLoadingDetails] = useState(false)
 
   const handleApprove = async () => {
     if (onApprove && !isProcessing) {
@@ -65,6 +69,24 @@ export function SolicitacaoCard({
       } finally {
         setIsProcessing(false)
       }
+    }
+  }
+
+  const handleViewDetails = async () => {
+    setLoadingDetails(true)
+    try {
+      const response = await fetch(`/api/solicitacoes/${solicitacao.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setDetailedSolicitacao(data)
+        setShowDetailsModal(true)
+      } else {
+        console.error('Erro ao carregar detalhes da solicitação')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar detalhes:', error)
+    } finally {
+      setLoadingDetails(false)
     }
   }
 
@@ -128,31 +150,54 @@ export function SolicitacaoCard({
         </div>
 
         {/* Action Buttons */}
-        {showActions && (onApprove || onReject) && (
-          <div className="flex items-center space-x-2 ml-4">
-            {onApprove && (
-              <Button
-                onClick={handleApprove}
-                disabled={isDisabled}
-                variant="success"
-                size="sm"
-              >
-                {isDisabled ? '...' : APP_TEXT.ACTIONS.APPROVE}
-              </Button>
-            )}
-            {onReject && (
-              <Button
-                onClick={handleReject}
-                disabled={isDisabled}
-                variant="destructive"
-                size="sm"
-              >
-                {isDisabled ? '...' : APP_TEXT.ACTIONS.REJECT}
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="flex items-center space-x-2 ml-4">
+          {/* Details Button */}
+          <Button
+            onClick={handleViewDetails}
+            disabled={loadingDetails}
+            variant="outline"
+            size="sm"
+          >
+            <Eye className="w-4 h-4 mr-1" />
+            {loadingDetails ? '...' : 'Detalhes'}
+          </Button>
+
+          {/* Approval/Rejection Buttons */}
+          {showActions && (onApprove || onReject) && (
+            <>
+              {onApprove && (
+                <Button
+                  onClick={handleApprove}
+                  disabled={isDisabled}
+                  variant="success"
+                  size="sm"
+                >
+                  {isDisabled ? '...' : APP_TEXT.ACTIONS.APPROVE}
+                </Button>
+              )}
+              {onReject && (
+                <Button
+                  onClick={handleReject}
+                  disabled={isDisabled}
+                  variant="destructive"
+                  size="sm"
+                >
+                  {isDisabled ? '...' : APP_TEXT.ACTIONS.REJECT}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Details Modal */}
+      {detailedSolicitacao && (
+        <SolicitationDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          solicitacao={detailedSolicitacao}
+        />
+      )}
     </Card>
   )
 }
