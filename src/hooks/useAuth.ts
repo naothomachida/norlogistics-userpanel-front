@@ -27,10 +27,11 @@ export function useAuth() {
       }
     }
 
-    if (!isAuthenticated && !loading) {
+    // Only check authentication if we have no user data and we're not already loading
+    if (!user && !loading) {
       checkAuth()
     }
-  }, [dispatch, isAuthenticated, loading])
+  }, [dispatch, user, loading])
 
   const handleLogout = async () => {
     try {

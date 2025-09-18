@@ -50,11 +50,6 @@ export default function MotoristaPage() {
       router.push('/login')
       return
     }
-
-    if (user?.role !== 'MOTORISTA') {
-      router.push('/')
-      return
-    }
   }, [isAuthenticated, user, router])
 
   const handleAdicionarCusto = async (e: React.FormEvent) => {
@@ -87,7 +82,7 @@ export default function MotoristaPage() {
     }
   }
 
-  if (!isAuthenticated || user?.role !== 'MOTORISTA') {
+  if (!isAuthenticated) {
     return <div>Carregando...</div>
   }
 
@@ -109,21 +104,13 @@ export default function MotoristaPage() {
   const solicitacoesFinalizadas = solicitacoes.filter(s => s.status === 'FINALIZADA')
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Dashboard do Motorista
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Bem-vindo, {user.nome}! Gerencie suas viagens e custos.
-            </p>
-          </div>
-        </div>
-
+    <Layout
+      title="Dashboard do Motorista"
+      description={`Bem-vindo, ${user.nome}! Gerencie suas viagens e custos.`}
+    >
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
         {error && (
-          <div className="mt-4 rounded-md bg-red-50 p-4">
+          <div className="mb-4 rounded-md bg-red-50 p-4">
             <div className="text-sm text-red-700">{error}</div>
           </div>
         )}
@@ -463,6 +450,6 @@ export default function MotoristaPage() {
           </div>
         )}
       </div>
-    </div>
+    </Layout>
   )
 }

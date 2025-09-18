@@ -1,257 +1,187 @@
 'use client'
 
-import Link from "next/link"
-import { useAuth } from "@/hooks/useAuth"
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { Layout } from '@/components/layout'
+import { StatCard, ActionCard } from '@/components/ui'
 
 export default function Home() {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
+
+  if (!isAuthenticated) {
+    return <div>Redirecionando para login...</div>
+  }
+
+  // Quick actions based on user role
+  const getQuickActions = () => {
+    const actions = []
+
+    if (user?.role === 'GESTOR') {
+      actions.push(
+        {
+          title: 'Dashboard Gestor',
+          description: 'Aprovações e relatórios',
+          href: '/dashboard',
+          icon: '📈',
+          iconColor: 'bg-blue-500'
+        },
+        {
+          title: 'Gerenciar Usuários',
+          description: 'Cadastrar e editar usuários',
+          href: '/admin/usuarios',
+          icon: '👥',
+          iconColor: 'bg-purple-500'
+        },
+        {
+          title: 'Gerenciar Clientes',
+          description: 'Cadastrar e editar clientes',
+          href: '/admin/clientes',
+          icon: '🏢',
+          iconColor: 'bg-orange-500'
+        },
+        {
+          title: 'Calcular Rotas',
+          description: 'Calculadora de rotas e custos',
+          href: '/calcular-rotas',
+          icon: '🗺️',
+          iconColor: 'bg-green-500'
+        }
+      )
+    }
+
+    if (user?.role === 'SOLICITANTE') {
+      actions.push(
+        {
+          title: 'Solicitar Coleta',
+          description: 'Nova solicitação de coleta',
+          href: '/solicitar-coleta',
+          icon: '📎',
+          iconColor: 'bg-blue-500'
+        }
+      )
+    }
+
+    if (user?.role === 'TRANSPORTADOR') {
+      actions.push(
+        {
+          title: 'Operações',
+          description: 'Gerenciar fretes e atribuições',
+          href: '/operacoes',
+          icon: '🚛',
+          iconColor: 'bg-orange-500'
+        },
+        {
+          title: 'Calcular Rotas',
+          description: 'Calculadora de rotas e custos',
+          href: '/calcular-rotas',
+          icon: '🗺️',
+          iconColor: 'bg-green-500'
+        },
+        {
+          title: 'Registrar Viagem',
+          description: 'Registrar dados de viagens realizadas',
+          href: '/registrar-viagem',
+          icon: '📝',
+          iconColor: 'bg-indigo-500'
+        }
+      )
+    }
+
+    if (user?.role === 'MOTORISTA') {
+      actions.push(
+        {
+          title: 'Minhas Viagens',
+          description: 'Gerenciar viagens e custos',
+          href: '/motorista',
+          icon: '🗺️',
+          iconColor: 'bg-red-500'
+        },
+        {
+          title: 'Registrar Viagem',
+          description: 'Registrar dados de viagens realizadas',
+          href: '/registrar-viagem',
+          icon: '📝',
+          iconColor: 'bg-indigo-500'
+        }
+      )
+    }
+
+    return actions
+  }
+
+  const quickActions = getQuickActions()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                Sistema de Logística NOR
-              </h1>
-            </div>
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-600 text-sm">
-                  Olá, {user?.nome}
-                </span>
-                <button
-                  onClick={logout}
-                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Sair
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <Link
-                  href="/login"
-                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Entrar
-                </Link>
-              </div>
-            )}
+    <Layout
+      title={`Bem-vindo, ${user?.nome}!`}
+      description="Painel principal do sistema de logística"
+    >
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
+        {/* User Role Badge */}
+        <div className="mb-8">
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+            {user?.role === 'GESTOR' && '📈 Gestor'}
+            {user?.role === 'SOLICITANTE' && '📋 Solicitante'}
+            {user?.role === 'TRANSPORTADOR' && '🚛 Transportador'}
+            {user?.role === 'MOTORISTA' && '🚗 Motorista'}
           </div>
         </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {isAuthenticated ? (
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Bem-vindo, {user?.nome}!
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {user?.role === 'SOLICITANTE' && (
-                <Link
-                  href="/solicitar-coleta"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                          <span className="text-white text-sm">📋</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
-                            Nova Solicitação
-                          </dt>
-                          <dd className="text-lg font-medium text-gray-900">
-                            Solicitar Coleta
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )}
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatCard
+            title="Status"
+            value="Ativo"
+            icon="✓"
+            iconColor="green"
+          />
+          <StatCard
+            title="Sessão"
+            value="Conectado"
+            icon="🔗"
+            iconColor="blue"
+          />
+          <StatCard
+            title="Perfil"
+            value={user?.role || 'N/A'}
+            icon="👤"
+            iconColor="purple"
+          />
+          <StatCard
+            title="Sistema"
+            value="Online"
+            icon="🟢"
+            iconColor="green"
+          />
+        </div>
 
-              {user?.role === 'GESTOR' && (
-                <>
-                  <Link
-                    href="/dashboard/aprovacoes"
-                    className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                            <span className="text-white text-sm">✓</span>
-                          </div>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">
-                              Aprovações
-                            </dt>
-                            <dd className="text-lg font-medium text-gray-900">
-                              Pendentes
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/admin/usuarios"
-                    className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                            <span className="text-white text-sm">👥</span>
-                          </div>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">
-                              Usuários
-                            </dt>
-                            <dd className="text-lg font-medium text-gray-900">
-                              Gerenciar
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </>
-              )}
-
-              {user?.role === 'TRANSPORTADOR' && (
-                <>
-                  <Link
-                    href="/operacoes"
-                    className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
-                            <span className="text-white text-sm">🚛</span>
-                          </div>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">
-                              Operações
-                            </dt>
-                            <dd className="text-lg font-medium text-gray-900">
-                              Gerenciar Fretes
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/operacoes/financeiro"
-                    className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                            <span className="text-white text-sm">💰</span>
-                          </div>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">
-                              Financeiro
-                            </dt>
-                            <dd className="text-lg font-medium text-gray-900">
-                              Fluxo de Caixa
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </>
-              )}
-
-              {user?.role === 'MOTORISTA' && (
-                <Link
-                  href="/motorista"
-                  className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
-                          <span className="text-white text-sm">🗺️</span>
-                        </div>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
-                            Viagens
-                          </dt>
-                          <dd className="text-lg font-medium text-gray-900">
-                            Minhas Rotas
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )}
-            </div>
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            Ações Rápidas
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {quickActions.map((action) => (
+              <ActionCard
+                key={action.href}
+                title={action.title}
+                description={action.description}
+                href={action.href}
+                icon={action.icon}
+                iconColor={action.iconColor}
+              />
+            ))}
           </div>
-        ) : (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Sistema de Logística NOR
-            </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Gerencie suas operações logísticas de forma eficiente
-            </p>
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-gray-800">Módulos do Sistema:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h4 className="font-semibold text-blue-600">Portal do Cliente</h4>
-                  <p className="text-sm text-gray-600">Solicitação de coletas e acompanhamento</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h4 className="font-semibold text-green-600">Portal do Gestor</h4>
-                  <p className="text-sm text-gray-600">Aprovações e gestão de usuários</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h4 className="font-semibold text-orange-600">Portal Transportador</h4>
-                  <p className="text-sm text-gray-600">Operações e controle financeiro</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h4 className="font-semibold text-red-600">App do Motorista</h4>
-                  <p className="text-sm text-gray-600">Gestão de rotas e custos</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8">
-              <Link
-                href="/login"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Fazer Login
-              </Link>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
+        </div>
+      </div>
+    </Layout>
+  )
 }

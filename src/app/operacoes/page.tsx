@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Layout } from '@/components/layout'
 
 interface Solicitacao {
@@ -70,13 +71,8 @@ export default function OperacoesPage() {
       return
     }
 
-    if (user?.role !== 'TRANSPORTADOR') {
-      router.push('/')
-      return
-    }
-
     fetchData()
-  }, [isAuthenticated, user, router, fetchData])
+  }, [isAuthenticated, user, router])
 
   const fetchData = useCallback(async () => {
     try {
@@ -151,7 +147,7 @@ export default function OperacoesPage() {
     }
   }
 
-  if (!isAuthenticated || user?.role !== 'TRANSPORTADOR') {
+  if (!isAuthenticated) {
     return <div>Carregando...</div>
   }
 
@@ -159,19 +155,11 @@ export default function OperacoesPage() {
   const solicitacoesEmExecucao = solicitacoes.filter(s => s.status === 'EM_EXECUCAO')
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Portal do Transportador
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Bem-vindo, {user.nome}! Gerencie suas operações logísticas.
-            </p>
-          </div>
-        </div>
-
+    <Layout
+      title="Portal do Transportador"
+      description={`Bem-vindo, ${user?.nome}! Gerencie suas operações logísticas.`}
+    >
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
         {/* Quick Stats */}
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -266,7 +254,7 @@ export default function OperacoesPage() {
         {/* Quick Actions */}
         <div className="mt-8">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <a
+            <Link
               href="/calcular-rotas"
               className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
@@ -279,9 +267,9 @@ export default function OperacoesPage() {
                 <p className="text-sm font-medium text-gray-900">Calcular Rotas</p>
                 <p className="text-sm text-gray-500">Compare rotas e custos</p>
               </div>
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/registrar-viagem"
               className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
@@ -294,9 +282,9 @@ export default function OperacoesPage() {
                 <p className="text-sm font-medium text-gray-900">Registrar Viagem</p>
                 <p className="text-sm text-gray-500">Registrar km e custos reais</p>
               </div>
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/operacoes/motoristas"
               className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
@@ -309,9 +297,9 @@ export default function OperacoesPage() {
                 <p className="text-sm font-medium text-gray-900">Gerenciar Motoristas</p>
                 <p className="text-sm text-gray-500">Cadastrar e gerenciar motoristas</p>
               </div>
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/operacoes/veiculos"
               className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
@@ -324,9 +312,9 @@ export default function OperacoesPage() {
                 <p className="text-sm font-medium text-gray-900">Gerenciar Veículos</p>
                 <p className="text-sm text-gray-500">Cadastrar e gerenciar frota</p>
               </div>
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/operacoes/financeiro"
               className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 hover:shadow-lg transition-shadow"
             >
@@ -339,7 +327,7 @@ export default function OperacoesPage() {
                 <p className="text-sm font-medium text-gray-900">Financeiro</p>
                 <p className="text-sm text-gray-500">Fluxo de caixa e pagamentos</p>
               </div>
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -562,6 +550,6 @@ export default function OperacoesPage() {
           </div>
         )}
       </div>
-    </div>
+    </Layout>
   )
 }

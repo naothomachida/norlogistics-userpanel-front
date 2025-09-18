@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
+    console.log('Received data:', JSON.stringify(data, null, 2))
     
     const {
       solicitanteId,
@@ -143,9 +144,58 @@ export async function POST(request: NextRequest) {
       valorTotal
     } = data
 
-    if (!solicitanteId || !clienteId || !centroCustoId || !pontoColeta || !pontoEntrega) {
+    if (!solicitanteId || !clienteId || !centroCustoId || !pontoColeta || !pontoEntrega || !dataColeta || !dataEntrega) {
+      console.log('Missing required fields:', {
+        solicitanteId: !!solicitanteId,
+        clienteId: !!clienteId,
+        centroCustoId: !!centroCustoId,
+        pontoColeta: !!pontoColeta,
+        pontoEntrega: !!pontoEntrega,
+        dataColeta: !!dataColeta,
+        dataEntrega: !!dataEntrega
+      })
       return NextResponse.json(
         { error: 'Campos obrigatórios não preenchidos' },
+        { status: 400 }
+      )
+    }
+
+    // Validar se as foreign keys existem
+    const [solicitanteExists, clienteExists, centroCustoExists, gestorExists] = await Promise.all([
+      prisma.solicitante.findUnique({ where: { id: solicitanteId } }),
+      prisma.cliente.findUnique({ where: { id: clienteId } }),
+      prisma.centroCusto.findUnique({ where: { id: centroCustoId } }),
+      gestorId ? prisma.gestor.findUnique({ where: { id: gestorId } }) : Promise.resolve(true)
+    ])
+
+    if (!solicitanteExists) {
+      console.log('Solicitante not found:', solicitanteId)
+      return NextResponse.json(
+        { error: 'Solicitante não encontrado' },
+        { status: 400 }
+      )
+    }
+
+    if (!clienteExists) {
+      console.log('Cliente not found:', clienteId)
+      return NextResponse.json(
+        { error: 'Cliente não encontrado' },
+        { status: 400 }
+      )
+    }
+
+    if (!centroCustoExists) {
+      console.log('Centro de custo not found:', centroCustoId)
+      return NextResponse.json(
+        { error: 'Centro de custo não encontrado' },
+        { status: 400 }
+      )
+    }
+
+    if (gestorId && !gestorExists) {
+      console.log('Gestor not found:', gestorId)
+      return NextResponse.json(
+        { error: 'Gestor não encontrado' },
         { status: 400 }
       )
     }
@@ -164,15 +214,15 @@ export async function POST(request: NextRequest) {
         pontoColeta,
         enderecoColeta,
         dataColeta: new Date(dataColeta),
-        horaColeta,
+        horaColeta: horaColeta || '',
         pontoEntrega,
         enderecoEntrega,
         dataEntrega: new Date(dataEntrega),
-        horaEntrega,
+        horaEntrega: horaEntrega || '',
         pontoRetorno,
         enderecoRetorno,
         dataRetorno: dataRetorno ? new Date(dataRetorno) : null,
-        horaRetorno,
+        horaRetorno: horaRetorno || null,
         descricaoMaterial,
         quantidadeVolumes: parseInt(quantidadeVolumes),
         dimensoes,
@@ -182,10 +232,10 @@ export async function POST(request: NextRequest) {
         valorDanfe: valorDanfe ? parseFloat(valorDanfe) : null,
         tipoVeiculo,
         observacoes,
-        kmTotal: parseFloat(kmTotal),
+        kmTotal: parseFloat(kmTotal) || 0,
         valorPedagio: parseFloat(valorPedagio || 0),
-        valorServico: parseFloat(valorServico),
-        valorTotal: parseFloat(valorTotal),
+        valorServico: parseFloat(valorServico) || 0,
+        valorTotal: parseFloat(valorTotal) || 0,
         status: 'PENDENTE'
       },
       include: {

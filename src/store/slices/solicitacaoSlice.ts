@@ -6,6 +6,7 @@ export interface Solicitacao {
   solicitanteId: string
   clienteId: string
   centroCustoId: string
+  gestorId?: string
   
   // Informações da coleta/entrega
   pontoColeta: string

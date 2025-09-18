@@ -9,6 +9,18 @@ export interface User {
   ativo: boolean
   createdAt: string
   updatedAt: string
+  solicitante?: {
+    id: string
+    cliente?: Pick<Cliente, 'id' | 'nomeEmpresa'>
+    centroCusto?: Pick<CentroCusto, 'id' | 'nome' | 'codigo'>
+    gestor?: {
+      id: string
+      usuario?: Pick<User, 'id' | 'nome' | 'email'>
+    }
+  }
+  gestor?: any
+  transportador?: any
+  motorista?: any
 }
 
 export interface Cliente {

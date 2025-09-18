@@ -35,11 +35,6 @@ export default function DashboardPage() {
       router.push('/login')
       return
     }
-
-    if (user?.role !== 'GESTOR') {
-      router.push('/')
-      return
-    }
   }, [isAuthenticated, user, router])
 
   const handleAprovacao = async (solicitacaoId: string, aprovada: boolean, observacao?: string) => {
@@ -79,7 +74,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (!isAuthenticated || user?.role !== 'GESTOR') {
+  if (!isAuthenticated) {
     return <div>{APP_TEXT.DASHBOARD.PENDING_REQUESTS.LOADING}</div>
   }
 
@@ -117,9 +112,9 @@ export default function DashboardPage() {
   return (
     <Layout
       title={APP_TEXT.DASHBOARD.TITLE}
-      description={APP_TEXT.DASHBOARD.WELCOME(user.nome) + ' ' + APP_TEXT.DASHBOARD.DESCRIPTION}
+      description={APP_TEXT.DASHBOARD.WELCOME(user?.nome || 'Usuário') + ' ' + APP_TEXT.DASHBOARD.DESCRIPTION}
     >
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

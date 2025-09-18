@@ -10,12 +10,14 @@ interface NavigationProps {
   className?: string
   orientation?: 'horizontal' | 'vertical'
   showIcons?: boolean
+  isCollapsed?: boolean
 }
 
 export function Navigation({
   className,
   orientation = 'horizontal',
-  showIcons = true
+  showIcons = true,
+  isCollapsed = false
 }: NavigationProps) {
   const { user } = useAuth()
   const pathname = usePathname()
@@ -27,41 +29,77 @@ export function Navigation({
     user.role && (item.roles as readonly string[]).includes(user.role)
   )
 
+  // Function to check if a menu item should be highlighted
+  const isActive = (href: string) => {
+    // Special case: root path should highlight Dashboard
+    if (pathname === '/' && href === '/dashboard') {
+      return true
+    }
+    
+    // Exact match
+    if (pathname === href) {
+      return true
+    }
+    
+    // Parent route match - check if current path starts with menu href (but not root)
+    if (href !== '/' && pathname.startsWith(href + '/')) {
+      return true
+    }
+    
+    return false
+  }
+
   const linkClass = (href: string) => cn(
-    "transition-colors duration-200 flex items-center space-x-2",
+    "transition-all duration-200 flex flex-col items-center justify-center font-medium relative overflow-hidden group",
     orientation === 'horizontal'
-      ? "px-4 py-2 rounded-md text-purple-300 hover:text-purple-100 hover:bg-gray-800"
-      : "block px-3 py-2 rounded-md text-purple-300 hover:text-purple-100 hover:bg-gray-800",
-    pathname === href && "bg-gray-800 text-purple-100"
+      ? "px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 hover:shadow-lg backdrop-blur-sm text-sm space-x-2"
+      : isCollapsed
+        ? "w-12 h-12 rounded-lg border border-slate-600/50 text-slate-400 hover:text-white hover:bg-slate-700/50 hover:border-slate-500"
+        : "w-full p-4 rounded-lg border border-slate-600/50 text-slate-400 hover:text-white hover:bg-slate-700/50 hover:border-slate-500 min-h-[80px]",
+    isActive(href) && orientation === 'vertical' && "bg-purple-600 text-white border-purple-500 shadow-lg",
+    isActive(href) && orientation === 'horizontal' && "bg-slate-700/70 text-white shadow-lg ring-1 ring-purple-500/30"
   )
 
   return (
     <nav className={cn(
       orientation === 'horizontal'
-        ? "hidden md:flex space-x-1"
-        : "space-y-1",
+        ? "hidden md:flex bg-slate-800/30 rounded-full px-1.5 py-0.5 backdrop-blur-sm border border-slate-700/50"
+        : "space-y-0",
       className
     )}>
-      {visibleMenuItems.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={linkClass(item.href)}
-        >
-          {showIcons && item.icon && <span>{item.icon}</span>}
-          <span>{item.name}</span>
-        </Link>
-      ))}
+      {visibleMenuItems.map((item) => {
+        const IconComponent = item.icon
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={linkClass(item.href)}
+            title={isCollapsed ? item.name : undefined}
+          >
+            {showIcons && IconComponent && (
+              <IconComponent className={cn(
+                "w-6 h-6 mb-1",
+                isCollapsed && "w-5 h-5 mb-0"
+              )} />
+            )}
+            {!isCollapsed && (
+              <span className="text-xs text-center leading-tight">
+                {item.name}
+              </span>
+            )}
+          </Link>
+        )
+      })}
     </nav>
   )
 }
 
 export function MobileNavigation() {
   return (
-    <div className="md:hidden">
+    <div className="md:hidden border-t border-slate-700/50">
       <Navigation
         orientation="vertical"
-        className="pb-4"
+        className="pb-4 pt-2"
       />
     </div>
   )

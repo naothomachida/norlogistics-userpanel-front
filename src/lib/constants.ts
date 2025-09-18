@@ -1,3 +1,5 @@
+import { BarChart3, Map, Package, Truck, Settings, User, Users, Building } from 'lucide-react'
+
 export const ROLES = {
   GESTOR: 'GESTOR',
   SOLICITANTE: 'SOLICITANTE',
@@ -32,48 +34,48 @@ export const MENU_ITEMS = [
     name: 'Dashboard',
     href: '/dashboard',
     roles: [ROLES.GESTOR, ROLES.TRANSPORTADOR, ROLES.MOTORISTA],
-    icon: '📊'
+    icon: BarChart3
   },
   {
     name: 'Calcular Rotas',
     href: '/calcular-rotas',
     roles: [ROLES.GESTOR, ROLES.TRANSPORTADOR],
-    icon: '🗺️'
+    icon: Map
   },
   {
     name: 'Solicitar Coleta',
     href: '/solicitar-coleta',
     roles: [ROLES.GESTOR, ROLES.SOLICITANTE, ROLES.TRANSPORTADOR],
-    icon: '📦'
+    icon: Package
   },
   {
     name: 'Registrar Viagem',
     href: '/registrar-viagem',
     roles: [ROLES.GESTOR, ROLES.TRANSPORTADOR, ROLES.MOTORISTA],
-    icon: '🚛'
+    icon: Truck
   },
   {
     name: 'Operações',
     href: '/operacoes',
     roles: [ROLES.GESTOR, ROLES.TRANSPORTADOR],
-    icon: '⚙️'
+    icon: Settings
   },
   {
     name: 'Motorista',
     href: '/motorista',
     roles: [ROLES.MOTORISTA],
-    icon: '👨‍💼'
+    icon: User
   },
   {
     name: 'Admin - Usuários',
     href: '/admin/usuarios',
     roles: [ROLES.GESTOR],
-    icon: '👥'
+    icon: Users
   },
   {
     name: 'Admin - Clientes',
     href: '/admin/clientes',
     roles: [ROLES.GESTOR],
-    icon: '🏢'
+    icon: Building
   }
 ] as const

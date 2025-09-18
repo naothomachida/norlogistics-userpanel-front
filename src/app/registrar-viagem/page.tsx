@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import { Layout } from '@/components/layout'
 
 interface Veiculo {
   id: string
@@ -49,7 +50,7 @@ export default function RegistrarViagemPage() {
     }
 
     fetchVeiculos()
-  }, [isAuthenticated, router, fetchVeiculos])
+  }, [isAuthenticated, router])
 
   const fetchVeiculos = useCallback(async () => {
     try {
@@ -147,20 +148,12 @@ export default function RegistrarViagemPage() {
     : '0.00'
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Registrar Viagem Realizada
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Registre os dados reais da viagem para melhorar nossos cálculos futuros
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8">
+    <Layout
+      title="Registrar Viagem Realizada"
+      description="Registre os dados reais da viagem para melhorar nossos cálculos futuros"
+    >
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
           <div className="bg-white shadow rounded-lg">
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Informações da Rota */}
@@ -395,6 +388,6 @@ export default function RegistrarViagemPage() {
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }

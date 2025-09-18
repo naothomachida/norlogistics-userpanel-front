@@ -55,7 +55,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/admin') ||
     pathname.startsWith('/operacoes') ||
     pathname.startsWith('/motorista') ||
-    pathname.startsWith('/solicitar-coleta')
+    pathname.startsWith('/solicitar-coleta') ||
+    pathname.startsWith('/registrar-viagem') ||
+    pathname.startsWith('/calcular-rotas')
   ) {
     const token = request.cookies.get('token')?.value
 
@@ -82,7 +84,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    if (pathname.startsWith('/operacoes') && userRole !== 'TRANSPORTADOR') {
+    if (pathname.startsWith('/operacoes') && !['GESTOR', 'TRANSPORTADOR'].includes(userRole)) {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
@@ -90,7 +92,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    if (pathname.startsWith('/solicitar-coleta') && userRole !== 'SOLICITANTE') {
+    if (pathname.startsWith('/solicitar-coleta') && !['GESTOR', 'SOLICITANTE', 'TRANSPORTADOR'].includes(userRole)) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    if (pathname.startsWith('/registrar-viagem') && !['GESTOR', 'TRANSPORTADOR', 'MOTORISTA'].includes(userRole)) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    if (pathname.startsWith('/calcular-rotas') && !['GESTOR', 'TRANSPORTADOR'].includes(userRole)) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

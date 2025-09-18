@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClientes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
+import { Layout } from '@/components/layout'
 import { Cliente } from '@/lib/api-types'
 
 interface ClienteFormData {
@@ -116,16 +117,14 @@ export default function ClientesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
+    <Layout
+      title="Gerenciar Clientes"
+      description="Cadastre e gerencie empresas clientes"
+    >
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
+        <div className="md:flex md:items-center md:justify-between mb-8">
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Gerenciar Clientes
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Cadastre e gerencie empresas clientes
-            </p>
+            {/* Title and description are now handled by Layout */}
           </div>
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <button
@@ -398,6 +397,6 @@ export default function ClientesPage() {
           </div>
         )}
       </div>
-    </div>
+    </Layout>
   )
 }
