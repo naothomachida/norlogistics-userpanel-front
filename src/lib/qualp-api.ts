@@ -13,7 +13,7 @@ export interface QualRouteOption {
   geometry: string // polyline da rota
   points: QualRoutePoint[]
   tollCost?: number // custo de pedágio se aplicável
-  freightTableData?: any // dados da tabela de frete
+  freightTableData?: Record<string, unknown> // dados da tabela de frete
 }
 
 export interface QualRouteResult {
@@ -58,9 +58,9 @@ export interface QualPApiResponse {
   endereco_fim: string
   coordenada_inicio: string
   coordenada_fim: string
-  pedagios: any[]
-  tabela_frete: any
-  balancas: any[]
+  pedagios: unknown[]
+  tabela_frete: Record<string, unknown>
+  balancas: unknown[]
   polilinha_codificada: string
   link_site_qualp: string
   locais: string[]
@@ -300,7 +300,7 @@ class QualPApi {
       return 0
     }
 
-    return apiResponse.pedagios.reduce((total: number, pedagio: any) => {
+    return apiResponse.pedagios.reduce((total: number, pedagio: Record<string, unknown>) => {
       // A estrutura dos pedágios pode variar, vamos tentar diferentes campos
       const cost = pedagio.valor || pedagio.cost || pedagio.price || 0
       return total + (parseFloat(cost.toString()) || 0)
@@ -322,7 +322,7 @@ class QualPApi {
       return { totalTollCost: 0, tollStations: [] }
     }
 
-    const tollStations = apiResponse.pedagios.map((toll: any) => ({
+    const tollStations = apiResponse.pedagios.map((toll: Record<string, unknown>) => ({
       name: toll.nome || toll.name || 'Pedágio',
       cost: parseFloat(toll.valor || toll.cost || toll.price || '0'),
       location: {

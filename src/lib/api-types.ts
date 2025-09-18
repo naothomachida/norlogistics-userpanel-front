@@ -111,6 +111,16 @@ export interface Veiculo {
   updatedAt: string
 }
 
+export interface CustoExtra {
+  id: string
+  solicitacaoId: string
+  tipo: string
+  valor: number
+  observacao?: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ApiResponse<T> {
   data?: T
   error?: string

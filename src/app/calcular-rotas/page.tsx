@@ -25,7 +25,7 @@ interface RouteOption {
       longitude: number
       address?: string
     }>
-    freightTableData?: any
+    freightTableData?: Record<string, unknown>
     tollCost?: number
   }
   costBreakdown: {
@@ -153,7 +153,7 @@ export default function CalcularRotasPage() {
       }
 
       setResult(data)
-    } catch (error) {
+    } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Erro desconhecido')
     } finally {
       setCalculating(false)

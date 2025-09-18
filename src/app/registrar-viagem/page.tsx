@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 
@@ -49,9 +49,9 @@ export default function RegistrarViagemPage() {
     }
 
     fetchVeiculos()
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, router, fetchVeiculos])
 
-  const fetchVeiculos = async () => {
+  const fetchVeiculos = useCallback(async () => {
     try {
       const response = await fetch(`/api/veiculos?transportadorId=${user?.id}`)
       if (response.ok) {
@@ -61,7 +61,7 @@ export default function RegistrarViagemPage() {
     } catch (error) {
       console.error('Erro ao buscar veículos:', error)
     }
-  }
+  }, [user?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
