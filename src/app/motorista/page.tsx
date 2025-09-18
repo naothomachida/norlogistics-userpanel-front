@@ -5,6 +5,20 @@ import { useAuth } from '@/hooks/useAuth'
 import { useSolicitacoes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
+import { Layout } from '@/components/layout'
+import { Solicitacao } from '@/lib/api-types'
+
+interface SolicitacaoExtended extends Solicitacao {
+  solicitante?: {
+    usuario?: {
+      nome: string
+      email: string
+    }
+    cliente?: {
+      nomeEmpresa: string
+    }
+  }
+}
 
 interface CustoExtraForm {
   tipo: string
@@ -257,7 +271,7 @@ export default function MotoristaPage() {
           ) : (
             <div className="overflow-hidden">
               <ul className="divide-y divide-gray-200">
-                {filteredSolicitacoes.map((solicitacao: any) => (
+                {filteredSolicitacoes.map((solicitacao: SolicitacaoExtended) => (
                   <li key={solicitacao.id} className="px-4 py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">

@@ -5,14 +5,16 @@ import { routeCostCalculator, defaultVehicleSpecs } from '@/lib/route-cost-calcu
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { 
-      origin, 
-      destination, 
+    const {
+      origin,
+      destination,
       waypoints = [],
       vehicleType = 'caminhao_medio',
       fuelPrice = 5.5,
       profitMargin = 20,
-      useHistoricalData = true
+      useHistoricalData = true,
+      freightCategory = 'A',
+      cargoType = 'geral'
     } = body
 
     if (!origin || !destination) {
@@ -25,23 +27,30 @@ export async function POST(request: NextRequest) {
     // Atualizar preço do combustível
     routeCostCalculator.updateFuelPrice(fuelPrice)
 
-    // Calcular rotas usando a API Qualp
+    // Calcular rotas usando a API Qualp com configurações completas
     const routeResults = await calculateBestRoutes(origin, destination, {
       waypoints,
-      vehicleType,
+      vehicleType: body.vehicleType || 'truck',
+      vehicleAxis: body.vehicleAxis,
       fuelPrice,
-      costPerKm: 2.8
+      fuelConsumption: body.fuelConsumption ? parseFloat(body.fuelConsumption) : undefined,
+      costPerKm: 2.8,
+      showTolls: body.showTolls,
+      showFreightTable: body.showFreightTable,
+      showPolyline: body.showPolyline
     })
 
     // Obter especificações do veículo
     const vehicleSpecs = defaultVehicleSpecs[vehicleType] || defaultVehicleSpecs.caminhao_medio
 
-    // Calcular custos para cada rota
+    // Calcular custos para cada rota usando dados reais do QUALP
     const routeCostings = routeResults.routes.map(route => {
       let costing = routeCostCalculator.calculateRouteCost(
         route,
         vehicleSpecs,
-        profitMargin
+        profitMargin,
+        freightCategory,
+        cargoType
       )
 
       // Ajustar com dados históricos se solicitado

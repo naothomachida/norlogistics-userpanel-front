@@ -1,4 +1,4 @@
-import { User, Cliente, CentroCusto, Solicitacao, Motorista, Veiculo, ApiResponse } from './api-types'
+import { User, Cliente, CentroCusto, Solicitacao, Motorista, Veiculo, CustoExtra, ApiResponse } from './api-types'
 
 class ApiClient {
   private baseUrl: string
@@ -154,8 +154,8 @@ class ApiClient {
     })
   }
 
-  async aprovarSolicitacao(id: string, aprovada: boolean, gestorId: string, observacao?: string): Promise<ApiResponse<any>> {
-    return this.request<any>(`/solicitacoes/${id}/aprovacao`, {
+  async aprovarSolicitacao(id: string, aprovada: boolean, gestorId: string, observacao?: string): Promise<ApiResponse<Solicitacao>> {
+    return this.request<Solicitacao>(`/solicitacoes/${id}/aprovacao`, {
       method: 'POST',
       body: JSON.stringify({ gestorId, aprovada, observacao }),
     })
@@ -201,8 +201,8 @@ class ApiClient {
   }
 
   // Custos Extras
-  async getCustosExtras(solicitacaoId: string): Promise<ApiResponse<any[]>> {
-    return this.request<any[]>(`/custos-extras?solicitacaoId=${solicitacaoId}`)
+  async getCustosExtras(solicitacaoId: string): Promise<ApiResponse<CustoExtra[]>> {
+    return this.request<CustoExtra[]>(`/custos-extras?solicitacaoId=${solicitacaoId}`)
   }
 
   async createCustoExtra(custoExtraData: {
@@ -210,8 +210,8 @@ class ApiClient {
     tipo: string
     valor: number
     observacao?: string
-  }): Promise<ApiResponse<any>> {
-    return this.request<any>('/custos-extras', {
+  }): Promise<ApiResponse<CustoExtra>> {
+    return this.request<CustoExtra>('/custos-extras', {
       method: 'POST',
       body: JSON.stringify(custoExtraData),
     })

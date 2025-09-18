@@ -3,6 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import { Layout } from '@/components/layout'
+
+// Dynamically import the map component to avoid SSR issues
+const RouteMap = dynamic(() => import('@/components/RouteMap'), {
+  ssr: false,
+  loading: () => <div className="h-96 w-full bg-gray-200 rounded-lg flex items-center justify-center">Carregando mapa...</div>
+})
 
 interface RouteOption {
   route: {
@@ -11,6 +19,14 @@ interface RouteOption {
     duration: number
     estimatedCost: number
     efficiency: string
+    geometry?: string
+    points?: Array<{
+      latitude: number
+      longitude: number
+      address?: string
+    }>
+    freightTableData?: Record<string, unknown>
+    tollCost?: number
   }
   costBreakdown: {
     fuelCost: number
@@ -76,7 +92,17 @@ export default function CalcularRotasPage() {
     vehicleType: 'caminhao_medio',
     fuelPrice: 5.5,
     profitMargin: 20,
-    useHistoricalData: true
+    useHistoricalData: true,
+    // Configurações QUALP
+    freightCategory: 'A',
+    cargoType: 'geral',
+    vehicleQualPType: 'truck',
+    vehicleAxis: 'all',
+    topSpeed: '',
+    fuelConsumption: '',
+    showTolls: true,
+    showFreightTable: true,
+    showPolyline: true
   })
   
   const [result, setResult] = useState<RouteResult | null>(null)
@@ -112,7 +138,11 @@ export default function CalcularRotasPage() {
         },
         body: JSON.stringify({
           ...formData,
-          waypoints: formData.waypoints.filter(w => w.trim() !== '')
+          waypoints: formData.waypoints.filter(w => w.trim() !== ''),
+          vehicleType: formData.vehicleQualPType,
+          vehicleAxis: formData.vehicleAxis,
+          topSpeed: formData.topSpeed,
+          fuelConsumption: formData.fuelConsumption
         }),
       })
 
@@ -123,7 +153,7 @@ export default function CalcularRotasPage() {
       }
 
       setResult(data)
-    } catch (error) {
+    } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Erro desconhecido')
     } finally {
       setCalculating(false)
@@ -200,20 +230,13 @@ export default function CalcularRotasPage() {
   const selectedRoute = selectedRouteKey ? routeOptions.find(option => option.key === selectedRouteKey) : null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout
+      title="Calculadora de Rotas"
+      description="Compare rotas e custos para suas operações logísticas"
+    >
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Calculadora de Rotas
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Compare rotas e custos para suas operações logísticas
-            </p>
-          </div>
-        </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-4">
           {/* Formulário de Cálculo */}
           <div className="lg:col-span-1">
             <div className="bg-white shadow rounded-lg p-6">
@@ -299,6 +322,163 @@ export default function CalcularRotasPage() {
                     <option value="caminhao_medio">Caminhão Médio</option>
                     <option value="caminhao_grande">Caminhão Grande</option>
                   </select>
+                </div>
+
+                {/* Configurações QUALP */}
+                <div className="border-t pt-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">
+                    Configurações QUALP
+                  </h4>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Categoria de Veículo QUALP
+                      </label>
+                      <select
+                        value={formData.vehicleQualPType}
+                        onChange={(e) => setFormData({...formData, vehicleQualPType: e.target.value})}
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      >
+                        <option value="truck">truck (Caminhão)</option>
+                        <option value="car">car (Carro)</option>
+                        <option value="motorcycle">motorcycle (Moto)</option>
+                        <option value="bus">bus (Ônibus)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Categoria de Frete
+                      </label>
+                      <select
+                        value={formData.freightCategory}
+                        onChange={(e) => setFormData({...formData, freightCategory: e.target.value})}
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      >
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Tipo de Carga
+                      </label>
+                      <select
+                        value={formData.cargoType}
+                        onChange={(e) => setFormData({...formData, cargoType: e.target.value})}
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      >
+                        <option value="all">all (Todas)</option>
+                        <option value="granel_solido">granel_solido (Granel Sólido)</option>
+                        <option value="granel_liquido">granel_liquido (Granel Líquido)</option>
+                        <option value="frigorificada">frigorificada (Frigorificada)</option>
+                        <option value="conteineirizada">conteineirizada (Conteineirizada)</option>
+                        <option value="geral">geral (Geral)</option>
+                        <option value="neogranel">neogranel (Neogranel)</option>
+                        <option value="perigosa_granel_solido">perigosa_granel_solido (Perigosa Granel Sólido)</option>
+                        <option value="perigosa_granel_liquido">perigosa_granel_liquido (Perigosa Granel Líquido)</option>
+                        <option value="perigosa_frigorificada">perigosa_frigorificada (Perigosa Frigorificada)</option>
+                        <option value="perigosa_conteineirizada">perigosa_conteineirizada (Perigosa Conteineirizada)</option>
+                        <option value="perigosa_geral">perigosa_geral (Perigosa Geral)</option>
+                        <option value="granel_pressurizada">granel_pressurizada (Granel Pressurizada)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Número de Eixos
+                      </label>
+                      <select
+                        value={formData.vehicleAxis}
+                        onChange={(e) => setFormData({...formData, vehicleAxis: e.target.value})}
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      >
+                        <option value="all">all (Todos)</option>
+                        <option value="2">2 eixos</option>
+                        <option value="3">3 eixos</option>
+                        <option value="4">4 eixos</option>
+                        <option value="5">5 eixos</option>
+                        <option value="6">6 eixos</option>
+                        <option value="7">7 eixos</option>
+                        <option value="8">8 eixos</option>
+                        <option value="9">9 eixos</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Velocidade Máxima
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Opcional"
+                          value={formData.topSpeed}
+                          onChange={(e) => setFormData({...formData, topSpeed: e.target.value})}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Consumo (km/L)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="Opcional"
+                          value={formData.fuelConsumption}
+                          onChange={(e) => setFormData({...formData, fuelConsumption: e.target.value})}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <input
+                          id="show-tolls"
+                          type="checkbox"
+                          checked={formData.showTolls}
+                          onChange={(e) => setFormData({...formData, showTolls: e.target.checked})}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="show-tolls" className="ml-2 block text-sm text-gray-900">
+                          Mostrar pedágios
+                        </label>
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          id="show-freight"
+                          type="checkbox"
+                          checked={formData.showFreightTable}
+                          onChange={(e) => setFormData({...formData, showFreightTable: e.target.checked})}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="show-freight" className="ml-2 block text-sm text-gray-900">
+                          Mostrar tabela de frete
+                        </label>
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          id="show-polyline"
+                          type="checkbox"
+                          checked={formData.showPolyline}
+                          onChange={(e) => setFormData({...formData, showPolyline: e.target.checked})}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="show-polyline" className="ml-2 block text-sm text-gray-900">
+                          Mostrar rota no mapa
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -442,7 +622,7 @@ export default function CalcularRotasPage() {
                 {selectedRouteKey && (
                   <div className="bg-white shadow rounded-lg p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      Detalhamento - {selectedRoute.tag}
+                      Detalhamento - {selectedRoute?.tag}
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -462,15 +642,15 @@ export default function CalcularRotasPage() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Distância:</span>
-                            <span className="text-gray-900">{selectedRoute.route.distance.toFixed(1)} km</span>
+                            <span className="text-gray-900">{selectedRoute?.route.distance.toFixed(1)} km</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Tempo estimado:</span>
-                            <span className="text-gray-900">{formatTime(selectedRoute.route.duration)}</span>
+                            <span className="text-gray-900">{formatTime(selectedRoute?.route.duration || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Veículo:</span>
-                            <span className="text-gray-900">{selectedRoute.vehicleSpecs.tipo}</span>
+                            <span className="text-gray-900">{selectedRoute?.vehicleSpecs.tipo}</span>
                           </div>
                         </div>
                       </div>
@@ -483,39 +663,67 @@ export default function CalcularRotasPage() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Combustível:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute.costBreakdown.fuelCost)}</span>
+                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.fuelCost || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Manutenção:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute.costBreakdown.maintenanceCost)}</span>
+                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.maintenanceCost || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Motorista:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute.costBreakdown.driverCost)}</span>
+                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.driverCost || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Pedágios:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute.costBreakdown.tollCost)}</span>
+                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.tollCost || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Operacional:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute.costBreakdown.operationalCost)}</span>
+                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.operationalCost || 0)}</span>
                           </div>
                           <div className="border-t pt-2 flex justify-between font-medium">
                             <span className="text-gray-900">Custo Total:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute.costBreakdown.totalCost)}</span>
+                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.totalCost || 0)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Margem ({result.metadata.profitMargin}%):</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute.costBreakdown.profitMargin)}</span>
+                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.profitMargin || 0)}</span>
                           </div>
                           <div className="border-t pt-2 flex justify-between font-bold text-lg">
                             <span className="text-gray-900">Preço Final:</span>
-                            <span className="text-blue-600">{formatCurrency(selectedRoute.costBreakdown.finalPrice)}</span>
+                            <span className="text-blue-600">{formatCurrency(selectedRoute?.costBreakdown.finalPrice || 0)}</span>
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* Dados da Tabela de Frete QUALP */}
+                    {selectedRoute?.route.freightTableData && (
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">
+                          Dados da Tabela de Frete QUALP
+                        </h4>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Categoria:</span>
+                              <span className="text-gray-900 ml-2">{formData.freightCategory}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Tipo de Carga:</span>
+                              <span className="text-gray-900 ml-2">{formData.cargoType}</span>
+                            </div>
+                          </div>
+
+                          {selectedRoute?.route.freightTableData?.antt_resolucao && (
+                            <div className="mt-3 text-xs text-gray-600">
+                              <strong>Resolução ANTT:</strong> {selectedRoute?.route.freightTableData?.antt_resolucao?.nome}<br/>
+                              <strong>Data:</strong> {selectedRoute?.route.freightTableData?.antt_resolucao?.data}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -583,8 +791,32 @@ export default function CalcularRotasPage() {
               </div>
             )}
           </div>
+
+          {/* Mapa da Rota */}
+          {result && selectedRoute && (
+            <div className="lg:col-span-1">
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Visualização da Rota
+                </h3>
+
+                <RouteMap
+                  polyline={selectedRoute?.route.geometry}
+                  originAddress={result.metadata.origin}
+                  destinationAddress={result.metadata.destination}
+                  originCoords={selectedRoute?.route.points?.[0] ? [selectedRoute?.route.points[0].latitude, selectedRoute?.route.points[0].longitude] : undefined}
+                  destCoords={selectedRoute?.route.points?.[1] ? [selectedRoute?.route.points[1].latitude, selectedRoute?.route.points[1].longitude] : undefined}
+                  className="h-96 w-full rounded-lg"
+                />
+
+                <div className="mt-4 text-xs text-gray-500">
+                  Mapa fornecido por OpenStreetMap • Dados da rota: QUALP API
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </Layout>
   )
 }

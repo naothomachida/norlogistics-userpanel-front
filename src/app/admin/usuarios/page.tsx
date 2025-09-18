@@ -5,6 +5,27 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUsuarios, useClientes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
+import { Layout } from '@/components/layout'
+import { User } from '@/lib/api-types'
+
+interface ExtendedUser extends User {
+  solicitante?: {
+    clienteId?: string
+    centroCustoId?: string
+    gestorId?: string
+    limiteValor?: number
+  }
+  transportador?: {
+    nomeEmpresa?: string
+    cnpj?: string
+  }
+  motorista?: {
+    transportadorId?: string
+    tipo?: string
+    cnh?: string
+    valorPorKm?: number
+  }
+}
 
 const ROLES = [
   { value: 'SOLICITANTE', label: 'Solicitante' },
@@ -88,7 +109,7 @@ export default function UsuariosPage() {
     }
   }
 
-  const handleEdit = (usuario: any) => {
+  const handleEdit = (usuario: ExtendedUser) => {
     setEditingUser(usuario.id)
     setSelectedRole(usuario.role)
     setFormData({
@@ -213,7 +234,7 @@ export default function UsuariosPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {usuarios.map((usuario: any) => (
+                {usuarios.map((usuario: ExtendedUser) => (
                   <tr key={usuario.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>

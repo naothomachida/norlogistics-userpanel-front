@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import { Layout } from '@/components/layout'
 
 interface Solicitacao {
   id: string
@@ -75,9 +76,9 @@ export default function OperacoesPage() {
     }
 
     fetchData()
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [solicitacoesRes, motoristasRes, veiculosRes] = await Promise.all([
         fetch('/api/solicitacoes?status=APROVADA'),
@@ -104,7 +105,7 @@ export default function OperacoesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   const handleAtribuir = async (solicitacaoId: string) => {
     if (!formData.motoristaId || !formData.veiculoId) {

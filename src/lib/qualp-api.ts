@@ -13,6 +13,7 @@ export interface QualRouteOption {
   geometry: string // polyline da rota
   points: QualRoutePoint[]
   tollCost?: number // custo de pedágio se aplicável
+  freightTableData?: Record<string, unknown> // dados da tabela de frete
 }
 
 export interface QualRouteResult {
@@ -26,11 +27,48 @@ export interface RouteCalculationParams {
   origin: string
   destination: string
   waypoints?: string[]
-  vehicleType?: 'carro' | 'moto' | 'caminhao_pequeno' | 'caminhao_medio' | 'caminhao_grande'
+  vehicleType?: 'truck' | 'car'
+  vehicleAxis?: number
   costPerKm?: number
   fuelPrice?: number
   fuelConsumption?: number // km/l
   tollPreference?: 'avoid' | 'allow' | 'prefer'
+  showTolls?: boolean
+  showFreightTable?: boolean
+  showPolyline?: boolean
+}
+
+// Interface para resposta da API QUALP real
+export interface QualPApiResponse {
+  distancia: {
+    texto: string
+    valor: number
+  }
+  distancia_nao_pavimentada: {
+    texto: string
+    valor: number
+    percentual_texto: string
+    percentual_valor: number
+  }
+  duracao: {
+    texto: string
+    valor: number
+  }
+  endereco_inicio: string
+  endereco_fim: string
+  coordenada_inicio: string
+  coordenada_fim: string
+  pedagios: unknown[]
+  tabela_frete: Record<string, unknown>
+  balancas: unknown[]
+  polilinha_codificada: string
+  link_site_qualp: string
+  locais: string[]
+  id_transacao: number
+  roteador_selecionado: string
+  calcular_volta: boolean
+  otimizar_rota: boolean
+  meta_data: string
 }
 
 class QualPApi {
@@ -45,154 +83,124 @@ class QualPApi {
   }
 
   /**
-   * Geocodifica um endereço usando a API Qualp
+   * Extrai coordenadas de uma string de coordenadas do QUALP
    */
-  async geocode(address: string): Promise<QualRoutePoint> {
-    // Coordenadas básicas para cidades principais
-    const cityCoordinates: Record<string, [number, number]> = {
-      'sorocaba': [-23.5018, -47.4581],
-      'itu': [-23.2640, -47.2996],
-      'sao paulo': [-23.5505, -46.6333],
-      'campinas': [-22.9056, -47.0608],
-      'jundiai': [-23.1864, -46.8842],
-      'santos': [-23.9608, -46.3331]
-    }
-
-    const cityKey = address.toLowerCase().replace(/\s+/g, '').replace(',', '')
-
-    if (cityCoordinates[cityKey]) {
-      const [lat, lng] = cityCoordinates[cityKey]
-      return { latitude: lat, longitude: lng, address }
-    }
-
-    throw new Error(`Cidade não encontrada: ${address}`)
+  private parseCoordinates(coordString: string): { latitude: number, longitude: number } {
+    const [lat, lng] = coordString.split(',').map(coord => parseFloat(coord.trim()))
+    return { latitude: lat, longitude: lng }
   }
 
-
   /**
-   * Calcula múltiplas rotas entre pontos usando a API Qualp
+   * Calcula múltiplas rotas entre pontos usando a API Qualp real
    */
   async calculateRoutes(params: RouteCalculationParams): Promise<QualRouteResult> {
     try {
-      // Geocodificar pontos de origem e destino
-      const [originPoint, destinationPoint] = await Promise.all([
-        this.geocode(params.origin),
-        this.geocode(params.destination)
-      ])
-
-      // Geocodificar pontos de passagem se existirem
-      let waypointPoints: QualRoutePoint[] = []
+      // Montar locais incluindo waypoints se houver
+      const locations = [params.origin]
       if (params.waypoints && params.waypoints.length > 0) {
-        waypointPoints = await Promise.all(
-          params.waypoints.map(waypoint => this.geocode(waypoint))
-        )
+        locations.push(...params.waypoints)
       }
+      locations.push(params.destination)
 
-      // Chamar API de roteamento v4 do Qualp
-      const coordinates = [
-        [originPoint.longitude, originPoint.latitude],
-        ...waypointPoints.map(point => [point.longitude, point.latitude]),
-        [destinationPoint.longitude, destinationPoint.latitude]
-      ]
-
-      // Request body baseado na documentação oficial
-      const requestBody = {
-        "locations": [
-          `${originPoint.address}`,
-          `${destinationPoint.address}`
-        ],
+      // Payload exato conforme documentação QUALP
+      const requestData = {
+        "locations": locations,
         "config": {
           "route": {
-            "calculate_return": false,
-            "alternative_routes": true,
             "optimized_route": false,
-            "optimized_route_destination": false,
-            "avoid_locations": false,
+            "optimized_route_destination": "last",
+            "calculate_return": false,
+            "alternative_routes": "0",
+            "avoid_locations": true,
             "avoid_locations_key": "",
-            "type_route": "efficient",
-            "vehicle": {
-              "type": "truck",
-              "axis": "all",
-              "top_speed": null
-            },
-            "tolls": {
-              "interactive_date": new Date().toLocaleDateString('pt-BR')
-            },
-            "freight_table": {
-              "category": "all",
-              "freight_load": "all",
-              "axis": "all"
-            },
-            "fuel_consumption": {
-              "fuel_price": params.fuelPrice || 5.5,
-              "fuel_liters": 0.0
-            },
-            "private_places": {
-              "areas": false,
-              "categorias": false,
-              "constants": false,
-              "products": false,
-              "services": false,
-              "max_distance_from_location_in_route": 1000
-            },
-            "show": {
-              "tolls": true,
-              "manoeuver": false,
-              "static_image": false,
-              "polylines": true,
-              "url": false,
-              "exception_key": false
-            },
-            "format": "JSON"
+            "type_route": "efficient"
+          },
+          "vehicle": {
+            "type": params.vehicleType || "truck",
+            "axis": "all",
+            "top_speed": null
+          },
+          "tolls": {
+            "retroactive_date": ""
+          },
+          "freight_table": {
+            "category": "all",
+            "freight_load": "all",
+            "axis": "all"
+          },
+          "fuel_consumption": {
+            "fuel_price": params.fuelPrice?.toString() || "",
+            "km_fuel": params.fuelConsumption?.toString() || ""
+          },
+          "private_places": {
+            "max_distance_from_location_to_route": "1000",
+            "categories": true,
+            "areas": true,
+            "contacts": true,
+            "products": true,
+            "services": true
           }
-        }
+        },
+        "show": {
+          "tolls": params.showTolls ?? true,
+          "freight_table": params.showFreightTable ?? true,
+          "maneuvers": "false",
+          "truck_scales": true,
+          "static_image": false,
+          "link_to_qualp": true,
+          "private_places": false,
+          "polyline": params.showPolyline ?? true,
+          "simplified_polyline": false,
+          "ufs": false,
+          "fuel_consumption": false,
+          "link_to_qualp_report": false,
+          "segments_information": false
+        },
+        "format": "json",
+        "exception_key": ""
       }
 
-      const routeResponse = await fetch(`${this.baseUrl}/rotas/v4`, {
+      console.log('Enviando para QUALP API:', JSON.stringify(requestData, null, 2))
+
+      // Fazer requisição conforme documentação QUALP
+      const response = await fetch(`${this.baseUrl}/rotas/v4`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Access-Token': this.apiKey
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          params: {
+            json: JSON.stringify(requestData)
+          }
+        })
       })
 
-      if (!routeResponse.ok) {
-        throw new Error(`Erro no cálculo de rotas: ${routeResponse.statusText}`)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Erro na resposta da API QUALP:', response.status, errorText)
+        throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}`)
       }
 
-      const routeData = await routeResponse.json()
+      const apiResponse: QualPApiResponse = await response.json()
+      console.log('Resposta da QUALP API:', JSON.stringify(apiResponse, null, 2))
 
-      // Processar as rotas retornadas do Qualp v4
-      const routes = this.processQualPResponse(routeData, originPoint, destinationPoint, waypointPoints, params)
+      // Processar resposta real da API
+      const routes = this.processQualPApiResponse(apiResponse, params)
 
-      // Determinar a melhor rota para cada critério
-      const mostEfficient = routes.reduce((best, current) => {
-        if (current.efficiency === 'alta' && best.efficiency !== 'alta') return current
-        if (current.efficiency === best.efficiency) {
-          return current.estimatedCost < best.estimatedCost ? current : best
-        }
-        return best
-      })
-
-      const cheapest = routes.reduce((cheapest, current) => 
-        current.estimatedCost < cheapest.estimatedCost ? current : cheapest
-      )
-
-      const fastest = routes.reduce((fastest, current) => 
-        current.duration < fastest.duration ? current : fastest
-      )
+      // Como a API retorna apenas uma rota, usamos ela para todos os critérios
+      const singleRoute = routes[0]
 
       return {
         routes,
-        mostEfficient,
-        cheapest,
-        fastest
+        mostEfficient: singleRoute,
+        cheapest: singleRoute,
+        fastest: singleRoute
       }
 
     } catch (error) {
-      console.error('Erro ao calcular rotas:', error)
+      console.error('Erro ao calcular rotas com API QUALP:', error)
       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }
@@ -237,154 +245,115 @@ class QualPApi {
     return 'baixa'
   }
 
-
   /**
-   * Mapeia tipos de veículos para perfis do Qualp
+   * Processa a resposta real da API QUALP v4
    */
-  private mapVehicleTypeToProfile(vehicleType: string): string {
-    const profileMap: Record<string, string> = {
-      'carro': 'car',
-      'moto': 'car', // Usar car como fallback
-      'caminhao_pequeno': 'truck',
-      'caminhao_medio': 'truck',
-      'caminhao_grande': 'truck'
-    }
-
-    return profileMap[vehicleType] || 'car'
-  }
-
-  /**
-   * Processa a resposta da API Qualp v4
-   */
-  private processQualPResponse(
-    routeData: any,
-    originPoint: QualRoutePoint,
-    destinationPoint: QualRoutePoint,
-    waypointPoints: QualRoutePoint[],
+  private processQualPApiResponse(
+    apiResponse: QualPApiResponse,
     params: RouteCalculationParams
   ): QualRouteOption[] {
-    if (!routeData || !routeData.distancia) {
-      throw new Error('Resposta inválida da API Qualp')
+    if (!apiResponse || !apiResponse.distancia) {
+      throw new Error('Resposta inválida da API QUALP')
     }
 
-    // Baseado na documentação, a resposta contém:
-    // - distancia: { texto, valor }
-    // - duracao: { texto, valor }
-    // - distancia_nao_pavimentada: { texto, valor }
-    // - endereco_inicio, endereco_fim
-    // - coordenada_inicio, coordenada_fim
-    // - pedagios: []
+    const distanceKm = apiResponse.distancia.valor
+    const durationSeconds = apiResponse.duracao.valor
+    const durationMin = Math.round(durationSeconds / 60)
 
-    const distanceKm = parseFloat(routeData.distancia.valor) || 0
-    const durationMin = parseFloat(routeData.duracao.valor) || 0
+    // Extrair coordenadas de início e fim
+    const originCoords = this.parseCoordinates(apiResponse.coordenada_inicio)
+    const destCoords = this.parseCoordinates(apiResponse.coordenada_fim)
 
-    // Extrair geometria da rota (polyline)
-    const geometry = routeData.polyline || routeData.geometry || ''
+    // Pontos da rota
+    const points: QualRoutePoint[] = [
+      { ...originCoords, address: apiResponse.endereco_inicio },
+      { ...destCoords, address: apiResponse.endereco_fim }
+    ]
 
-    // Extrair custos de pedágio
-    const tollCost = this.extractTollCostFromQualPResponse(routeData)
+    // Extrair custos de pedágio dos dados reais
+    const tollCost = this.extractTollCostFromQualPResponse(apiResponse)
 
-    // Calcular custo estimado
+    // Calcular custo estimado básico
     const estimatedCost = this.calculateEstimatedCost(distanceKm, params)
 
     // Calcular eficiência
     const efficiency = this.calculateEfficiency(distanceKm, durationMin, estimatedCost)
 
-    // Por enquanto retornamos uma única rota, mas a API pode retornar múltiplas
     return [{
-      id: `qualp_route_1`,
+      id: `qualp_route_${apiResponse.id_transacao}`,
       distance: Math.round(distanceKm * 10) / 10,
-      duration: Math.round(durationMin),
+      duration: durationMin,
       estimatedCost: Math.round(estimatedCost * 100) / 100,
       efficiency,
-      geometry,
-      points: [originPoint, ...waypointPoints, destinationPoint],
-      tollCost: Math.round(tollCost * 100) / 100
+      geometry: apiResponse.polilinha_codificada || '',
+      points,
+      tollCost: Math.round(tollCost * 100) / 100,
+      freightTableData: apiResponse.tabela_frete
     }]
   }
 
   /**
-   * Extrai custos de pedágio da resposta Qualp v4
+   * Extrai custos de pedágio da resposta real da API QUALP
    */
-  private extractTollCostFromQualPResponse(routeData: any): number {
-    if (!routeData.pedagios || !Array.isArray(routeData.pedagios)) {
+  private extractTollCostFromQualPResponse(apiResponse: QualPApiResponse): number {
+    if (!apiResponse.pedagios || !Array.isArray(apiResponse.pedagios)) {
       return 0
     }
 
-    return routeData.pedagios.reduce((total: number, pedagio: any) => {
-      // Baseado na documentação, os pedágios têm estrutura específica
-      return total + (parseFloat(pedagio.valor) || 0)
+    return apiResponse.pedagios.reduce((total: number, pedagio: Record<string, unknown>) => {
+      // A estrutura dos pedágios pode variar, vamos tentar diferentes campos
+      const cost = pedagio.valor || pedagio.cost || pedagio.price || 0
+      return total + (parseFloat(cost.toString()) || 0)
     }, 0)
   }
 
   /**
-   * Extrai custos de pedágio dos segmentos da rota
+   * Busca informações detalhadas sobre pedágios usando dados da resposta QUALP
    */
-  private extractTollCost(segments: any[]): number {
-    if (!segments || !Array.isArray(segments)) return 0
-
-    return segments.reduce((total, segment) => {
-      // Procurar por informações de pedágio nos segmentos
-      if (segment.toll_cost || segment.tollCost) {
-        return total + (segment.toll_cost || segment.tollCost)
-      }
-      return total
-    }, 0)
-  }
-
-
-  /**
-   * Busca informações sobre pedágios em uma rota
-   */
-  async getTollInfo(route: QualRouteOption): Promise<{
+  extractTollDetails(apiResponse: QualPApiResponse): {
     totalTollCost: number
     tollStations: Array<{
       name: string
       cost: number
       location: QualRoutePoint
     }>
-  }> {
-    try {
-      const response = await fetch(`${this.baseUrl}/pedagios/v1`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Token': this.apiKey
-        },
-        body: JSON.stringify({
-          polyline: route.geometry,
-          vehicle: {
-            type: 'truck',
-            axis: 'all'
-          }
-        })
-      })
-
-      if (!response.ok) {
-        return { totalTollCost: 0, tollStations: [] }
-      }
-
-      const tollData = await response.json()
-
-      const tollStations = (tollData.data?.tolls || []).map((toll: any) => ({
-        name: toll.name || toll.station_name || 'Pedágio',
-        cost: toll.cost || toll.price || 0,
-        location: {
-          latitude: toll.latitude || toll.lat || 0,
-          longitude: toll.longitude || toll.lng || 0,
-          address: toll.address || toll.name || ''
-        }
-      }))
-
-      const totalTollCost = tollStations.reduce((sum: number, station: any) => sum + station.cost, 0)
-
-      return {
-        totalTollCost,
-        tollStations
-      }
-    } catch (error) {
-      console.error('Erro ao buscar informações de pedágio:', error)
+  } {
+    if (!apiResponse.pedagios || !Array.isArray(apiResponse.pedagios)) {
       return { totalTollCost: 0, tollStations: [] }
+    }
+
+    const tollStations = apiResponse.pedagios.map((toll: Record<string, unknown>) => ({
+      name: toll.nome || toll.name || 'Pedágio',
+      cost: parseFloat(toll.valor || toll.cost || toll.price || '0'),
+      location: {
+        latitude: toll.lat || toll.latitude || 0,
+        longitude: toll.lng || toll.longitude || 0,
+        address: toll.endereco || toll.address || toll.nome || ''
+      }
+    }))
+
+    const totalTollCost = tollStations.reduce((sum, station) => sum + station.cost, 0)
+
+    return {
+      totalTollCost,
+      tollStations
+    }
+  }
+
+  /**
+   * Obtém dados da tabela de frete da resposta QUALP
+   */
+  getFreightTableData(apiResponse: QualPApiResponse, category: string = 'A', axis: number = 3, cargoType: string = 'geral'): number {
+    try {
+      const freightTable = apiResponse.tabela_frete?.dados
+      if (!freightTable || !freightTable[category] || !freightTable[category][axis.toString()]) {
+        return 0
+      }
+
+      return freightTable[category][axis.toString()][cargoType] || 0
+    } catch (error) {
+      console.error('Erro ao extrair dados da tabela de frete:', error)
+      return 0
     }
   }
 }
@@ -401,10 +370,13 @@ export async function calculateBestRoutes(
   return qualPApi.calculateRoutes({
     origin,
     destination,
-    vehicleType: 'caminhao_medio',
+    vehicleType: 'truck',
     costPerKm: 2.8,
     fuelPrice: 5.5,
-    fuelConsumption: 8, // consumo típico de caminhão
+    fuelConsumption: 8,
+    showTolls: true,
+    showFreightTable: true,
+    showPolyline: true,
     ...options
   })
 }

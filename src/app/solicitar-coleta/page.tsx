@@ -46,7 +46,7 @@ export default function SolicitarColetaPage() {
     }
   }, [isAuthenticated, user, router, dispatch, currentSolicitacao])
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     dispatch(setSolicitacao({ [field]: value }))
   }
 
