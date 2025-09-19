@@ -15,6 +15,71 @@ const GoogleRouteMap = nextDynamic(() => import('@/components/GoogleRouteMap'), 
   loading: () => <div className="h-96 w-full bg-gray-200 rounded-lg flex items-center justify-center">Carregando mapa...</div>
 })
 
+// Component for route image with skeleton loading
+const RouteImageWithSkeleton = ({ imageUrl, onImageClick }: { imageUrl: string; onImageClick: () => void }) => {
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
+
+  return (
+    <div className="relative">
+      {/* Skeleton loading state */}
+      {isLoading && (
+        <div className="w-full h-80 bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <svg className="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-sm">Carregando imagem da rota...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error state */}
+      {hasError && !isLoading && (
+        <div className="w-full h-80 bg-red-50 border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center">
+          <div className="text-center text-red-500">
+            <svg className="mx-auto h-8 w-8 text-red-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.684-.833-2.464 0L3.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p className="text-sm">Erro ao carregar imagem</p>
+            <button
+              onClick={onImageClick}
+              className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+            >
+              Tentar abrir em nova aba
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Actual iframe */}
+      <div className={`${isLoading ? 'hidden' : 'block'}`}>
+        <iframe
+          src={imageUrl}
+          title="Imagem da rota"
+          className="w-full h-80 rounded-lg shadow-lg border-0"
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false)
+            setHasError(true)
+          }}
+        />
+
+        {/* Button to open modal */}
+        {!hasError && (
+          <button
+            onClick={onImageClick}
+            className="mt-3 w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg border border-blue-200 transition-colors flex items-center justify-center space-x-2"
+          >
+            <span>🔍</span>
+            <span>Ampliar Imagem da Rota</span>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface RouteOption {
   route: {
     id: string
@@ -481,7 +546,7 @@ export default function CalcularRotasPage() {
                       <select
                         value={formData.vehicleQualPType}
                         onChange={(e) => setFormData({...formData, vehicleQualPType: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="mt-1 block w-full border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-white"
                       >
                         <option value="truck">truck (Caminhão)</option>
                         <option value="car">car (Carro)</option>
@@ -497,7 +562,7 @@ export default function CalcularRotasPage() {
                       <select
                         value={formData.freightCategory}
                         onChange={(e) => setFormData({...formData, freightCategory: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="mt-1 block w-full border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-white"
                       >
                         <option value="A">A</option>
                         <option value="B">B</option>
@@ -513,7 +578,7 @@ export default function CalcularRotasPage() {
                       <select
                         value={formData.cargoType}
                         onChange={(e) => setFormData({...formData, cargoType: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="mt-1 block w-full border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-white"
                       >
                         <option value="all">all (Todas)</option>
                         <option value="granel_solido">granel_solido (Granel Sólido)</option>
@@ -538,7 +603,7 @@ export default function CalcularRotasPage() {
                       <select
                         value={formData.vehicleAxis}
                         onChange={(e) => setFormData({...formData, vehicleAxis: e.target.value})}
-                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="mt-1 block w-full border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-white"
                       >
                         <option value="all">all (Todos)</option>
                         <option value="2">2 eixos</option>
@@ -657,7 +722,7 @@ export default function CalcularRotasPage() {
                   <select
                     value={formData.vehicleType}
                     onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="mt-1 block w-full border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-white"
                   >
                     <option value="van">Van</option>
                     <option value="caminhao_pequeno">Caminhão Pequeno</option>
@@ -897,16 +962,14 @@ export default function CalcularRotasPage() {
                           </div>
                         </div>
 
-                        {/* Botão para ver imagem da rota */}
+                        {/* Imagem da rota inline */}
                         {selectedRoute?.route.routeImageUrl ? (
                           <div className="mt-4">
-                            <button
-                              onClick={() => openRouteImageModal(selectedRoute.route.routeImageUrl!)}
-                              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg border border-blue-200 transition-colors flex items-center justify-center space-x-2"
-                            >
-                              <span>🗺️</span>
-                              <span>Ver Imagem da Rota</span>
-                            </button>
+                            <h5 className="text-sm font-medium text-gray-900 mb-2">Visualização da Rota</h5>
+                            <RouteImageWithSkeleton
+                              imageUrl={selectedRoute.route.routeImageUrl}
+                              onImageClick={() => openRouteImageModal(selectedRoute.route.routeImageUrl!)}
+                            />
                           </div>
                         ) : (
                           <div className="mt-4">
@@ -1149,7 +1212,7 @@ export default function CalcularRotasPage() {
                                 <select
                                   value={selectedFreightCategory}
                                   onChange={(e) => setSelectedFreightCategory(e.target.value)}
-                                  className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  className="w-full text-sm border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-white"
                                 >
                                   {(() => {
                                     const dados = (selectedRoute.route.freightTableData as any)?.dados
@@ -1172,7 +1235,7 @@ export default function CalcularRotasPage() {
                                 <select
                                   value={selectedFreightAxis}
                                   onChange={(e) => setSelectedFreightAxis(e.target.value)}
-                                  className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  className="w-full text-sm border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-white"
                                 >
                                   {(() => {
                                     const dados = (selectedRoute.route.freightTableData as any)?.dados

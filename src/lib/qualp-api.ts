@@ -243,7 +243,7 @@ class QualPApi {
       const baseRoute = this.processQualPApiResponse(apiResponse, params)[0]
 
       // Gerar 3 variações baseadas na resposta real da QUALP
-      const routes = this.generateRouteVariations(baseRoute, apiResponse)
+      const routes = this.generateRouteVariations(baseRoute, apiResponse, params)
 
 
       return {
@@ -266,16 +266,43 @@ class QualPApi {
   }
 
   /**
+   * Gera URL da imagem da rota usando o endpoint direto da API QUALP
+   */
+  private generateRouteImageUrl(origin: string, destination: string, params: RouteCalculationParams): string {
+    const baseUrl = 'https://api.qualp.com.br/routes/raw-image'
+    const searchParams = new URLSearchParams({
+      origem: origin,
+      destinos: destination,
+      'calcular-volta': 'nao',
+      categoria: params.vehicleType === 'truck' ? 'caminhao' : 'carro',
+      format: 'json',
+      eixos: params.vehicleAxis?.toString() || '6',
+      alternative: '0'
+    })
+
+    return `${baseUrl}?${searchParams.toString()}`
+  }
+
+  /**
    * Gera 3 variações de rota baseadas na resposta real da QUALP
    */
-  private generateRouteVariations(baseRoute: QualRouteOption, apiResponse: QualPApiResponse): QualRouteOption[] {
+  private generateRouteVariations(baseRoute: QualRouteOption, apiResponse: QualPApiResponse, params: RouteCalculationParams): QualRouteOption[] {
+    // Gerar URL da imagem usando endpoint direto
+    const directImageUrl = this.generateRouteImageUrl(
+      apiResponse.endereco_inicio,
+      apiResponse.endereco_fim,
+      params
+    )
+
+    // Usar a URL direta ou fallback para a URL da resposta da API
+    const imageUrl = directImageUrl || apiResponse.rota_imagem
 
     // Rota 1: Mais Econômica (baseada nos dados reais da QUALP)
     const cheapestRoute: QualRouteOption = {
       ...baseRoute,
       id: `${baseRoute.id}_cheapest`,
       efficiency: 'alta',
-      routeImageUrl: apiResponse.rota_imagem,
+      routeImageUrl: imageUrl,
       weighStations: baseRoute.weighStations
     }
 
@@ -287,7 +314,7 @@ class QualPApi {
       distance: Math.round(baseRoute.distance * 1.1 * 10) / 10, // 10% mais distância (rodovias)
       estimatedCost: Math.round(baseRoute.estimatedCost * 1.15 * 100) / 100, // 15% mais caro
       efficiency: 'media',
-      routeImageUrl: apiResponse.rota_imagem,
+      routeImageUrl: imageUrl,
       weighStations: baseRoute.weighStations,
       // Usar dados da tabela de frete diferente para veículos mais rápidos
       freightTableData: this.adjustFreightTableForSpeed(apiResponse.tabela_frete, 1.1)
@@ -301,7 +328,7 @@ class QualPApi {
       distance: Math.round(baseRoute.distance * 1.03 * 10) / 10, // 3% mais distância
       estimatedCost: Math.round(baseRoute.estimatedCost * 1.05 * 100) / 100, // 5% mais caro
       efficiency: 'alta',
-      routeImageUrl: apiResponse.rota_imagem,
+      routeImageUrl: imageUrl,
       weighStations: baseRoute.weighStations,
       freightTableData: this.adjustFreightTableForSpeed(apiResponse.tabela_frete, 1.03)
     }
@@ -427,6 +454,13 @@ class QualPApi {
     }
 
 
+    // Gerar URL da imagem usando endpoint direto
+    const routeImageUrl = this.generateRouteImageUrl(
+      apiResponse.endereco_inicio,
+      apiResponse.endereco_fim,
+      params
+    ) || apiResponse.rota_imagem
+
     return [{
       id: `qualp_route_${apiResponse.id_transacao}_${routeType}`,
       distance: Math.round(distanceKm * 10) / 10,
@@ -437,7 +471,7 @@ class QualPApi {
       points,
       tollCost: Math.round(tollCost * 100) / 100,
       freightTableData: apiResponse.tabela_frete,
-      routeImageUrl: apiResponse.rota_imagem,
+      routeImageUrl: routeImageUrl,
       tollStations: tollDetails.tollStations,
       weighStations: weighStationDetails
     }]
