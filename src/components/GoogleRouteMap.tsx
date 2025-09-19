@@ -127,7 +127,6 @@ export default function GoogleRouteMap({
           zoom={4}
           onLoad={onMapLoad}
           options={mapOptions}
-          onError={(error) => console.error('GoogleMap error:', error)}
         >
           {/* Origin Marker */}
           {originCoords && (

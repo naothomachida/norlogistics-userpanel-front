@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const motorista = await prisma.motorista.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         usuario: {
           select: {
@@ -54,14 +55,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { tipo, cnh, valorPorKm } = await request.json()
 
     // Verificar se motorista existe
     const existingMotorista = await prisma.motorista.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!existingMotorista) {
@@ -72,7 +74,7 @@ export async function PUT(
     }
 
     const motorista = await prisma.motorista.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         tipo,
         cnh,
@@ -111,12 +113,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Verificar se motorista existe
     const existingMotorista = await prisma.motorista.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: {
@@ -143,7 +146,7 @@ export async function DELETE(
     }
 
     await prisma.motorista.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ message: 'Motorista excluído com sucesso' })

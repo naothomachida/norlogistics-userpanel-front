@@ -1,14 +1,16 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 import { Layout } from '@/components/layout'
 import ApiDebugPanel from '@/components/ApiDebugPanel'
 
 // Dynamically import the Google Maps component to avoid SSR issues
-const GoogleRouteMap = dynamic(() => import('@/components/GoogleRouteMap'), {
+const GoogleRouteMap = nextDynamic(() => import('@/components/GoogleRouteMap'), {
   ssr: false,
   loading: () => <div className="h-96 w-full bg-gray-200 rounded-lg flex items-center justify-center">Carregando mapa...</div>
 })
@@ -48,6 +50,7 @@ interface RouteOption {
     driverCost: number
     tollCost: number
     operationalCost: number
+    freightTableCost?: number
     totalCost: number
     profitMargin: number
     finalPrice: number
@@ -852,10 +855,10 @@ export default function CalcularRotasPage() {
                             </div>
                           </div>
 
-                          {selectedRoute?.route.freightTableData?.antt_resolucao && (
+                          {selectedRoute?.route.freightTableData && 'antt_resolucao' in selectedRoute.route.freightTableData && (
                             <div className="mt-3 text-xs text-gray-600">
-                              <strong>Resolução ANTT:</strong> {selectedRoute?.route.freightTableData?.antt_resolucao?.nome}<br/>
-                              <strong>Data:</strong> {selectedRoute?.route.freightTableData?.antt_resolucao?.data}
+                              <strong>Resolução ANTT:</strong> {String((selectedRoute.route.freightTableData.antt_resolucao as any)?.nome || '')}<br/>
+                              <strong>Data:</strong> {String((selectedRoute.route.freightTableData.antt_resolucao as any)?.data || '')}
                             </div>
                           )}
                         </div>
@@ -1028,7 +1031,7 @@ export default function CalcularRotasPage() {
             />
 
             {/* Mapa de Debug da Polilinha QUALP */}
-            {debugInfo.qualpResponse && (
+            {debugInfo.qualpResponse !== null && debugInfo.qualpResponse !== undefined && (
               <div className="bg-white shadow rounded-lg p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                   <span className="mr-2">🗺️</span>
@@ -1036,17 +1039,17 @@ export default function CalcularRotasPage() {
                 </h3>
 
                 <GoogleRouteMap
-                  polyline={debugInfo.qualpResponse?.polilinha_codificada}
-                  originAddress={debugInfo.qualpResponse?.endereco_inicio}
-                  destinationAddress={debugInfo.qualpResponse?.endereco_fim}
+                  polyline={(debugInfo.qualpResponse as any)?.polilinha_codificada}
+                  originAddress={(debugInfo.qualpResponse as any)?.endereco_inicio}
+                  destinationAddress={(debugInfo.qualpResponse as any)?.endereco_fim}
                   originCoords={
-                    debugInfo.qualpResponse?.coordenada_inicio
-                      ? debugInfo.qualpResponse.coordenada_inicio.split(',').map(coord => parseFloat(coord.trim())) as [number, number]
+                    (debugInfo.qualpResponse as any)?.coordenada_inicio
+                      ? (debugInfo.qualpResponse as any).coordenada_inicio.split(',').map((coord: string) => parseFloat(coord.trim())) as [number, number]
                       : undefined
                   }
                   destCoords={
-                    debugInfo.qualpResponse?.coordenada_fim
-                      ? debugInfo.qualpResponse.coordenada_fim.split(',').map(coord => parseFloat(coord.trim())) as [number, number]
+                    (debugInfo.qualpResponse as any)?.coordenada_fim
+                      ? (debugInfo.qualpResponse as any).coordenada_fim.split(',').map((coord: string) => parseFloat(coord.trim())) as [number, number]
                       : undefined
                   }
                   className="h-[500px] w-full rounded-lg"
@@ -1054,23 +1057,23 @@ export default function CalcularRotasPage() {
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="text-gray-600">
-                    <strong>Distância:</strong> {debugInfo.qualpResponse?.distancia?.texto || 'N/A'}
+                    <strong>Distância:</strong> {(debugInfo.qualpResponse as any)?.distancia?.texto || 'N/A'}
                   </div>
                   <div className="text-gray-600">
-                    <strong>Duração:</strong> {debugInfo.qualpResponse?.duracao?.texto || 'N/A'}
+                    <strong>Duração:</strong> {(debugInfo.qualpResponse as any)?.duracao?.texto || 'N/A'}
                   </div>
                   <div className="text-gray-600">
-                    <strong>ID Transação:</strong> {debugInfo.qualpResponse?.id_transacao || 'N/A'}
+                    <strong>ID Transação:</strong> {(debugInfo.qualpResponse as any)?.id_transacao || 'N/A'}
                   </div>
                 </div>
 
                 <div className="mt-4 text-xs text-gray-500">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <strong>Polilinha:</strong> {debugInfo.qualpResponse?.polilinha_codificada?.length || 0} caracteres
+                      <strong>Polilinha:</strong> {(debugInfo.qualpResponse as any)?.polilinha_codificada?.length || 0} caracteres
                     </div>
                     <div>
-                      <strong>Roteador:</strong> {debugInfo.qualpResponse?.roteador_selecionado || 'N/A'}
+                      <strong>Roteador:</strong> {(debugInfo.qualpResponse as any)?.roteador_selecionado || 'N/A'}
                     </div>
                   </div>
                 </div>

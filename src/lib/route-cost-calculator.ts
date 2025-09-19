@@ -82,7 +82,7 @@ export class RouteCostCalculator {
     if (route.freightTableData?.dados) {
       const axisKey = this.getVehicleAxis(vehicleSpecs.tipo)
       try {
-        freightTableCost = route.freightTableData.dados[freightCategory]?.[axisKey]?.[cargoType] || 0
+        freightTableCost = (route.freightTableData.dados as any)[freightCategory]?.[axisKey]?.[cargoType] || 0
       } catch (error) {
         console.warn('Erro ao extrair custo da tabela de frete:', error)
       }

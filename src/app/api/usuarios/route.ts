@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const role = searchParams.get('role')
     
-    const whereClause = role ? { role: role as 'ADMIN' | 'GESTOR' | 'SOLICITANTE' | 'TRANSPORTADOR' | 'MOTORISTA' } : {}
+    const whereClause = role ? { role: role as 'GESTOR' | 'SOLICITANTE' | 'TRANSPORTADOR' | 'MOTORISTA' } : {}
     
     const usuarios = await prisma.usuario.findMany({
       where: {

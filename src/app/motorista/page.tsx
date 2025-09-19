@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSolicitacoes } from '@/hooks/useApi'
@@ -106,7 +108,7 @@ export default function MotoristaPage() {
   return (
     <Layout
       title="Dashboard do Motorista"
-      description={`Bem-vindo, ${user.nome}! Gerencie suas viagens e custos.`}
+      description={`Bem-vindo, ${user?.nome || 'Motorista'}! Gerencie suas viagens e custos.`}
     >
       <div className="py-6 px-4 sm:px-6 lg:px-8">
         {error && (

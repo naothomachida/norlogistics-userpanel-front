@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const veiculo = await prisma.veiculo.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         transportador: {
           include: {
@@ -47,14 +48,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { modelo, tipo, capacidade, ativo } = await request.json()
 
     // Verificar se veículo existe
     const existingVeiculo = await prisma.veiculo.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!existingVeiculo) {
@@ -71,7 +73,7 @@ export async function PUT(
     if (ativo !== undefined) updateData.ativo = ativo
 
     const veiculo = await prisma.veiculo.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         transportador: {
@@ -105,12 +107,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Verificar se veículo existe
     const existingVeiculo = await prisma.veiculo.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: {
@@ -140,7 +143,7 @@ export async function DELETE(
     }
 
     await prisma.veiculo.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ message: 'Veículo excluído com sucesso' })
