@@ -96,19 +96,16 @@ class QualPApi {
    */
   async calculateRoutes(params: RouteCalculationParams): Promise<QualRouteResult> {
     try {
-      // Montar locais incluindo waypoints se houver - como string separada por quebras de linha
+      // Montar locais incluindo waypoints se houver
       const locations = [params.origin]
       if (params.waypoints && params.waypoints.length > 0) {
         locations.push(...params.waypoints)
       }
       locations.push(params.destination)
 
-      // Criar string de locais separada por quebras de linha
-      const locaisString = locations.join('\n')
-
-      // Payload conforme documentação QUALP v4 - baseado no PDF
+      // Payload conforme documentação QUALP v4 - baseado na imagem
       const requestData = {
-        "locais": locaisString,
+        "locations": locations,
         "config": {
           "route": {
             "optimized_route": false,
