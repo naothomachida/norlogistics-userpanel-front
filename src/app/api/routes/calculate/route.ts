@@ -31,13 +31,14 @@ export async function POST(request: NextRequest) {
     const routeResults = await calculateBestRoutes(origin, destination, {
       waypoints,
       vehicleType: body.vehicleType || 'truck',
-      vehicleAxis: body.vehicleAxis,
+      vehicleAxis: body.vehicleAxis || 'all',
+      topSpeed: body.topSpeed || null,
       fuelPrice,
       fuelConsumption: body.fuelConsumption ? parseFloat(body.fuelConsumption) : undefined,
       costPerKm: 2.8,
-      showTolls: body.showTolls,
-      showFreightTable: body.showFreightTable,
-      showPolyline: body.showPolyline
+      showTolls: body.showTolls ?? true,
+      showFreightTable: body.showFreightTable ?? true,
+      showPolyline: body.showPolyline ?? true
     })
 
     // Obter especificações do veículo
