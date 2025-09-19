@@ -33,7 +33,7 @@ export const MENU_ITEMS = [
   {
     name: 'Dashboard',
     href: '/dashboard',
-    roles: [ROLES.GESTOR, ROLES.TRANSPORTADOR, ROLES.MOTORISTA],
+    roles: [ROLES.GESTOR, ROLES.SOLICITANTE, ROLES.TRANSPORTADOR, ROLES.MOTORISTA],
     icon: BarChart3
   },
   {
@@ -46,6 +46,12 @@ export const MENU_ITEMS = [
     name: 'Solicitar Coleta',
     href: '/solicitar-coleta',
     roles: [ROLES.GESTOR, ROLES.SOLICITANTE, ROLES.TRANSPORTADOR],
+    icon: Package
+  },
+  {
+    name: 'Minhas Solicitações',
+    href: '/minhas-solicitacoes',
+    roles: [ROLES.SOLICITANTE],
     icon: Package
   },
   {

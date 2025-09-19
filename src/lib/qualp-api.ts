@@ -28,7 +28,8 @@ export interface RouteCalculationParams {
   destination: string
   waypoints?: string[]
   vehicleType?: 'truck' | 'car'
-  vehicleAxis?: number
+  vehicleAxis?: string | number
+  topSpeed?: string | number | null
   costPerKm?: number
   fuelPrice?: number
   fuelConsumption?: number // km/l
@@ -102,7 +103,7 @@ class QualPApi {
       }
       locations.push(params.destination)
 
-      // Payload exato conforme documentação QUALP
+      // Payload conforme documentação QUALP v4 - baseado na imagem
       const requestData = {
         "locations": locations,
         "config": {
@@ -117,8 +118,8 @@ class QualPApi {
           },
           "vehicle": {
             "type": params.vehicleType || "truck",
-            "axis": "all",
-            "top_speed": null
+            "axis": params.vehicleAxis || "all",
+            "top_speed": params.topSpeed || null
           },
           "tolls": {
             "retroactive_date": ""
@@ -129,7 +130,7 @@ class QualPApi {
             "axis": "all"
           },
           "fuel_consumption": {
-            "fuel_price": params.fuelPrice?.toString() || "",
+            "fuel_price": params.fuelPrice?.toString() || "0.00",
             "km_fuel": params.fuelConsumption?.toString() || ""
           },
           "private_places": {
@@ -144,17 +145,17 @@ class QualPApi {
         "show": {
           "tolls": params.showTolls ?? true,
           "freight_table": params.showFreightTable ?? true,
-          "maneuvers": "false",
+          "maneuvers": "full",
           "truck_scales": true,
-          "static_image": false,
+          "static_image": true,
           "link_to_qualp": true,
           "private_places": false,
           "polyline": params.showPolyline ?? true,
           "simplified_polyline": false,
-          "ufs": false,
-          "fuel_consumption": false,
-          "link_to_qualp_report": false,
-          "segments_information": false
+          "ufs": true,
+          "fuel_consumption": true,
+          "link_to_qualp_report": true,
+          "segments_information": true
         },
         "format": "json",
         "exception_key": ""
@@ -162,7 +163,7 @@ class QualPApi {
 
       console.log('Enviando para QUALP API:', JSON.stringify(requestData, null, 2))
 
-      // Fazer requisição conforme documentação QUALP
+      // Fazer requisição conforme exemplo funcional
       const response = await fetch(`${this.baseUrl}/rotas/v4`, {
         method: 'POST',
         headers: {
@@ -171,16 +172,20 @@ class QualPApi {
           'Access-Token': this.apiKey
         },
         body: JSON.stringify({
-          params: {
-            json: JSON.stringify(requestData)
-          }
+          params: { json: JSON.stringify(requestData) }
         })
       })
 
       if (!response.ok) {
         const errorText = await response.text()
         console.error('Erro na resposta da API QUALP:', response.status, errorText)
-        throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}`)
+        console.error('URL da requisição:', `${this.baseUrl}/rotas/v4`)
+        console.error('Headers enviados:', {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+        })
+        throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
       }
 
       const apiResponse: QualPApiResponse = await response.json()
@@ -253,12 +258,20 @@ class QualPApi {
     params: RouteCalculationParams
   ): QualRouteOption[] {
     if (!apiResponse || !apiResponse.distancia) {
-      throw new Error('Resposta inválida da API QUALP')
+      console.error('Resposta QUALP inválida:', apiResponse)
+      throw new Error('Resposta inválida da API QUALP - campo distancia não encontrado')
     }
 
     const distanceKm = apiResponse.distancia.valor
     const durationSeconds = apiResponse.duracao.valor
     const durationMin = Math.round(durationSeconds / 60)
+
+    // Log para debug da polilinha
+    console.log('Polilinha recebida da API:', {
+      polilinha_codificada: apiResponse.polilinha_codificada,
+      comprimento: apiResponse.polilinha_codificada?.length || 0,
+      showPolyline: params.showPolyline
+    })
 
     // Extrair coordenadas de início e fim
     const originCoords = this.parseCoordinates(apiResponse.coordenada_inicio)
@@ -278,6 +291,11 @@ class QualPApi {
 
     // Calcular eficiência
     const efficiency = this.calculateEfficiency(distanceKm, durationMin, estimatedCost)
+
+    // Validar se polilinha foi retornada quando solicitada
+    if (params.showPolyline && !apiResponse.polilinha_codificada) {
+      console.warn('Polilinha foi solicitada mas não foi retornada pela API QUALP')
+    }
 
     return [{
       id: `qualp_route_${apiResponse.id_transacao}`,

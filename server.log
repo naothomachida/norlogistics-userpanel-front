@@ -1,0 +1,626 @@
+
+> nor-fullstack@0.1.0 dev
+> next dev --turbopack
+
+ ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+   ▲ Next.js 15.5.3 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://169.254.0.21:3001
+   - Environments: .env
+
+ ✓ Starting...
+ ○ Compiling middleware ...
+ ✓ Compiled middleware in 874ms
+ ✓ Ready in 2.6s
+ ○ Compiling /api/auth/login ...
+ ✓ Compiled /api/auth/login in 4.3s
+ POST /api/auth/login 401 in 5150ms
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 5.5s
+ POST /api/auth/register 404 in 6102ms
+ POST /api/auth/login 401 in 318ms
+ POST /api/auth/login 200 in 853ms
+ POST /api/auth/login 200 in 872ms
+ ✓ Compiled /api/routes/calculate in 262ms
+Enviando para QUALP API: {
+  "locations": {
+    "locais": [
+      "São Paulo, SP",
+      "Rio de Janeiro, RJ"
+    ]
+  },
+  "config": {
+    "route": {
+      "optimized_route": false,
+      "optimized_route_destination": "last",
+      "calculate_return": false,
+      "alternative_routes": "0",
+      "avoid_locations": true,
+      "avoid_locations_key": "",
+      "type_route": "efficient"
+    },
+    "vehicle": {
+      "type": "truck",
+      "axis": "all",
+      "top_speed": null
+    },
+    "tolls": {
+      "retroactive_date": ""
+    },
+    "freight_table": {
+      "category": "all",
+      "freight_load": "all",
+      "axis": "all"
+    },
+    "fuel_consumption": {
+      "fuel_price": "5.5",
+      "km_fuel": ""
+    },
+    "private_places": {
+      "max_distance_from_location_to_route": "1000",
+      "categories": true,
+      "areas": true,
+      "contacts": true,
+      "products": true,
+      "services": true
+    }
+  },
+  "show": {
+    "tolls": true,
+    "freight_table": true,
+    "maneuvers": false,
+    "truck_scales": true,
+    "static_image": false,
+    "link_to_qualp": true,
+    "private_places": false,
+    "polyline": true,
+    "simplified_polyline": false,
+    "ufs": false,
+    "fuel_consumption": false,
+    "link_to_qualp_report": false,
+    "segments_information": false
+  },
+  "format": "JSON",
+  "exception_key": ""
+}
+Erro na resposta da API QUALP: 422 {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+URL da requisição: https://api.qualp.com.br/rotas/v4
+Headers enviados: {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'Access-Token': '[DEFINIDA]'
+}
+Erro ao calcular rotas com API QUALP: Error: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:192:15)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  190 |           'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+  191 |         })
+> 192 |         throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
+      |               ^
+  193 |       }
+  194 |
+  195 |       const apiResponse: QualPApiResponse = await response.json()
+Erro ao calcular rotas: Error: Falha no cálculo de rotas: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:213:13)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  211 |     } catch (error) {
+  212 |       console.error('Erro ao calcular rotas com API QUALP:', error)
+> 213 |       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      |             ^
+  214 |     }
+  215 |   }
+  216 |
+ POST /api/routes/calculate 500 in 1745ms
+Enviando para QUALP API: {
+  "locais": [
+    "São Paulo, SP",
+    "Rio de Janeiro, RJ"
+  ],
+  "config": {
+    "route": {
+      "optimized_route": false,
+      "optimized_route_destination": "last",
+      "calculate_return": false,
+      "alternative_routes": "0",
+      "avoid_locations": true,
+      "avoid_locations_key": "",
+      "type_route": "efficient"
+    },
+    "vehicle": {
+      "type": "truck",
+      "axis": "all",
+      "top_speed": null
+    },
+    "tolls": {
+      "retroactive_date": ""
+    },
+    "freight_table": {
+      "category": "all",
+      "freight_load": "all",
+      "axis": "all"
+    },
+    "fuel_consumption": {
+      "fuel_price": "5.5",
+      "km_fuel": ""
+    },
+    "private_places": {
+      "max_distance_from_location_to_route": "1000",
+      "categories": true,
+      "areas": true,
+      "contacts": true,
+      "products": true,
+      "services": true
+    }
+  },
+  "show": {
+    "tolls": true,
+    "freight_table": true,
+    "maneuvers": false,
+    "truck_scales": true,
+    "static_image": false,
+    "link_to_qualp": true,
+    "private_places": false,
+    "polyline": true,
+    "simplified_polyline": false,
+    "ufs": false,
+    "fuel_consumption": false,
+    "link_to_qualp_report": false,
+    "segments_information": false
+  },
+  "format": "JSON",
+  "exception_key": ""
+}
+Erro na resposta da API QUALP: 422 {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+URL da requisição: https://api.qualp.com.br/rotas/v4
+Headers enviados: {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'Access-Token': '[DEFINIDA]'
+}
+Erro ao calcular rotas com API QUALP: Error: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:190:15)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  188 |           'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+  189 |         })
+> 190 |         throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
+      |               ^
+  191 |       }
+  192 |
+  193 |       const apiResponse: QualPApiResponse = await response.json()
+Erro ao calcular rotas: Error: Falha no cálculo de rotas: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:211:13)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  209 |     } catch (error) {
+  210 |       console.error('Erro ao calcular rotas com API QUALP:', error)
+> 211 |       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      |             ^
+  212 |     }
+  213 |   }
+  214 |
+ POST /api/routes/calculate 500 in 1494ms
+Enviando para QUALP API: {
+  "locais": "São Paulo, SP\nRio de Janeiro, RJ",
+  "config": {
+    "route": {
+      "optimized_route": false,
+      "optimized_route_destination": "last",
+      "calculate_return": false,
+      "alternative_routes": "0",
+      "avoid_locations": true,
+      "avoid_locations_key": "",
+      "type_route": "efficient"
+    },
+    "vehicle": {
+      "type": "truck",
+      "axis": "all",
+      "top_speed": null
+    },
+    "tolls": {
+      "retroactive_date": ""
+    },
+    "freight_table": {
+      "category": "all",
+      "freight_load": "all",
+      "axis": "all"
+    },
+    "fuel_consumption": {
+      "fuel_price": "5.5",
+      "km_fuel": ""
+    },
+    "private_places": {
+      "max_distance_from_location_to_route": "1000",
+      "categories": true,
+      "areas": true,
+      "contacts": true,
+      "products": true,
+      "services": true
+    }
+  },
+  "show": {
+    "tolls": true,
+    "freight_table": true,
+    "maneuvers": false,
+    "truck_scales": true,
+    "static_image": false,
+    "link_to_qualp": true,
+    "private_places": false,
+    "polyline": true,
+    "simplified_polyline": false,
+    "ufs": false,
+    "fuel_consumption": false,
+    "link_to_qualp_report": false,
+    "segments_information": false
+  },
+  "format": "JSON",
+  "exception_key": ""
+}
+Erro na resposta da API QUALP: 422 {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+URL da requisição: https://api.qualp.com.br/rotas/v4
+Headers enviados: {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'Access-Token': '[DEFINIDA]'
+}
+Erro ao calcular rotas com API QUALP: Error: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:193:15)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  191 |           'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+  192 |         })
+> 193 |         throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
+      |               ^
+  194 |       }
+  195 |
+  196 |       const apiResponse: QualPApiResponse = await response.json()
+Erro ao calcular rotas: Error: Falha no cálculo de rotas: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:214:13)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  212 |     } catch (error) {
+  213 |       console.error('Erro ao calcular rotas com API QUALP:', error)
+> 214 |       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      |             ^
+  215 |     }
+  216 |   }
+  217 |
+ POST /api/routes/calculate 500 in 1410ms
+Enviando para QUALP API: {
+  "locais": "São Paulo, SP\nRio de Janeiro, RJ",
+  "config": {
+    "route": {
+      "optimized_route": false,
+      "optimized_route_destination": "last",
+      "calculate_return": false,
+      "alternative_routes": "0",
+      "avoid_locations": true,
+      "avoid_locations_key": "",
+      "type_route": "efficient"
+    },
+    "vehicle": {
+      "type": "truck",
+      "axis": "all",
+      "top_speed": null
+    },
+    "tolls": {
+      "retroactive_date": ""
+    },
+    "freight_table": {
+      "category": "all",
+      "freight_load": "all",
+      "axis": "all"
+    },
+    "fuel_consumption": {
+      "fuel_price": "5.5",
+      "km_fuel": ""
+    },
+    "private_places": {
+      "max_distance_from_location_to_route": "1000",
+      "categories": true,
+      "areas": true,
+      "contacts": true,
+      "products": true,
+      "services": true
+    }
+  },
+  "show": {
+    "tolls": true,
+    "freight_table": true,
+    "maneuvers": false,
+    "truck_scales": true,
+    "static_image": false,
+    "link_to_qualp": true,
+    "private_places": false,
+    "polyline": true,
+    "simplified_polyline": false,
+    "ufs": false,
+    "fuel_consumption": false,
+    "link_to_qualp_report": false,
+    "segments_information": false
+  },
+  "format": "JSON",
+  "exception_key": ""
+}
+Erro na resposta da API QUALP: 422 {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+URL da requisição: https://api.qualp.com.br/rotas/v4
+Headers enviados: {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'Access-Token': '[DEFINIDA]'
+}
+Erro ao calcular rotas com API QUALP: Error: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:189:15)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  187 |           'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+  188 |         })
+> 189 |         throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
+      |               ^
+  190 |       }
+  191 |
+  192 |       const apiResponse: QualPApiResponse = await response.json()
+Erro ao calcular rotas: Error: Falha no cálculo de rotas: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:210:13)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  208 |     } catch (error) {
+  209 |       console.error('Erro ao calcular rotas com API QUALP:', error)
+> 210 |       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      |             ^
+  211 |     }
+  212 |   }
+  213 |
+ POST /api/routes/calculate 500 in 1586ms
+Enviando para QUALP API: {
+  "locais": "São Paulo, SP\nRio de Janeiro, RJ",
+  "config": {
+    "route": {
+      "optimized_route": false,
+      "optimized_route_destination": "last",
+      "calculate_return": false,
+      "alternative_routes": "0",
+      "avoid_locations": true,
+      "avoid_locations_key": "",
+      "type_route": "efficient"
+    },
+    "vehicle": {
+      "type": "truck",
+      "axis": "all",
+      "top_speed": null
+    },
+    "tolls": {
+      "retroactive_date": ""
+    },
+    "freight_table": {
+      "category": "all",
+      "freight_load": "all",
+      "axis": "all"
+    },
+    "fuel_consumption": {
+      "fuel_price": "5.5",
+      "km_fuel": ""
+    },
+    "private_places": {
+      "max_distance_from_location_to_route": "1000",
+      "categories": true,
+      "areas": true,
+      "contacts": true,
+      "products": true,
+      "services": true
+    }
+  },
+  "show": {
+    "tolls": true,
+    "freight_table": true,
+    "maneuvers": false,
+    "truck_scales": true,
+    "static_image": false,
+    "link_to_qualp": true,
+    "private_places": false,
+    "polyline": true,
+    "simplified_polyline": false,
+    "ufs": false,
+    "fuel_consumption": false,
+    "link_to_qualp_report": false,
+    "segments_information": false
+  },
+  "format": "JSON",
+  "exception_key": ""
+}
+Erro na resposta da API QUALP: 422 {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+URL da requisição: https://api.qualp.com.br/rotas/v4
+Headers enviados: {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'Access-Token': '[DEFINIDA]'
+}
+Erro ao calcular rotas com API QUALP: Error: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:193:15)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  191 |           'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+  192 |         })
+> 193 |         throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
+      |               ^
+  194 |       }
+  195 |
+  196 |       const apiResponse: QualPApiResponse = await response.json()
+Erro ao calcular rotas: Error: Falha no cálculo de rotas: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:214:13)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  212 |     } catch (error) {
+  213 |       console.error('Erro ao calcular rotas com API QUALP:', error)
+> 214 |       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      |             ^
+  215 |     }
+  216 |   }
+  217 |
+ POST /api/routes/calculate 500 in 1424ms
+Enviando para QUALP API: {
+  "locations": [
+    "São Paulo, SP",
+    "Rio de Janeiro, RJ"
+  ],
+  "config": {
+    "route": {
+      "optimized_route": false,
+      "optimized_route_destination": "last",
+      "calculate_return": false,
+      "alternative_routes": "0",
+      "avoid_locations": true,
+      "avoid_locations_key": "",
+      "type_route": "efficient"
+    },
+    "vehicle": {
+      "type": "truck",
+      "axis": "all",
+      "top_speed": null
+    },
+    "tolls": {
+      "retroactive_date": ""
+    },
+    "freight_table": {
+      "category": "all",
+      "freight_load": "all",
+      "axis": "all"
+    },
+    "fuel_consumption": {
+      "fuel_price": "5.5",
+      "km_fuel": ""
+    },
+    "private_places": {
+      "max_distance_from_location_to_route": "1000",
+      "categories": true,
+      "areas": true,
+      "contacts": true,
+      "products": true,
+      "services": true
+    }
+  },
+  "show": {
+    "tolls": true,
+    "freight_table": true,
+    "maneuvers": false,
+    "truck_scales": true,
+    "static_image": false,
+    "link_to_qualp": true,
+    "private_places": false,
+    "polyline": true,
+    "simplified_polyline": false,
+    "ufs": false,
+    "fuel_consumption": false,
+    "link_to_qualp_report": false,
+    "segments_information": false
+  },
+  "format": "JSON",
+  "exception_key": ""
+}
+Erro na resposta da API QUALP: 422 {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+URL da requisição: https://api.qualp.com.br/rotas/v4
+Headers enviados: {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'Access-Token': '[DEFINIDA]'
+}
+Erro ao calcular rotas com API QUALP: Error: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:190:15)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  188 |           'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+  189 |         })
+> 190 |         throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
+      |               ^
+  191 |       }
+  192 |
+  193 |       const apiResponse: QualPApiResponse = await response.json()
+Erro ao calcular rotas: Error: Falha no cálculo de rotas: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:211:13)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  209 |     } catch (error) {
+  210 |       console.error('Erro ao calcular rotas com API QUALP:', error)
+> 211 |       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      |             ^
+  212 |     }
+  213 |   }
+  214 |
+ POST /api/routes/calculate 500 in 2017ms
+Enviando para QUALP API: {
+  "locations": [
+    "São Paulo, SP",
+    "Rio de Janeiro, RJ"
+  ],
+  "config": {
+    "route": {
+      "optimized_route": false,
+      "optimized_route_destination": "last",
+      "calculate_return": false,
+      "alternative_routes": "0",
+      "avoid_locations": true,
+      "avoid_locations_key": "",
+      "type_route": "efficient"
+    },
+    "vehicle": {
+      "type": "truck",
+      "axis": "all",
+      "top_speed": null
+    },
+    "tolls": {
+      "retroactive_date": ""
+    },
+    "freight_table": {
+      "category": "all",
+      "freight_load": "all",
+      "axis": "all"
+    },
+    "fuel_consumption": {
+      "fuel_price": "5.5",
+      "km_fuel": ""
+    },
+    "private_places": {
+      "max_distance_from_location_to_route": "1000",
+      "categories": true,
+      "areas": true,
+      "contacts": true,
+      "products": true,
+      "services": true
+    }
+  },
+  "show": {
+    "tolls": true,
+    "freight_table": true,
+    "maneuvers": "full",
+    "truck_scales": true,
+    "static_image": true,
+    "link_to_qualp": true,
+    "private_places": false,
+    "polyline": true,
+    "simplified_polyline": false,
+    "ufs": true,
+    "fuel_consumption": true,
+    "link_to_qualp_report": true,
+    "segments_information": true
+  },
+  "format": "json",
+  "exception_key": ""
+}
+Erro na resposta da API QUALP: 422 {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+URL da requisição: https://api.qualp.com.br/rotas/v4
+Headers enviados: {
+  'Content-Type': 'application/json',
+  Accept: 'application/json',
+  'Access-Token': '[DEFINIDA]'
+}
+Erro ao calcular rotas com API QUALP: Error: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:188:15)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  186 |           'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+  187 |         })
+> 188 |         throw new Error(`Erro na API QUALP: ${response.status} - ${response.statusText}. Detalhes: ${errorText}`)
+      |               ^
+  189 |       }
+  190 |
+  191 |       const apiResponse: QualPApiResponse = await response.json()
+Erro ao calcular rotas: Error: Falha no cálculo de rotas: Erro na API QUALP: 422 - Unprocessable Entity. Detalhes: {"message":"Voc\u00ea precisa informar as localiza\u00e7\u00f5es ou uma polilinha.","type":"InvalidParamsException","status":0}
+    at QualPApi.calculateRoutes (src/lib/qualp-api.ts:209:13)
+    at async POST (src/app/api/routes/calculate/route.ts:31:26)
+  207 |     } catch (error) {
+  208 |       console.error('Erro ao calcular rotas com API QUALP:', error)
+> 209 |       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      |             ^
+  210 |     }
+  211 |   }
+  212 |
+ POST /api/routes/calculate 500 in 1793ms
