@@ -1,14 +1,16 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 import { Layout } from '@/components/layout'
 import ApiDebugPanel from '@/components/ApiDebugPanel'
 
 // Dynamically import the Google Maps component to avoid SSR issues
-const GoogleRouteMap = dynamic(() => import('@/components/GoogleRouteMap'), {
+const GoogleRouteMap = nextDynamic(() => import('@/components/GoogleRouteMap'), {
   ssr: false,
   loading: () => <div className="h-96 w-full bg-gray-200 rounded-lg flex items-center justify-center">Carregando mapa...</div>
 })
