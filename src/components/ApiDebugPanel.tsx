@@ -91,7 +91,7 @@ export default function ApiDebugPanel({
 
           {/* Tabs */}
           <div className="flex space-x-2 mb-4 border-b border-gray-700">
-            {payload && (
+            {payload !== undefined && payload !== null && (
               <button
                 onClick={() => setActiveTab('payload')}
                 className={`px-3 py-2 text-sm font-medium rounded-t-lg ${
@@ -103,7 +103,7 @@ export default function ApiDebugPanel({
                 Payload
               </button>
             )}
-            {response && (
+            {response !== undefined && response !== null && (
               <button
                 onClick={() => setActiveTab('response')}
                 className={`px-3 py-2 text-sm font-medium rounded-t-lg ${
@@ -129,7 +129,7 @@ export default function ApiDebugPanel({
             )}
 
             {/* QUALP API Tabs */}
-            {qualpPayload && (
+            {qualpPayload !== undefined && qualpPayload !== null && (
               <button
                 onClick={() => setActiveTab('qualp-payload')}
                 className={`px-3 py-2 text-sm font-medium rounded-t-lg ${
@@ -141,7 +141,7 @@ export default function ApiDebugPanel({
                 QUALP Payload
               </button>
             )}
-            {qualpResponse && (
+            {qualpResponse !== undefined && qualpResponse !== null && (
               <button
                 onClick={() => setActiveTab('qualp-response')}
                 className={`px-3 py-2 text-sm font-medium rounded-t-lg ${
@@ -176,7 +176,7 @@ export default function ApiDebugPanel({
               </div>
             )}
 
-            {activeTab === 'payload' && payload && (
+            {activeTab === 'payload' && payload !== undefined && payload !== null && (
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-yellow-400 text-xs font-semibold">REQUEST PAYLOAD:</span>
@@ -193,7 +193,7 @@ export default function ApiDebugPanel({
               </div>
             )}
 
-            {activeTab === 'response' && response && (
+            {activeTab === 'response' && response !== undefined && response !== null && (
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-blue-400 text-xs font-semibold">API RESPONSE:</span>
@@ -241,7 +241,7 @@ export default function ApiDebugPanel({
             )}
 
             {/* QUALP API Content */}
-            {activeTab === 'qualp-payload' && qualpPayload && (
+            {activeTab === 'qualp-payload' && qualpPayload !== undefined && qualpPayload !== null && (
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-orange-400 text-xs font-semibold">QUALP API REQUEST PAYLOAD:</span>
@@ -258,7 +258,7 @@ export default function ApiDebugPanel({
               </div>
             )}
 
-            {activeTab === 'qualp-response' && qualpResponse && (
+            {activeTab === 'qualp-response' && qualpResponse !== undefined && qualpResponse !== null && (
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-orange-400 text-xs font-semibold">QUALP API RESPONSE:</span>

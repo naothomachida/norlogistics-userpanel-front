@@ -35,12 +35,12 @@ export default function MinhasSolicitacoesPage() {
   useEffect(() => {
     const fetchSolicitacoes = async () => {
       try {
-        if (!user?.solicitanteId) {
+        if (!user?.solicitante?.id) {
           setError('Usuário não é um solicitante')
           return
         }
 
-        const response = await fetch(`/api/solicitacoes?solicitanteId=${user.solicitanteId}`)
+        const response = await fetch(`/api/solicitacoes?solicitanteId=${user.solicitante.id}`)
         if (!response.ok) {
           throw new Error('Erro ao carregar solicitações')
         }

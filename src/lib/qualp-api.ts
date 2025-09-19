@@ -472,7 +472,7 @@ class QualPApi {
    */
   getFreightTableData(apiResponse: QualPApiResponse, category: string = 'A', axis: number = 3, cargoType: string = 'geral'): number {
     try {
-      const freightTable = apiResponse.tabela_frete?.dados
+      const freightTable = apiResponse.tabela_frete?.dados as any
       if (!freightTable || !freightTable[category] || !freightTable[category][axis.toString()]) {
         return 0
       }

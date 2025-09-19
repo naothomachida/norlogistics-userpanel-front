@@ -6,14 +6,21 @@ import { useUsuarios, useClientes } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 import { Layout } from '@/components/layout'
-import { User } from '@/lib/api-types'
+import { User, Cliente, CentroCusto } from '@/lib/api-types'
 
-interface ExtendedUser extends User {
+interface ExtendedUser extends Omit<User, 'solicitante'> {
   solicitante?: {
+    id: string
     clienteId?: string
     centroCustoId?: string
     gestorId?: string
     limiteValor?: number
+    cliente?: Pick<Cliente, 'id' | 'nomeEmpresa'>
+    centroCusto?: Pick<CentroCusto, 'id' | 'nome' | 'codigo'>
+    gestor?: {
+      id: string
+      usuario?: Pick<User, 'id' | 'nome' | 'email'>
+    }
   }
   transportador?: {
     nomeEmpresa?: string
