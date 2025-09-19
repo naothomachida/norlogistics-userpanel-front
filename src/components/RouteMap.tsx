@@ -38,13 +38,20 @@ export default function RouteMap({
 
     // Initialize map if not already created
     if (!mapInstanceRef.current) {
-      mapInstanceRef.current = L.map(mapRef.current).setView([-23.5505, -46.6333], 10) // São Paulo center
+      mapInstanceRef.current = L.map(mapRef.current).setView([-15.7942, -47.8822], 4) // Brasil center, zoom mais distante inicial
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(mapInstanceRef.current)
 
       routeLayerRef.current = L.layerGroup().addTo(mapInstanceRef.current)
+
+      // Force initial resize
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize()
+        }
+      }, 300)
     }
 
     // Clear existing route
@@ -71,8 +78,14 @@ export default function RouteMap({
 
       // If polyline is available, decode and display it
       if (polyline) {
+        console.log('Polilinha recebida no mapa:', {
+          comprimento: polyline.length,
+          preview: polyline.substring(0, 50) + '...'
+        })
+
         try {
           const decodedPath = decodePolyline(polyline)
+          console.log(`Polilinha decodificada: ${decodedPath.length} pontos`)
           const routeLine = L.polyline(decodedPath, {
             color: '#3b82f6',
             weight: 4,
@@ -80,19 +93,90 @@ export default function RouteMap({
           })
           routeLayer.addLayer(routeLine)
 
-          // Fit map to show the entire route
-          const group = L.featureGroup([originMarker, destMarker, routeLine])
-          map.fitBounds(group.getBounds(), { padding: [20, 20] })
+          // Fit map to show the entire route based on polyline bounds
+          // Use setTimeout to ensure the map is fully rendered before fitting bounds
+          setTimeout(() => {
+            try {
+              // Get bounds from the polyline itself for more accurate zoom
+              const polylineBounds = routeLine.getBounds()
+              console.log('Aplicando fitBounds baseado na polilinha:', polylineBounds)
+
+              map.fitBounds(polylineBounds, {
+                padding: [20, 20],
+                maxZoom: 15 // Allow closer zoom for better detail
+              })
+
+              // Force invalidate size and fit bounds again to ensure proper zoom
+              setTimeout(() => {
+                map.invalidateSize()
+                map.fitBounds(polylineBounds, {
+                  padding: [20, 20],
+                  maxZoom: 15
+                })
+              }, 200)
+            } catch (error) {
+              console.error('Erro ao ajustar zoom do mapa:', error)
+              // Fallback to using markers and polyline group
+              const group = L.featureGroup([originMarker, destMarker, routeLine])
+              const bounds = group.getBounds()
+              map.fitBounds(bounds, {
+                padding: [30, 30],
+                maxZoom: 13
+              })
+            }
+          }, 100)
         } catch (error) {
           console.error('Erro ao decodificar polyline:', error)
           // Fallback: just show markers and fit to them
           const group = L.featureGroup([originMarker, destMarker])
-          map.fitBounds(group.getBounds(), { padding: [50, 50] })
+          setTimeout(() => {
+            try {
+              const bounds = group.getBounds()
+              console.log('Aplicando fitBounds para marcadores:', bounds)
+
+              map.fitBounds(bounds, {
+                padding: [40, 40],
+                maxZoom: 12
+              })
+
+              // Force invalidate size and fit bounds again
+              setTimeout(() => {
+                map.invalidateSize()
+                map.fitBounds(bounds, {
+                  padding: [50, 50],
+                  maxZoom: 11
+                })
+              }, 200)
+            } catch (error) {
+              console.error('Erro ao ajustar zoom do mapa (fallback):', error)
+            }
+          }, 100)
         }
       } else {
         // No polyline: fit map to show both markers
         const group = L.featureGroup([originMarker, destMarker])
-        map.fitBounds(group.getBounds(), { padding: [50, 50] })
+        setTimeout(() => {
+          try {
+            const bounds = group.getBounds()
+            console.log('Aplicando fitBounds sem polilinha:', bounds)
+
+            map.fitBounds(bounds, {
+              padding: [40, 40],
+              maxZoom: 12
+            })
+
+            // Force invalidate size and fit bounds again
+            setTimeout(() => {
+              map.invalidateSize()
+              map.fitBounds(bounds, {
+                padding: [40, 40],
+                maxZoom: 12
+              })
+            }, 200)
+          } catch (error) {
+            console.error('Erro ao ajustar zoom do mapa (sem polilinha):', error)
+          }
+        }, 100)
       }
     }
 

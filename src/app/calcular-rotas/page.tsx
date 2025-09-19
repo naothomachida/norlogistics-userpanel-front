@@ -5,9 +5,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { Layout } from '@/components/layout'
+import ApiDebugPanel from '@/components/ApiDebugPanel'
 
-// Dynamically import the map component to avoid SSR issues
-const RouteMap = dynamic(() => import('@/components/RouteMap'), {
+// Dynamically import the Google Maps component to avoid SSR issues
+const GoogleRouteMap = dynamic(() => import('@/components/GoogleRouteMap'), {
   ssr: false,
   loading: () => <div className="h-96 w-full bg-gray-200 rounded-lg flex items-center justify-center">Carregando mapa...</div>
 })
@@ -27,6 +28,19 @@ interface RouteOption {
     }>
     freightTableData?: Record<string, unknown>
     tollCost?: number
+    tollStations?: Array<{
+      name: string
+      cost: number
+      location: {
+        latitude: number
+        longitude: number
+        address?: string
+      }
+      vehicleClass?: string
+      concessionaire?: string
+      roadway?: string
+      tariff?: Record<string, number>
+    }>
   }
   costBreakdown: {
     fuelCost: number
@@ -110,6 +124,17 @@ export default function CalcularRotasPage() {
   const [error, setError] = useState('')
   const [selectedRouteKey, setSelectedRouteKey] = useState<string | null>(null)
 
+  // Debug state
+  const [debugInfo, setDebugInfo] = useState<{
+    payload?: unknown
+    response?: unknown
+    error?: string
+    url?: string
+    qualpPayload?: unknown
+    qualpResponse?: unknown
+    qualpUrl?: string
+  }>({})
+
   useEffect(() => {
     // Dar tempo para a autenticação ser verificada
     const timer = setTimeout(() => {
@@ -121,6 +146,26 @@ export default function CalcularRotasPage() {
     return () => clearTimeout(timer)
   }, [isAuthenticated, router])
 
+  // Função para carregar dados de exemplo para teste
+  const loadExampleData = () => {
+    const exampleResponse = {
+      polilinha_codificada: "xvtyk@vjnoyAyIhBiNzCc@?a@J[TS\\Gf@@d@L`@PT@D^P`@Hb@C\\QpQgGdR{BlEg@\\ClF{@jFu@hBaGRkEpCwf@bAgGrA{EjRqp@bF_RdFaUFa`@DcBLs@R{@b@cA|@mAf@g@z@m@zAaA`Bw@hKv@zKT~CKhCmAnBwFPmDg@iDYcA{BkFaHs@gMcCsAQ_Ek@_TcCsRmBuRqA{QJ{KbAc\\bDq~AbTqz@rMiEp@_Gt@uFLsLa@aU{HcQ}GwS}B}[@__@A}a@J{^e@ySmBkQyFeX}L_Q}J{GyDyIwFcS_OuWcK}D_BgBa@aK{BsQkFgJkFuHiG_GoEcJaNeK_RsVqa@ic@ul@kJoRsr@kuAguAawCwTc_@yT__@iC{E[s@}BeGgGsQ}Oqa@uFoNkBsEa@_AmDqHan@wrAmIuOuJ}NcImJkRcUcQoKsSqJ}TmI}UkI{PcF_YaE{VkCmYaAuSZmZdBsb@bFqi@hG{x@bKG@aWzD}@LuKdB_Ep@mhA|M}MpDwh@jIwFv@gE~@sB|As@dAuAdCcBfZaDzb@aAjRWxE]nGa@|C[vAo@dA{AlBwAtAaBv@kA\\uBd@kBJiCQuBUoBq@mBoAyB{BgcBaoDmgB}yDsHgPsfDakHc_AwqBoh@ehA{`AiwBspAeoCiJaSiPc^ad@saA}~A_gDgs@gvAclAy_C_t@ytA{|@ccBwwCoeF{aCsyDi~FgkJ_n@}aAquFe~IciB_wCwLiRgjEy|Gu}@y{AgfAgcBiu@skAiyEiyHmlCugEyvIifNiqDw{FcwAw|B_x@mpAklB{uCmUma@gXae@sgAqcBq_@sl@qf@iv@oUoa@odAgcBsD}FubAw~Ake@us@{a@{k@md@}j@ib@uh@aa@qb@ak@gj@uM{Ko{@}s@y[gZyPcM_d@o[io@ac@qlA}q@mWcNeWiMmZgNiYcM}UaK_]yMahCe_AoeA__@__Bql@iTeHwRoHiu@qWeLuEcgBao@q{Aui@a^oMgiBwp@geHaeCkvBou@oMyEyJ_D_QkGmcAqa@qlAyXcz@uRqaAgOws@sIuc@aEqX{Bev@kDqyB}FstD}McaAeDobCiJk[yA{lAsCopAcEoEKuq@iBojDqLmQy@{y@aCe|AsEg[mAc\\sAcf@eBwzBiH_j@eBii@aCuOa@o~B}G}p@}CefAiEadByDe}BiGwlD_Lkk@qBcQo@ctAgF{nCcJ}q@kAcm@mBylFwPcr@mBiP]ecA`A}~@pDeYfBwPdAi\\`DcQfCkSfCqd@bEo^vGyYjFwc@rI}f@xJqa@zGgh@lJam@fLad@zHoh@vJeb@zHgd@jIq}@tO{e@fJsq@rMcu@bNwq@pLap@fLmZrF}KdBqt@nNw_@jGyc@`Iyc@fIqn@~KaP|Cc_@`G{MtCmWnEoQnDiPpCgWpFqg@hJabAlR{~A`Yme@pIyh@jJgd@vHsh@fKgu@hMgk@`JuUpCgn@vFaY`Ce^~Bma@pBu`@nA}V^mW`@sXBwZa@mSA}RSg]yBgZwBqZcBcTcBgg@yDgb@cFmq@eI}c@oF}h@sGkdC{Zg~@mLup@}IaK_AmnAaQgkBeUs{AiRwqAcPakAoO{PqB{IqAsZ}D{m@gIsmHk~@m~A{RacA{S{r@iMsD}A_EeCuAuAcA_CqAgC_D_IgCiGqCiEmBmA}Ba@_EUuDT_H|@cUnFkL~@}MO{KeB_FsAgFeB}EkCaNgJqK{H{AcAeDiBoDiA{Ca@{CG}CFkEv@gFfAkCr@iFpBwEpAeE`@{Ce@_S_DsDcAgEmBcE_D{CsDqBeDgCiGuWefAuA}IiEgc@gBoO_BcKaCyMeEqO{Xq}@oUuu@qNic@s@yEq@gGUqFKyCg@{EeAoE_BqCcBkBcC_CqBmAmGiD_EkD_CmCcBqCo`@q|@{BcHi@oAmAgC_GyR}M_e@wIoUaEwKeFwNcDaIgBqF|EkI~fAidA~|@uz@zcAwaAldAkbApcAoaAbaAy~@jQkOpN}LdZyQtMyErr@sIrj@cIhSsC~_A}Jb~@mGrGs@tPmBzMdPzI~LvIfOfRna@hHfP",
+      endereco_inicio: "sorocaba",
+      endereco_fim: "itu",
+      coordenada_inicio: "-23.5058,-47.45597",
+      coordenada_fim: "-23.27946,-47.30856",
+      distancia: { texto: "37 km", valor: 37 },
+      duracao: { texto: "00:24:30", valor: 1471 },
+      id_transacao: 148339937,
+      roteador_selecionado: "qualp"
+    }
+
+    setDebugInfo(prev => ({
+      ...prev,
+      qualpResponse: exampleResponse
+    }))
+  }
+
   const handleCalculate = async () => {
     if (!formData.origin.trim() || !formData.destination.trim()) {
       setError('Origem e destino são obrigatórios')
@@ -129,32 +174,65 @@ export default function CalcularRotasPage() {
 
     setCalculating(true)
     setError('')
-    
+    setDebugInfo({}) // Reset debug info
+
     try {
+      const requestPayload = {
+        ...formData,
+        waypoints: formData.waypoints.filter(w => w.trim() !== ''),
+        vehicleType: formData.vehicleQualPType,
+        vehicleAxis: formData.vehicleAxis,
+        topSpeed: formData.topSpeed,
+        fuelConsumption: formData.fuelConsumption
+      }
+
+      // Store payload for debugging
+      setDebugInfo(prev => ({
+        ...prev,
+        payload: requestPayload,
+        url: '/api/routes/calculate'
+      }))
+
       const response = await fetch('/api/routes/calculate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          waypoints: formData.waypoints.filter(w => w.trim() !== ''),
-          vehicleType: formData.vehicleQualPType,
-          vehicleAxis: formData.vehicleAxis,
-          topSpeed: formData.topSpeed,
-          fuelConsumption: formData.fuelConsumption
-        }),
+        body: JSON.stringify(requestPayload),
       })
 
       const data = await response.json()
-      
+
+      // Store response for debugging
+      setDebugInfo(prev => ({
+        ...prev,
+        response: data,
+        error: undefined,
+        // Também incluir info da API QUALP se disponível
+        ...(data.debug?.qualp && {
+          qualpPayload: data.debug.qualp.requestPayload,
+          qualpResponse: data.debug.qualp.apiResponse,
+          qualpUrl: data.debug.qualp.requestUrl
+        })
+      }))
+
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao calcular rotas')
+        const errorMsg = data.error || 'Erro ao calcular rotas'
+        setDebugInfo(prev => ({
+          ...prev,
+          error: `${response.status}: ${errorMsg}. Details: ${data.details || 'N/A'}`
+        }))
+        throw new Error(errorMsg)
       }
 
       setResult(data)
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Erro desconhecido')
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido'
+      setError(errorMsg)
+      setDebugInfo(prev => ({
+        ...prev,
+        error: errorMsg
+      }))
     } finally {
       setCalculating(false)
     }
@@ -233,8 +311,10 @@ export default function CalcularRotasPage() {
     <Layout
       title="Calculadora de Rotas"
       description="Compare rotas e custos para suas operações logísticas"
+      className="lg:ml-0"
+      contentClassName="lg:ml-0"
     >
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-none mx-0 py-6 px-4 sm:px-6 lg:px-8">
 
         <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-4">
           {/* Formulário de Cálculo */}
@@ -327,13 +407,13 @@ export default function CalcularRotasPage() {
                 {/* Configurações QUALP */}
                 <div className="border-t pt-4">
                   <h4 className="text-md font-medium text-gray-900 mb-3">
-                    Configurações QUALP
+                    Configurações API Lets
                   </h4>
 
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Categoria de Veículo QUALP
+                        Categoria de Veículo
                       </label>
                       <select
                         value={formData.vehicleQualPType}
@@ -528,13 +608,23 @@ export default function CalcularRotasPage() {
                   </div>
                 )}
 
-                <button
-                  onClick={handleCalculate}
-                  disabled={calculating}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                  {calculating ? 'Calculando...' : 'Calcular Rotas'}
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleCalculate}
+                    disabled={calculating}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {calculating ? 'Calculando...' : 'Calcular Rotas'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={loadExampleData}
+                    className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    🗺️ Testar Mapa (Sorocaba → Itu)
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -660,38 +750,85 @@ export default function CalcularRotasPage() {
                         <h4 className="text-sm font-medium text-gray-900 mb-3">
                           Breakdown de Custos
                         </h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Combustível:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.fuelCost || 0)}</span>
+                        <div className="space-y-3">
+                          {/* Seção 1: Custos Operacionais Estimados */}
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">
+                              SEUS CUSTOS OPERACIONAIS (Estimativa)
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">• Combustível:</span>
+                                <span className="text-gray-600">{formatCurrency(selectedRoute?.costBreakdown.fuelCost || 0)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">• Manutenção:</span>
+                                <span className="text-gray-600">{formatCurrency(selectedRoute?.costBreakdown.maintenanceCost || 0)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">• Motorista:</span>
+                                <span className="text-gray-600">{formatCurrency(selectedRoute?.costBreakdown.driverCost || 0)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">• Operacional:</span>
+                                <span className="text-gray-600">{formatCurrency(selectedRoute?.costBreakdown.operationalCost || 0)}</span>
+                              </div>
+                              <div className="border-t border-gray-300 pt-1 flex justify-between font-medium text-xs">
+                                <span className="text-gray-600">Total Estimado:</span>
+                                <span className="text-gray-700">
+                                  {formatCurrency(
+                                    (selectedRoute?.costBreakdown.fuelCost || 0) +
+                                    (selectedRoute?.costBreakdown.maintenanceCost || 0) +
+                                    (selectedRoute?.costBreakdown.driverCost || 0) +
+                                    (selectedRoute?.costBreakdown.operationalCost || 0)
+                                  )}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Manutenção:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.maintenanceCost || 0)}</span>
+
+                          {/* Seção 2: Base de Cobrança Oficial */}
+                          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <div className="text-xs font-medium text-blue-800 mb-2 uppercase tracking-wide">
+                              BASE DE COBRANÇA OFICIAL ANTT
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              {selectedRoute?.costBreakdown.freightTableCost && (
+                                <div className="flex justify-between">
+                                  <span className="text-blue-700">Tabela de Frete ANTT</span>
+                                  <span className="text-blue-900 font-semibold">{formatCurrency(selectedRoute.costBreakdown.freightTableCost)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between">
+                                <span className="text-blue-700">Pedágios:</span>
+                                <span className="text-blue-900">{formatCurrency(selectedRoute?.costBreakdown.tollCost || 0)}</span>
+                              </div>
+                              <div className="border-t border-blue-300 pt-1 flex justify-between font-bold">
+                                <span className="text-blue-800">Valor Base Oficial:</span>
+                                <span className="text-blue-900">{formatCurrency(selectedRoute?.costBreakdown.totalCost || 0)}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Motorista:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.driverCost || 0)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Pedágios:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.tollCost || 0)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Operacional:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.operationalCost || 0)}</span>
-                          </div>
-                          <div className="border-t pt-2 flex justify-between font-medium">
-                            <span className="text-gray-900">Custo Total:</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.totalCost || 0)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Margem ({result.metadata.profitMargin}%):</span>
-                            <span className="text-gray-900">{formatCurrency(selectedRoute?.costBreakdown.profitMargin || 0)}</span>
-                          </div>
-                          <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                            <span className="text-gray-900">Preço Final:</span>
-                            <span className="text-blue-600">{formatCurrency(selectedRoute?.costBreakdown.finalPrice || 0)}</span>
+
+                          {/* Seção 3: Cobrança Final */}
+                          <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                            <div className="text-xs font-medium text-green-800 mb-2 uppercase tracking-wide">
+                              SUA COBRANÇA AO CLIENTE
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-green-700">Valor Base (ANTT):</span>
+                                <span className="text-green-900">{formatCurrency(selectedRoute?.costBreakdown.totalCost || 0)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-green-700">Sua Margem ({result.metadata.profitMargin}%):</span>
+                                <span className="text-green-900">{formatCurrency(selectedRoute?.costBreakdown.profitMargin || 0)}</span>
+                              </div>
+                              <div className="border-t border-green-300 pt-2 flex justify-between font-bold text-lg">
+                                <span className="text-green-800">Preço Final:</span>
+                                <span className="text-green-900 bg-green-100 px-2 py-1 rounded">{formatCurrency(selectedRoute?.costBreakdown.finalPrice || 0)}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -701,7 +838,7 @@ export default function CalcularRotasPage() {
                     {selectedRoute?.route.freightTableData && (
                       <div className="mt-6">
                         <h4 className="text-sm font-medium text-gray-900 mb-3">
-                          Dados da Tabela de Frete QUALP
+                          Dados da Tabela de Frete ANTT
                         </h4>
                         <div className="bg-gray-50 p-4 rounded-lg">
                           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -721,6 +858,65 @@ export default function CalcularRotasPage() {
                               <strong>Data:</strong> {selectedRoute?.route.freightTableData?.antt_resolucao?.data}
                             </div>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tabela de Pedágios */}
+                    {selectedRoute?.route.tollStations && selectedRoute.route.tollStations.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">
+                          Pedágios na Rota
+                        </h4>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Nome
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Localização
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Concessionária
+                                  </th>
+                                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Valor
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {selectedRoute.route.tollStations.map((toll, index) => (
+                                  <tr key={index} className="hover:bg-gray-50">
+                                    <td className="px-3 py-2 text-sm text-gray-900">
+                                      {toll.name}
+                                    </td>
+                                    <td className="px-3 py-2 text-sm text-gray-600">
+                                      {toll.location.address}
+                                    </td>
+                                    <td className="px-3 py-2 text-sm text-gray-600">
+                                      {toll.concessionaire}
+                                    </td>
+                                    <td className="px-3 py-2 text-sm text-gray-900 text-right font-medium">
+                                      {formatCurrency(toll.cost)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot className="bg-gray-100">
+                                <tr>
+                                  <td colSpan={3} className="px-3 py-2 text-sm font-medium text-gray-900">
+                                    Total de Pedágios:
+                                  </td>
+                                  <td className="px-3 py-2 text-sm font-bold text-gray-900 text-right">
+                                    {formatCurrency(selectedRoute.route.tollStations.reduce((sum, toll) => sum + toll.cost, 0))}
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -792,30 +988,96 @@ export default function CalcularRotasPage() {
             )}
           </div>
 
-          {/* Mapa da Rota */}
+          {/* Mapa da Rota - Expandido */}
           {result && selectedRoute && (
             <div className="lg:col-span-1">
               <div className="bg-white shadow rounded-lg p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Visualização da Rota
+                  Visualização da Rota - {selectedRoute?.tag}
                 </h3>
 
-                <RouteMap
+                <GoogleRouteMap
                   polyline={selectedRoute?.route.geometry}
                   originAddress={result.metadata.origin}
                   destinationAddress={result.metadata.destination}
                   originCoords={selectedRoute?.route.points?.[0] ? [selectedRoute?.route.points[0].latitude, selectedRoute?.route.points[0].longitude] : undefined}
                   destCoords={selectedRoute?.route.points?.[1] ? [selectedRoute?.route.points[1].latitude, selectedRoute?.route.points[1].longitude] : undefined}
-                  className="h-96 w-full rounded-lg"
+                  className="h-[600px] w-full rounded-lg"
                 />
 
                 <div className="mt-4 text-xs text-gray-500">
-                  Mapa fornecido por OpenStreetMap • Dados da rota: QUALP API
+                  Mapa fornecido por Google Maps<br/> Dados da rota: API Lets
                 </div>
               </div>
             </div>
           )}
         </div>
+
+        {/* Debug Panel - Movido para baixo e em linha separada */}
+        {(debugInfo.payload || debugInfo.response || debugInfo.error) && (
+          <div className="mt-8 space-y-6">
+            <ApiDebugPanel
+              payload={debugInfo.payload}
+              response={debugInfo.response}
+              error={debugInfo.error}
+              isLoading={calculating}
+              url={debugInfo.url}
+              qualpPayload={debugInfo.qualpPayload}
+              qualpResponse={debugInfo.qualpResponse}
+              qualpUrl={debugInfo.qualpUrl}
+            />
+
+            {/* Mapa de Debug da Polilinha QUALP */}
+            {debugInfo.qualpResponse && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <span className="mr-2">🗺️</span>
+                  Visualização da Polilinha API Lets
+                </h3>
+
+                <GoogleRouteMap
+                  polyline={debugInfo.qualpResponse?.polilinha_codificada}
+                  originAddress={debugInfo.qualpResponse?.endereco_inicio}
+                  destinationAddress={debugInfo.qualpResponse?.endereco_fim}
+                  originCoords={
+                    debugInfo.qualpResponse?.coordenada_inicio
+                      ? debugInfo.qualpResponse.coordenada_inicio.split(',').map(coord => parseFloat(coord.trim())) as [number, number]
+                      : undefined
+                  }
+                  destCoords={
+                    debugInfo.qualpResponse?.coordenada_fim
+                      ? debugInfo.qualpResponse.coordenada_fim.split(',').map(coord => parseFloat(coord.trim())) as [number, number]
+                      : undefined
+                  }
+                  className="h-[500px] w-full rounded-lg"
+                />
+
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="text-gray-600">
+                    <strong>Distância:</strong> {debugInfo.qualpResponse?.distancia?.texto || 'N/A'}
+                  </div>
+                  <div className="text-gray-600">
+                    <strong>Duração:</strong> {debugInfo.qualpResponse?.duracao?.texto || 'N/A'}
+                  </div>
+                  <div className="text-gray-600">
+                    <strong>ID Transação:</strong> {debugInfo.qualpResponse?.id_transacao || 'N/A'}
+                  </div>
+                </div>
+
+                <div className="mt-4 text-xs text-gray-500">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <strong>Polilinha:</strong> {debugInfo.qualpResponse?.polilinha_codificada?.length || 0} caracteres
+                    </div>
+                    <div>
+                      <strong>Roteador:</strong> {debugInfo.qualpResponse?.roteador_selecionado || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Layout>
   )

@@ -10,8 +10,10 @@
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@mapbox/polyline": "^1.2.1",
     "@prisma/client": "^6.16.1",
     "@radix-ui/react-slot": "^1.2.3",
+    "@react-google-maps/api": "^2.20.7",
     "@reduxjs/toolkit": "^2.9.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",

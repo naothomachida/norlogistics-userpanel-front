@@ -114,6 +114,24 @@ export async function POST(request: NextRequest) {
         fuelPrice,
         profitMargin,
         calculatedAt: new Date().toISOString()
+      },
+      debug: {
+        qualp: routeResults.debug,
+        requestBody: body,
+        processedPayload: {
+          origin,
+          destination,
+          waypoints,
+          vehicleType: body.vehicleType || 'truck',
+          vehicleAxis: body.vehicleAxis || 'all',
+          topSpeed: body.topSpeed || null,
+          fuelPrice,
+          fuelConsumption: body.fuelConsumption ? parseFloat(body.fuelConsumption) : undefined,
+          costPerKm: 2.8,
+          showTolls: body.showTolls ?? true,
+          showFreightTable: body.showFreightTable ?? true,
+          showPolyline: body.showPolyline ?? true
+        }
       }
     }
 

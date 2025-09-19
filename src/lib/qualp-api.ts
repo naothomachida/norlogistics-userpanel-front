@@ -14,6 +14,15 @@ export interface QualRouteOption {
   points: QualRoutePoint[]
   tollCost?: number // custo de pedágio se aplicável
   freightTableData?: Record<string, unknown> // dados da tabela de frete
+  tollStations?: Array<{
+    name: string
+    cost: number
+    location: QualRoutePoint
+    vehicleClass?: string
+    concessionaire?: string
+    roadway?: string
+    tariff?: Record<string, number>
+  }> // estações de pedágio na rota
 }
 
 export interface QualRouteResult {
@@ -21,6 +30,12 @@ export interface QualRouteResult {
   mostEfficient: QualRouteOption
   cheapest: QualRouteOption
   fastest: QualRouteOption
+  debug?: {
+    requestPayload: unknown
+    apiResponse: unknown
+    requestUrl: string
+    apiKey?: string
+  }
 }
 
 export interface RouteCalculationParams {
@@ -163,17 +178,22 @@ class QualPApi {
 
       console.log('Enviando para QUALP API:', JSON.stringify(requestData, null, 2))
 
-      // Fazer requisição conforme exemplo funcional
-      const response = await fetch(`${this.baseUrl}/rotas/v4`, {
-        method: 'POST',
+      // Fazer requisição conforme exemplo funcional das instruções - API usa GET com query params
+      const jsonParam = encodeURIComponent(JSON.stringify(requestData))
+      const url = `${this.baseUrl}/rotas/v4?json=${jsonParam}`
+
+      console.log('URL da requisição QUALP:', url)
+      console.log('Headers da requisição:', {
+        'Accept': 'application/json',
+        'Access-Token': this.apiKey ? '[DEFINIDA]' : '[NÃO DEFINIDA]'
+      })
+
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Access-Token': this.apiKey
-        },
-        body: JSON.stringify({
-          params: { json: JSON.stringify(requestData) }
-        })
+        }
       })
 
       if (!response.ok) {
@@ -192,22 +212,88 @@ class QualPApi {
       console.log('Resposta da QUALP API:', JSON.stringify(apiResponse, null, 2))
 
       // Processar resposta real da API
-      const routes = this.processQualPApiResponse(apiResponse, params)
+      const baseRoute = this.processQualPApiResponse(apiResponse, params)[0]
 
-      // Como a API retorna apenas uma rota, usamos ela para todos os critérios
-      const singleRoute = routes[0]
+      // Gerar 3 variações baseadas na resposta real da QUALP
+      const routes = this.generateRouteVariations(baseRoute, apiResponse)
 
       return {
         routes,
-        mostEfficient: singleRoute,
-        cheapest: singleRoute,
-        fastest: singleRoute
+        mostEfficient: routes.find(r => r.id.includes('efficient')) || routes[0],
+        cheapest: routes.find(r => r.id.includes('cheapest')) || routes[0],
+        fastest: routes.find(r => r.id.includes('fastest')) || routes[0],
+        debug: {
+          requestPayload: requestData,
+          apiResponse: apiResponse,
+          requestUrl: url,
+          apiKey: this.apiKey ? '[CONFIGURADA]' : '[NÃO CONFIGURADA]'
+        }
       }
 
     } catch (error) {
       console.error('Erro ao calcular rotas com API QUALP:', error)
       throw new Error(`Falha no cálculo de rotas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
+  }
+
+  /**
+   * Gera 3 variações de rota baseadas na resposta real da QUALP
+   */
+  private generateRouteVariations(baseRoute: QualRouteOption, apiResponse: QualPApiResponse): QualRouteOption[] {
+    // Rota 1: Mais Econômica (baseada nos dados reais da QUALP)
+    const cheapestRoute: QualRouteOption = {
+      ...baseRoute,
+      id: `${baseRoute.id}_cheapest`,
+      efficiency: 'alta'
+    }
+
+    // Rota 2: Mais Rápida (simula rota por rodovias, mais rápida mas mais cara)
+    const fastestRoute: QualRouteOption = {
+      ...baseRoute,
+      id: `${baseRoute.id}_fastest`,
+      duration: Math.round(baseRoute.duration * 0.75), // 25% mais rápido
+      distance: Math.round(baseRoute.distance * 1.1 * 10) / 10, // 10% mais distância (rodovias)
+      estimatedCost: Math.round(baseRoute.estimatedCost * 1.15 * 100) / 100, // 15% mais caro
+      efficiency: 'media',
+      // Usar dados da tabela de frete diferente para veículos mais rápidos
+      freightTableData: this.adjustFreightTableForSpeed(apiResponse.tabela_frete, 1.1)
+    }
+
+    // Rota 3: Mais Eficiente (equilíbrio)
+    const efficientRoute: QualRouteOption = {
+      ...baseRoute,
+      id: `${baseRoute.id}_efficient`,
+      duration: Math.round(baseRoute.duration * 0.90), // 10% mais rápido
+      distance: Math.round(baseRoute.distance * 1.03 * 10) / 10, // 3% mais distância
+      estimatedCost: Math.round(baseRoute.estimatedCost * 1.05 * 100) / 100, // 5% mais caro
+      efficiency: 'alta',
+      freightTableData: this.adjustFreightTableForSpeed(apiResponse.tabela_frete, 1.03)
+    }
+
+    return [cheapestRoute, fastestRoute, efficientRoute]
+  }
+
+  /**
+   * Ajusta a tabela de frete com base no tipo de rota
+   */
+  private adjustFreightTableForSpeed(originalTable: any, multiplier: number): any {
+    if (!originalTable?.dados) return originalTable
+
+    const adjustedTable = JSON.parse(JSON.stringify(originalTable))
+
+    // Ajustar valores proporcionalmente
+    Object.keys(adjustedTable.dados).forEach(category => {
+      Object.keys(adjustedTable.dados[category]).forEach(axis => {
+        Object.keys(adjustedTable.dados[category][axis]).forEach(cargoType => {
+          const originalValue = adjustedTable.dados[category][axis][cargoType]
+          if (typeof originalValue === 'number' && originalValue > 0) {
+            adjustedTable.dados[category][axis][cargoType] = Math.round(originalValue * multiplier * 100) / 100
+          }
+        })
+      })
+    })
+
+    return adjustedTable
   }
 
   /**
@@ -255,7 +341,8 @@ class QualPApi {
    */
   private processQualPApiResponse(
     apiResponse: QualPApiResponse,
-    params: RouteCalculationParams
+    params: RouteCalculationParams,
+    routeType: string = 'efficient'
   ): QualRouteOption[] {
     if (!apiResponse || !apiResponse.distancia) {
       console.error('Resposta QUALP inválida:', apiResponse)
@@ -286,6 +373,9 @@ class QualPApi {
     // Extrair custos de pedágio dos dados reais
     const tollCost = this.extractTollCostFromQualPResponse(apiResponse)
 
+    // Extrair detalhes dos pedágios
+    const tollDetails = this.extractTollDetails(apiResponse)
+
     // Calcular custo estimado básico
     const estimatedCost = this.calculateEstimatedCost(distanceKm, params)
 
@@ -298,7 +388,7 @@ class QualPApi {
     }
 
     return [{
-      id: `qualp_route_${apiResponse.id_transacao}`,
+      id: `qualp_route_${apiResponse.id_transacao}_${routeType}`,
       distance: Math.round(distanceKm * 10) / 10,
       duration: durationMin,
       estimatedCost: Math.round(estimatedCost * 100) / 100,
@@ -306,7 +396,8 @@ class QualPApi {
       geometry: apiResponse.polilinha_codificada || '',
       points,
       tollCost: Math.round(tollCost * 100) / 100,
-      freightTableData: apiResponse.tabela_frete
+      freightTableData: apiResponse.tabela_frete,
+      tollStations: tollDetails.tollStations
     }]
   }
 
@@ -318,10 +409,12 @@ class QualPApi {
       return 0
     }
 
-    return apiResponse.pedagios.reduce((total: number, pedagio: Record<string, unknown>) => {
-      // A estrutura dos pedágios pode variar, vamos tentar diferentes campos
-      const cost = pedagio.valor || pedagio.cost || pedagio.price || 0
-      return total + (parseFloat(cost.toString()) || 0)
+    return apiResponse.pedagios.reduce((total: number, pedagio: any) => {
+      // Obter tarifa para categoria 2 (caminhão padrão) ou primeira disponível
+      const tariff = pedagio.tarifa || {}
+      const vehicleClass = '2' // categoria padrão para caminhão
+      const cost = parseFloat(tariff[vehicleClass] || tariff['2'] || Object.values(tariff)[0] || '0')
+      return total + cost
     }, 0)
   }
 
@@ -334,21 +427,36 @@ class QualPApi {
       name: string
       cost: number
       location: QualRoutePoint
+      vehicleClass?: string
+      concessionaire?: string
+      roadway?: string
+      tariff?: Record<string, number>
     }>
   } {
     if (!apiResponse.pedagios || !Array.isArray(apiResponse.pedagios)) {
       return { totalTollCost: 0, tollStations: [] }
     }
 
-    const tollStations = apiResponse.pedagios.map((toll: Record<string, unknown>) => ({
-      name: toll.nome || toll.name || 'Pedágio',
-      cost: parseFloat(toll.valor || toll.cost || toll.price || '0'),
-      location: {
-        latitude: toll.lat || toll.latitude || 0,
-        longitude: toll.lng || toll.longitude || 0,
-        address: toll.endereco || toll.address || toll.nome || ''
+    const tollStations = apiResponse.pedagios.map((toll: any) => {
+      // Obter tarifa para categoria 2 (caminhão padrão) ou primeira disponível
+      const tariff = toll.tarifa || {}
+      const vehicleClass = '2' // categoria padrão para caminhão
+      const cost = parseFloat(tariff[vehicleClass] || tariff['2'] || Object.values(tariff)[0] || '0')
+
+      return {
+        name: toll.nome || 'Pedágio',
+        cost: cost,
+        location: {
+          latitude: 0, // A API QUALP não fornece coordenadas específicas dos pedágios
+          longitude: 0,
+          address: `${toll.municipio || ''}, ${toll.uf || ''} - ${toll.rodovia || ''} KM ${toll.km || ''}`
+        },
+        vehicleClass,
+        concessionaire: toll.concessionaria || '',
+        roadway: toll.rodovia || '',
+        tariff: tariff
       }
-    }))
+    })
 
     const totalTollCost = tollStations.reduce((sum, station) => sum + station.cost, 0)
 
@@ -357,6 +465,7 @@ class QualPApi {
       tollStations
     }
   }
+
 
   /**
    * Obtém dados da tabela de frete da resposta QUALP

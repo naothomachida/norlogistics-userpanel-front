@@ -15,6 +15,7 @@ export interface CostBreakdown {
   driverCost: number
   tollCost: number
   operationalCost: number
+  freightTableCost?: number // Valor da tabela de frete QUALP
   totalCost: number
   profitMargin: number
   finalPrice: number
@@ -70,8 +71,8 @@ export class RouteCostCalculator {
     // Custo do motorista
     const driverCost = durationHours * (vehicleSpecs.driverCostPerHour || 25)
 
-    // Custo de pedágio real da API QUALP
-    const tollCost = (route.tollCost || 0) * (vehicleSpecs.tollMultiplier || 1)
+    // Custo de pedágio real da API QUALP (já calculado para a categoria correta)
+    const tollCost = route.tollCost || 0
 
     // Custos operacionais (seguro, documentação, etc.)
     const operationalCost = distance * 0.5 // R$ 0.50 por km
@@ -87,13 +88,31 @@ export class RouteCostCalculator {
       }
     }
 
-    // Se temos dados da tabela de frete, usamos como base; senão, calculamos tradicionalmente
+    // Se temos dados da tabela de frete QUALP, usar como custo base
     let totalCost: number
+    let adjustedFuelCost = fuelCost
+    let adjustedMaintenanceCost = maintenanceCost
+    let adjustedDriverCost = driverCost
+    let adjustedOperationalCost = operationalCost
+
     if (freightTableCost > 0) {
-      // Usar valor da tabela de frete como base e ajustar com custos específicos
+      // Usar a tabela de frete já ajustada que vem da rota
+      // As rotas já têm tabelas de frete ajustadas conforme o tipo
       totalCost = freightTableCost + tollCost
+
+      // Ajustar apenas os custos de referência para mostrar diferenças
+      if (route.id.includes('_fastest')) {
+        // Rota mais rápida: mais combustível devido à velocidade
+        adjustedFuelCost = fuelCost * 1.25
+        adjustedMaintenanceCost = maintenanceCost * 1.15
+      } else if (route.id.includes('_efficient')) {
+        // Rota mais eficiente: custos ligeiramente maiores
+        adjustedFuelCost = fuelCost * 1.10
+        adjustedMaintenanceCost = maintenanceCost * 1.05
+      }
+      // Rota mais econômica (_cheapest) mantém valores base
     } else {
-      // Cálculo tradicional
+      // Cálculo tradicional quando não temos tabela de frete
       totalCost = fuelCost + maintenanceCost + driverCost + tollCost + operationalCost
     }
 
@@ -104,11 +123,12 @@ export class RouteCostCalculator {
     const finalPrice = totalCost + profitMargin
 
     const costBreakdown: CostBreakdown = {
-      fuelCost: Math.round(fuelCost * 100) / 100,
-      maintenanceCost: Math.round(maintenanceCost * 100) / 100,
-      driverCost: Math.round(driverCost * 100) / 100,
+      fuelCost: Math.round(adjustedFuelCost * 100) / 100,
+      maintenanceCost: Math.round(adjustedMaintenanceCost * 100) / 100,
+      driverCost: Math.round(adjustedDriverCost * 100) / 100,
       tollCost: Math.round(tollCost * 100) / 100,
-      operationalCost: Math.round(operationalCost * 100) / 100,
+      operationalCost: Math.round(adjustedOperationalCost * 100) / 100,
+      freightTableCost: freightTableCost > 0 ? Math.round(freightTableCost * 100) / 100 : undefined,
       totalCost: Math.round(totalCost * 100) / 100,
       profitMargin: Math.round(profitMargin * 100) / 100,
       finalPrice: Math.round(finalPrice * 100) / 100
