@@ -23,6 +23,7 @@ interface RouteOption {
     estimatedCost: number
     efficiency: string
     geometry?: string
+    routeImageUrl?: string
     points?: Array<{
       latitude: number
       longitude: number
@@ -42,6 +43,22 @@ interface RouteOption {
       concessionaire?: string
       roadway?: string
       tariff?: Record<string, number>
+    }>
+    weighStations?: Array<{
+      id: number
+      name: string
+      location: {
+        latitude: number
+        longitude: number
+        address?: string
+      }
+      roadway: string
+      km: string
+      direction: string
+      concessionaire: string
+      concessionaireId: number
+      logo: string
+      uf: string
     }>
   }
   costBreakdown: {
@@ -119,13 +136,21 @@ export default function CalcularRotasPage() {
     fuelConsumption: '',
     showTolls: true,
     showFreightTable: true,
-    showPolyline: true
+    showPolyline: true,
+    forceUpdate: false  // Nova opção para forçar atualização
   })
   
   const [result, setResult] = useState<RouteResult | null>(null)
   const [calculating, setCalculating] = useState(false)
   const [error, setError] = useState('')
   const [selectedRouteKey, setSelectedRouteKey] = useState<string | null>(null)
+  const [showRouteImageModal, setShowRouteImageModal] = useState(false)
+  const [routeImageUrl, setRouteImageUrl] = useState<string | null>(null)
+  const [imageLoadError, setImageLoadError] = useState(false)
+  const [selectedFreightCategory, setSelectedFreightCategory] = useState('A')
+  const [selectedFreightAxis, setSelectedFreightAxis] = useState('2')
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
+  const [showApiConfigurations, setShowApiConfigurations] = useState(false)
 
   // Debug state
   const [debugInfo, setDebugInfo] = useState<{
@@ -136,6 +161,13 @@ export default function CalcularRotasPage() {
     qualpPayload?: unknown
     qualpResponse?: unknown
     qualpUrl?: string
+    cache?: {
+      fromCache?: boolean
+      cacheEntry?: {
+        totalConsultas?: number
+        ultimaConsulta?: string
+      }
+    } | null
   }>({})
 
   useEffect(() => {
@@ -149,25 +181,6 @@ export default function CalcularRotasPage() {
     return () => clearTimeout(timer)
   }, [isAuthenticated, router])
 
-  // Função para carregar dados de exemplo para teste
-  const loadExampleData = () => {
-    const exampleResponse = {
-      polilinha_codificada: "xvtyk@vjnoyAyIhBiNzCc@?a@J[TS\\Gf@@d@L`@PT@D^P`@Hb@C\\QpQgGdR{BlEg@\\ClF{@jFu@hBaGRkEpCwf@bAgGrA{EjRqp@bF_RdFaUFa`@DcBLs@R{@b@cA|@mAf@g@z@m@zAaA`Bw@hKv@zKT~CKhCmAnBwFPmDg@iDYcA{BkFaHs@gMcCsAQ_Ek@_TcCsRmBuRqA{QJ{KbAc\\bDq~AbTqz@rMiEp@_Gt@uFLsLa@aU{HcQ}GwS}B}[@__@A}a@J{^e@ySmBkQyFeX}L_Q}J{GyDyIwFcS_OuWcK}D_BgBa@aK{BsQkFgJkFuHiG_GoEcJaNeK_RsVqa@ic@ul@kJoRsr@kuAguAawCwTc_@yT__@iC{E[s@}BeGgGsQ}Oqa@uFoNkBsEa@_AmDqHan@wrAmIuOuJ}NcImJkRcUcQoKsSqJ}TmI}UkI{PcF_YaE{VkCmYaAuSZmZdBsb@bFqi@hG{x@bKG@aWzD}@LuKdB_Ep@mhA|M}MpDwh@jIwFv@gE~@sB|As@dAuAdCcBfZaDzb@aAjRWxE]nGa@|C[vAo@dA{AlBwAtAaBv@kA\\uBd@kBJiCQuBUoBq@mBoAyB{BgcBaoDmgB}yDsHgPsfDakHc_AwqBoh@ehA{`AiwBspAeoCiJaSiPc^ad@saA}~A_gDgs@gvAclAy_C_t@ytA{|@ccBwwCoeF{aCsyDi~FgkJ_n@}aAquFe~IciB_wCwLiRgjEy|Gu}@y{AgfAgcBiu@skAiyEiyHmlCugEyvIifNiqDw{FcwAw|B_x@mpAklB{uCmUma@gXae@sgAqcBq_@sl@qf@iv@oUoa@odAgcBsD}FubAw~Ake@us@{a@{k@md@}j@ib@uh@aa@qb@ak@gj@uM{Ko{@}s@y[gZyPcM_d@o[io@ac@qlA}q@mWcNeWiMmZgNiYcM}UaK_]yMahCe_AoeA__@__Bql@iTeHwRoHiu@qWeLuEcgBao@q{Aui@a^oMgiBwp@geHaeCkvBou@oMyEyJ_D_QkGmcAqa@qlAyXcz@uRqaAgOws@sIuc@aEqX{Bev@kDqyB}FstD}McaAeDobCiJk[yA{lAsCopAcEoEKuq@iBojDqLmQy@{y@aCe|AsEg[mAc\\sAcf@eBwzBiH_j@eBii@aCuOa@o~B}G}p@}CefAiEadByDe}BiGwlD_Lkk@qBcQo@ctAgF{nCcJ}q@kAcm@mBylFwPcr@mBiP]ecA`A}~@pDeYfBwPdAi\\`DcQfCkSfCqd@bEo^vGyYjFwc@rI}f@xJqa@zGgh@lJam@fLad@zHoh@vJeb@zHgd@jIq}@tO{e@fJsq@rMcu@bNwq@pLap@fLmZrF}KdBqt@nNw_@jGyc@`Iyc@fIqn@~KaP|Cc_@`G{MtCmWnEoQnDiPpCgWpFqg@hJabAlR{~A`Yme@pIyh@jJgd@vHsh@fKgu@hMgk@`JuUpCgn@vFaY`Ce^~Bma@pBu`@nA}V^mW`@sXBwZa@mSA}RSg]yBgZwBqZcBcTcBgg@yDgb@cFmq@eI}c@oF}h@sGkdC{Zg~@mLup@}IaK_AmnAaQgkBeUs{AiRwqAcPakAoO{PqB{IqAsZ}D{m@gIsmHk~@m~A{RacA{S{r@iMsD}A_EeCuAuAcA_CqAgC_D_IgCiGqCiEmBmA}Ba@_EUuDT_H|@cUnFkL~@}MO{KeB_FsAgFeB}EkCaNgJqK{H{AcAeDiBoDiA{Ca@{CG}CFkEv@gFfAkCr@iFpBwEpAeE`@{Ce@_S_DsDcAgEmBcE_D{CsDqBeDgCiGuWefAuA}IiEgc@gBoO_BcKaCyMeEqO{Xq}@oUuu@qNic@s@yEq@gGUqFKyCg@{EeAoE_BqCcBkBcC_CqBmAmGiD_EkD_CmCcBqCo`@q|@{BcHi@oAmAgC_GyR}M_e@wIoUaEwKeFwNcDaIgBqF|EkI~fAidA~|@uz@zcAwaAldAkbApcAoaAbaAy~@jQkOpN}LdZyQtMyErr@sIrj@cIhSsC~_A}Jb~@mGrGs@tPmBzMdPzI~LvIfOfRna@hHfP",
-      endereco_inicio: "sorocaba",
-      endereco_fim: "itu",
-      coordenada_inicio: "-23.5058,-47.45597",
-      coordenada_fim: "-23.27946,-47.30856",
-      distancia: { texto: "37 km", valor: 37 },
-      duracao: { texto: "00:24:30", valor: 1471 },
-      id_transacao: 148339937,
-      roteador_selecionado: "qualp"
-    }
-
-    setDebugInfo(prev => ({
-      ...prev,
-      qualpResponse: exampleResponse
-    }))
-  }
 
   const handleCalculate = async () => {
     if (!formData.origin.trim() || !formData.destination.trim()) {
@@ -207,10 +220,13 @@ export default function CalcularRotasPage() {
       const data = await response.json()
 
       // Store response for debugging
+      console.log('Cache info from API:', data.debug?.cache)
       setDebugInfo(prev => ({
         ...prev,
         response: data,
         error: undefined,
+        // Incluir informações do cache
+        cache: data.debug?.cache || null,
         // Também incluir info da API QUALP se disponível
         ...(data.debug?.qualp && {
           qualpPayload: data.debug.qualp.requestPayload,
@@ -281,6 +297,38 @@ export default function CalcularRotasPage() {
     return `${remainingMinutes}min`
   }
 
+  const openRouteImageModal = (imageUrl: string) => {
+    setRouteImageUrl(imageUrl)
+    setImageLoadError(false)
+    setShowRouteImageModal(true)
+  }
+
+  const closeRouteImageModal = () => {
+    setShowRouteImageModal(false)
+    setRouteImageUrl(null)
+    setImageLoadError(false)
+  }
+
+  // Fechar modal com tecla Escape
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showRouteImageModal) {
+        closeRouteImageModal()
+      }
+    }
+
+    if (showRouteImageModal) {
+      document.addEventListener('keydown', handleEscape)
+      // Prevenir scroll do body quando modal estiver aberto
+      document.body.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'unset'
+    }
+  }, [showRouteImageModal])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -319,7 +367,7 @@ export default function CalcularRotasPage() {
     >
       <div className="max-w-none mx-0 py-6 px-4 sm:px-6 lg:px-8">
 
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Formulário de Cálculo */}
           <div className="lg:col-span-1">
             <div className="bg-white shadow rounded-lg p-6">
@@ -391,29 +439,41 @@ export default function CalcularRotasPage() {
                   ))}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tipo de Veículo
-                  </label>
-                  <select
-                    value={formData.vehicleType}
-                    onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+
+                {/* Botão Calcular Rotas */}
+                <div className="space-y-3">
+                  <button
+                    onClick={handleCalculate}
+                    disabled={calculating}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    <option value="van">Van</option>
-                    <option value="caminhao_pequeno">Caminhão Pequeno</option>
-                    <option value="caminhao_medio">Caminhão Médio</option>
-                    <option value="caminhao_grande">Caminhão Grande</option>
-                  </select>
+                    {calculating ? 'Calculando...' : 'Calcular Rotas'}
+                  </button>
                 </div>
 
                 {/* Configurações QUALP */}
                 <div className="border-t pt-4">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">
-                    Configurações API Lets
-                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowApiConfigurations(!showApiConfigurations)}
+                    className="w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    <span>Configurações da API</span>
+                    <svg
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        showApiConfigurations ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
 
-                  <div className="space-y-4">
+                  {/* Seção Colapsável - Configurações da API */}
+                  {showApiConfigurations && (
+                    <div className="mt-4 space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
                         Categoria de Veículo
@@ -561,7 +621,49 @@ export default function CalcularRotasPage() {
                         </label>
                       </div>
                     </div>
+                    </div>
+                  )}
+                {/* Botão para mostrar/ocultar opções avançadas */}
+                <div className="border-t pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                      className="w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      <span>Opções Avançadas</span>
+                      <svg
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                          showAdvancedOptions ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
                   </div>
+                </div>
+
+                {/* Seção Colapsável - Opções Avançadas */}
+                {showAdvancedOptions && (
+                  <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+
+                {/* Tipo de Veículo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Tipo de Veículo
+                  </label>
+                  <select
+                    value={formData.vehicleType}
+                    onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  >
+                    <option value="van">Van</option>
+                    <option value="caminhao_pequeno">Caminhão Pequeno</option>
+                    <option value="caminhao_medio">Caminhão Médio</option>
+                    <option value="caminhao_grande">Caminhão Grande</option>
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -592,18 +694,42 @@ export default function CalcularRotasPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    id="historical-data"
-                    type="checkbox"
-                    checked={formData.useHistoricalData}
-                    onChange={(e) => setFormData({...formData, useHistoricalData: e.target.checked})}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="historical-data" className="ml-2 block text-sm text-gray-900">
-                    Usar dados históricos para ajustar cálculo
-                  </label>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      id="historical-data"
+                      type="checkbox"
+                      checked={formData.useHistoricalData}
+                      onChange={(e) => setFormData({...formData, useHistoricalData: e.target.checked})}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="historical-data" className="ml-2 block text-sm text-gray-900">
+                      Usar dados históricos para ajustar cálculo
+                    </label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      id="force-update"
+                      type="checkbox"
+                      checked={formData.forceUpdate}
+                      onChange={(e) => setFormData({...formData, forceUpdate: e.target.checked})}
+                      className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="force-update" className="ml-2 block text-sm text-gray-900">
+                      <span className="flex items-center">
+                        <span className="mr-2">🌐</span>
+                        <span>Fazer consulta direta no Qualp</span>
+                      </span>
+                      <span className="text-xs text-gray-500 block ml-6">
+                        Se desmarcado, usa dados salvos do banco quando disponível
+                      </span>
+                    </label>
+                  </div>
                 </div>
+
+                  </div>
+                )}
 
                 {error && (
                   <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
@@ -611,23 +737,6 @@ export default function CalcularRotasPage() {
                   </div>
                 )}
 
-                <div className="space-y-3">
-                  <button
-                    onClick={handleCalculate}
-                    disabled={calculating}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {calculating ? 'Calculando...' : 'Calcular Rotas'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={loadExampleData}
-                    className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    🗺️ Testar Mapa (Sorocaba → Itu)
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -636,6 +745,58 @@ export default function CalcularRotasPage() {
           <div className="lg:col-span-2">
             {result && (
               <div className="space-y-6">
+                {/* Indicador da fonte dos dados */}
+                <div className="bg-white shadow rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {debugInfo.cache?.fromCache ? (
+                        <>
+                          <div>
+                            <h3 className="text-sm font-medium text-green-800">
+                              Dados do Cache Local
+                            </h3>
+                            <p className="text-xs text-green-600">
+                              {debugInfo.cache?.cacheEntry?.totalConsultas ?
+                                `Consultado ${debugInfo.cache.cacheEntry.totalConsultas} vez(es)` :
+                                'Primeira consulta'
+                              } • Última atualização: {
+                                debugInfo.cache?.cacheEntry?.ultimaConsulta ?
+                                  new Date(debugInfo.cache.cacheEntry.ultimaConsulta).toLocaleString('pt-BR') :
+                                  'Agora'
+                              }
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <h3 className="text-sm font-medium text-blue-800">
+                              Dados Atualizados da API Qualp
+                            </h3>
+                            <p className="text-xs text-blue-600">
+                              Consulta realizada em tempo real • {new Date().toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {debugInfo.cache?.fromCache && (
+                      <div className="text-right">
+                        <button
+                          onClick={() => {
+                            setFormData({...formData, forceUpdate: true})
+                            handleCalculate()
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          🔄 Atualizar do Qualp
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Cards das 3 melhores rotas */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                   {routeOptions.map((option) => (
@@ -657,18 +818,7 @@ export default function CalcularRotasPage() {
                           </div>
                         )}
                         <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
-                              option.key === 'cheapest' ? 'bg-green-500' :
-                              option.key === 'fastest' ? 'bg-blue-500' : 'bg-purple-500'
-                            }`}>
-                              <span className="text-white text-sm">
-                                {option.key === 'cheapest' ? '💰' :
-                                 option.key === 'fastest' ? '⚡' : '⚖️'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="ml-5 w-0 flex-1">
+                          <div className="ml-0 w-0 flex-1">
                             <dl>
                               <dt className="text-sm font-medium text-gray-500 truncate">
                                 {option.tag}
@@ -746,6 +896,25 @@ export default function CalcularRotasPage() {
                             <span className="text-gray-900">{selectedRoute?.vehicleSpecs.tipo}</span>
                           </div>
                         </div>
+
+                        {/* Botão para ver imagem da rota */}
+                        {selectedRoute?.route.routeImageUrl ? (
+                          <div className="mt-4">
+                            <button
+                              onClick={() => openRouteImageModal(selectedRoute.route.routeImageUrl!)}
+                              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg border border-blue-200 transition-colors flex items-center justify-center space-x-2"
+                            >
+                              <span>🗺️</span>
+                              <span>Ver Imagem da Rota</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-4">
+                            <div className="w-full bg-gray-50 text-gray-500 px-4 py-2 rounded-lg border border-gray-200 text-center text-sm">
+                              {selectedRoute?.route ? 'Imagem da rota não disponível para esta consulta' : 'Nenhuma rota selecionada'}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Breakdown de Custos */}
@@ -837,35 +1006,7 @@ export default function CalcularRotasPage() {
                       </div>
                     </div>
 
-                    {/* Dados da Tabela de Frete QUALP */}
-                    {selectedRoute?.route.freightTableData && (
-                      <div className="mt-6">
-                        <h4 className="text-sm font-medium text-gray-900 mb-3">
-                          Dados da Tabela de Frete ANTT
-                        </h4>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Categoria:</span>
-                              <span className="text-gray-900 ml-2">{formData.freightCategory}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Tipo de Carga:</span>
-                              <span className="text-gray-900 ml-2">{formData.cargoType}</span>
-                            </div>
-                          </div>
-
-                          {selectedRoute?.route.freightTableData && 'antt_resolucao' in selectedRoute.route.freightTableData && (
-                            <div className="mt-3 text-xs text-gray-600">
-                              <strong>Resolução ANTT:</strong> {String((selectedRoute.route.freightTableData.antt_resolucao as any)?.nome || '')}<br/>
-                              <strong>Data:</strong> {String((selectedRoute.route.freightTableData.antt_resolucao as any)?.data || '')}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Tabela de Pedágios */}
+                    {/* 1. Tabela de Pedágios */}
                     {selectedRoute?.route.tollStations && selectedRoute.route.tollStations.length > 0 && (
                       <div className="mt-6">
                         <h4 className="text-sm font-medium text-gray-900 mb-3">
@@ -923,6 +1064,244 @@ export default function CalcularRotasPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* 2. Postos de Pesagem (Balanças) */}
+                    {selectedRoute?.route.weighStations && selectedRoute.route.weighStations.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">
+                          Postos de Pesagem na Rota
+                        </h4>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Nome
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Localização
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Rodovia
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Sentido
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Concessionária
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {selectedRoute.route.weighStations.map((weighStation, index) => (
+                                  <tr key={weighStation.id} className="hover:bg-gray-50">
+                                    <td className="px-3 py-2 text-sm text-gray-900">
+                                      {weighStation.name}
+                                    </td>
+                                    <td className="px-3 py-2 text-sm text-gray-600">
+                                      {weighStation.location.address}
+                                    </td>
+                                    <td className="px-3 py-2 text-sm text-gray-600">
+                                      {weighStation.roadway} KM {weighStation.km}
+                                    </td>
+                                    <td className="px-3 py-2 text-sm text-gray-600">
+                                      {weighStation.direction}
+                                    </td>
+                                    <td className="px-3 py-2 text-sm text-gray-600">
+                                      {weighStation.concessionaire}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot className="bg-gray-100">
+                                <tr>
+                                  <td colSpan={5} className="px-3 py-2 text-sm font-medium text-gray-900">
+                                    Total de Postos de Pesagem: {selectedRoute.route.weighStations.length}
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Dados da Tabela de Frete ANTT */}
+                    {selectedRoute?.route.freightTableData && (
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">
+                          Dados da Tabela de Frete ANTT
+                        </h4>
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+
+                          {/* Controles de Navegação */}
+                          <div className="bg-white p-4 rounded-lg border">
+                            <h5 className="text-sm font-medium text-gray-900 mb-3">
+                              Explorar Tabela de Frete
+                            </h5>
+                            <div className="grid grid-cols-2 gap-4">
+                              {/* Seletor de Categoria */}
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Categoria ANTT:
+                                </label>
+                                <select
+                                  value={selectedFreightCategory}
+                                  onChange={(e) => setSelectedFreightCategory(e.target.value)}
+                                  className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  {(() => {
+                                    const dados = (selectedRoute.route.freightTableData as any)?.dados
+                                    if (!dados) return <option value="A">A</option>
+
+                                    return Object.keys(dados).map(categoria => (
+                                      <option key={categoria} value={categoria}>
+                                        Categoria {categoria}
+                                      </option>
+                                    ))
+                                  })()}
+                                </select>
+                              </div>
+
+                              {/* Seletor de Eixos */}
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Número de Eixos:
+                                </label>
+                                <select
+                                  value={selectedFreightAxis}
+                                  onChange={(e) => setSelectedFreightAxis(e.target.value)}
+                                  className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  {(() => {
+                                    const dados = (selectedRoute.route.freightTableData as any)?.dados
+                                    if (!dados || !dados[selectedFreightCategory]) return <option value="2">2 eixos</option>
+
+                                    return Object.keys(dados[selectedFreightCategory]).map(eixos => (
+                                      <option key={eixos} value={eixos}>
+                                        {eixos} eixo{eixos !== '1' ? 's' : ''}
+                                      </option>
+                                    ))
+                                  })()}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Indicador da Consulta Atual */}
+                            <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                              <p className="text-xs text-blue-700">
+                                <span className="font-medium">Consulta atual:</span> Categoria {formData.freightCategory} • {formData.cargoType.replace(/_/g, ' ')}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Tabela de Valores */}
+                          {selectedRoute?.route.freightTableData && 'dados' in selectedRoute.route.freightTableData && (
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-900 mb-2">
+                                Valores para Categoria {selectedFreightCategory} - {selectedFreightAxis} eixo{selectedFreightAxis !== '1' ? 's' : ''}
+                              </h5>
+                              <div className="bg-white rounded-lg border overflow-hidden">
+                                {(() => {
+                                  const dados = (selectedRoute.route.freightTableData as any).dados
+
+                                  if (!dados || !dados[selectedFreightCategory] || !dados[selectedFreightCategory][selectedFreightAxis]) {
+                                    return (
+                                      <div className="p-4 text-center text-gray-500">
+                                        <p className="text-sm">Dados não disponíveis para esta combinação</p>
+                                        <p className="text-xs">Categoria {selectedFreightCategory} • {selectedFreightAxis} eixo{selectedFreightAxis !== '1' ? 's' : ''}</p>
+                                      </div>
+                                    )
+                                  }
+
+                                  const valores = dados[selectedFreightCategory][selectedFreightAxis]
+                                  const tiposCarga = Object.keys(valores).filter(tipo => valores[tipo] > 0)
+
+                                  if (tiposCarga.length === 0) {
+                                    return (
+                                      <div className="p-4 text-center text-gray-500">
+                                        <p className="text-sm">Nenhum valor disponível para esta categoria/eixo</p>
+                                      </div>
+                                    )
+                                  }
+
+                                  return (
+                                    <div className="divide-y divide-gray-200">
+                                      {tiposCarga.map(tipo => (
+                                        <div
+                                          key={tipo}
+                                          className={`p-3 flex justify-between items-center ${
+                                            tipo === formData.cargoType && selectedFreightCategory === formData.freightCategory
+                                              ? 'bg-blue-50 border-l-4 border-blue-400'
+                                              : 'hover:bg-gray-50'
+                                          }`}
+                                        >
+                                          <div className="flex items-center">
+                                            <span className="text-sm text-gray-900 capitalize font-medium">
+                                              {tipo.replace(/_/g, ' ')}
+                                            </span>
+                                            {tipo === formData.cargoType && selectedFreightCategory === formData.freightCategory && (
+                                              <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                                Selecionado
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="text-sm font-bold text-gray-900">
+                                            {formatCurrency(valores[tipo])}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Resolução ANTT */}
+                          {selectedRoute?.route.freightTableData && 'antt_resolucao' in selectedRoute.route.freightTableData && (
+                            <div className="border-t border-gray-200 pt-4">
+                              <h5 className="text-sm font-medium text-gray-900 mb-2">
+                                Legislação
+                              </h5>
+                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700 font-medium">Resolução:</span>
+                                    <span className="text-blue-900">
+                                      {String((selectedRoute.route.freightTableData.antt_resolucao as any)?.nome || '')}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-700 font-medium">Data:</span>
+                                    <span className="text-blue-900">
+                                      {String((selectedRoute.route.freightTableData.antt_resolucao as any)?.data || '')}
+                                    </span>
+                                  </div>
+                                  {(selectedRoute.route.freightTableData.antt_resolucao as any)?.url && (
+                                    <div className="mt-3">
+                                      <a
+                                        href={String((selectedRoute.route.freightTableData.antt_resolucao as any).url)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 underline"
+                                      >
+                                        <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        Ver Resolução Completa
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                   </div>
                 )}
 
@@ -991,29 +1370,6 @@ export default function CalcularRotasPage() {
             )}
           </div>
 
-          {/* Mapa da Rota - Expandido */}
-          {result && selectedRoute && (
-            <div className="lg:col-span-1">
-              <div className="bg-white shadow rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Visualização da Rota - {selectedRoute?.tag}
-                </h3>
-
-                <GoogleRouteMap
-                  polyline={selectedRoute?.route.geometry}
-                  originAddress={result.metadata.origin}
-                  destinationAddress={result.metadata.destination}
-                  originCoords={selectedRoute?.route.points?.[0] ? [selectedRoute?.route.points[0].latitude, selectedRoute?.route.points[0].longitude] : undefined}
-                  destCoords={selectedRoute?.route.points?.[1] ? [selectedRoute?.route.points[1].latitude, selectedRoute?.route.points[1].longitude] : undefined}
-                  className="h-[600px] w-full rounded-lg"
-                />
-
-                <div className="mt-4 text-xs text-gray-500">
-                  Mapa fornecido por Google Maps<br/> Dados da rota: API Lets
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Debug Panel - Movido para baixo e em linha separada */}
@@ -1030,55 +1386,129 @@ export default function CalcularRotasPage() {
               qualpUrl={debugInfo.qualpUrl}
             />
 
-            {/* Mapa de Debug da Polilinha QUALP */}
-            {debugInfo.qualpResponse !== null && debugInfo.qualpResponse !== undefined && (
+            {/* Mapa da Rota Principal - Expandido */}
+            {result && selectedRoute && (
               <div className="bg-white shadow rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <span className="mr-2">🗺️</span>
-                  Visualização da Polilinha API Lets
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Visualização da Rota - {selectedRoute?.tag}
                 </h3>
 
                 <GoogleRouteMap
-                  polyline={(debugInfo.qualpResponse as any)?.polilinha_codificada}
-                  originAddress={(debugInfo.qualpResponse as any)?.endereco_inicio}
-                  destinationAddress={(debugInfo.qualpResponse as any)?.endereco_fim}
-                  originCoords={
-                    (debugInfo.qualpResponse as any)?.coordenada_inicio
-                      ? (debugInfo.qualpResponse as any).coordenada_inicio.split(',').map((coord: string) => parseFloat(coord.trim())) as [number, number]
-                      : undefined
-                  }
-                  destCoords={
-                    (debugInfo.qualpResponse as any)?.coordenada_fim
-                      ? (debugInfo.qualpResponse as any).coordenada_fim.split(',').map((coord: string) => parseFloat(coord.trim())) as [number, number]
-                      : undefined
-                  }
+                  polyline={selectedRoute?.route.geometry}
+                  originAddress={result.metadata.origin}
+                  destinationAddress={result.metadata.destination}
+                  originCoords={selectedRoute?.route.points?.[0] ? [selectedRoute?.route.points[0].latitude, selectedRoute?.route.points[0].longitude] : undefined}
+                  destCoords={selectedRoute?.route.points?.[1] ? [selectedRoute?.route.points[1].latitude, selectedRoute?.route.points[1].longitude] : undefined}
                   className="h-[500px] w-full rounded-lg"
                 />
 
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="text-gray-600">
-                    <strong>Distância:</strong> {(debugInfo.qualpResponse as any)?.distancia?.texto || 'N/A'}
-                  </div>
-                  <div className="text-gray-600">
-                    <strong>Duração:</strong> {(debugInfo.qualpResponse as any)?.duracao?.texto || 'N/A'}
-                  </div>
-                  <div className="text-gray-600">
-                    <strong>ID Transação:</strong> {(debugInfo.qualpResponse as any)?.id_transacao || 'N/A'}
-                  </div>
-                </div>
-
                 <div className="mt-4 text-xs text-gray-500">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <strong>Polilinha:</strong> {(debugInfo.qualpResponse as any)?.polilinha_codificada?.length || 0} caracteres
-                    </div>
-                    <div>
-                      <strong>Roteador:</strong> {(debugInfo.qualpResponse as any)?.roteador_selecionado || 'N/A'}
-                    </div>
-                  </div>
+                  Mapa fornecido por Google Maps<br/> Dados da rota: API Lets
                 </div>
               </div>
             )}
+
+          </div>
+        )}
+
+        {/* Modal da Imagem da Rota */}
+        {showRouteImageModal && routeImageUrl && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50">
+            {/* Overlay - clicking outside closes modal */}
+            <div
+              className="absolute inset-0 bg-black bg-opacity-50"
+              onClick={closeRouteImageModal}
+            />
+
+            {/* Modal Content */}
+            <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Imagem da Rota
+                </h3>
+                <button
+                  onClick={closeRouteImageModal}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100"
+                >
+                  <span className="sr-only">Fechar</span>
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Image Content */}
+              <div className="p-4 max-h-[calc(90vh-120px)] overflow-auto">
+                <div className="text-center">
+
+                  {!imageLoadError ? (
+                    <img
+                      src={routeImageUrl}
+                      alt="Imagem da rota"
+                      className="max-w-full h-auto rounded-lg shadow-lg mx-auto"
+                      onError={(e) => {
+                        setImageLoadError(true)
+                      }}
+                      onLoad={() => {
+                        // Imagem carregada com sucesso
+                      }}
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-6 bg-red-50 border-2 border-dashed border-red-300 rounded-lg">
+                        <div className="text-center">
+                          <svg className="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.684-.833-2.464 0L3.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          <h3 className="mt-2 text-sm font-medium text-red-900">Erro ao carregar imagem</h3>
+                          <p className="mt-1 text-sm text-red-600">
+                            A imagem da rota não pôde ser carregada diretamente.
+                            Isso geralmente é devido a restrições de CORS da API Qualp.
+                          </p>
+                          <p className="mt-2 text-xs text-red-500">
+                            Use o botão "Abrir em Nova Aba" abaixo para ver a imagem diretamente no site da Qualp.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Tentar iframe como alternativa */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <iframe
+                          src={routeImageUrl}
+                          title="Imagem da rota"
+                          className="w-full h-96"
+                          onError={() => {
+                            // Iframe falhou ao carregar
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-center p-4 border-t border-gray-200 bg-gray-50">
+                <a
+                  href={routeImageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                >
+                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Abrir em Nova Aba
+                </a>
+                <button
+                  onClick={closeRouteImageModal}
+                  className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

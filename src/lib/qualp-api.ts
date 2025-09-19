@@ -14,6 +14,7 @@ export interface QualRouteOption {
   points: QualRoutePoint[]
   tollCost?: number // custo de pedágio se aplicável
   freightTableData?: Record<string, unknown> // dados da tabela de frete
+  routeImageUrl?: string // URL da imagem da rota
   tollStations?: Array<{
     name: string
     cost: number
@@ -23,6 +24,18 @@ export interface QualRouteOption {
     roadway?: string
     tariff?: Record<string, number>
   }> // estações de pedágio na rota
+  weighStations?: Array<{
+    id: number
+    name: string
+    location: QualRoutePoint
+    roadway: string
+    km: string
+    direction: string
+    concessionaire: string
+    concessionaireId: number
+    logo: string
+    uf: string
+  }> // postos de pesagem na rota
 }
 
 export interface QualRouteResult {
@@ -76,8 +89,23 @@ export interface QualPApiResponse {
   coordenada_fim: string
   pedagios: unknown[]
   tabela_frete: Record<string, unknown>
-  balancas: unknown[]
+  balancas: Array<{
+    id: number
+    lat: number
+    lng: number
+    nome: string
+    rodovia: string
+    uf: string
+    uf_ibge: number
+    km: string
+    sentido: string
+    concessionaria: string
+    concessionaria_id: number
+    logo: string
+    p_index: number
+  }>
   polilinha_codificada: string
+  rota_imagem?: string
   link_site_qualp: string
   locais: string[]
   id_transacao: number
@@ -217,6 +245,7 @@ class QualPApi {
       // Gerar 3 variações baseadas na resposta real da QUALP
       const routes = this.generateRouteVariations(baseRoute, apiResponse)
 
+
       return {
         routes,
         mostEfficient: routes.find(r => r.id.includes('efficient')) || routes[0],
@@ -240,11 +269,14 @@ class QualPApi {
    * Gera 3 variações de rota baseadas na resposta real da QUALP
    */
   private generateRouteVariations(baseRoute: QualRouteOption, apiResponse: QualPApiResponse): QualRouteOption[] {
+
     // Rota 1: Mais Econômica (baseada nos dados reais da QUALP)
     const cheapestRoute: QualRouteOption = {
       ...baseRoute,
       id: `${baseRoute.id}_cheapest`,
-      efficiency: 'alta'
+      efficiency: 'alta',
+      routeImageUrl: apiResponse.rota_imagem,
+      weighStations: baseRoute.weighStations
     }
 
     // Rota 2: Mais Rápida (simula rota por rodovias, mais rápida mas mais cara)
@@ -255,6 +287,8 @@ class QualPApi {
       distance: Math.round(baseRoute.distance * 1.1 * 10) / 10, // 10% mais distância (rodovias)
       estimatedCost: Math.round(baseRoute.estimatedCost * 1.15 * 100) / 100, // 15% mais caro
       efficiency: 'media',
+      routeImageUrl: apiResponse.rota_imagem,
+      weighStations: baseRoute.weighStations,
       // Usar dados da tabela de frete diferente para veículos mais rápidos
       freightTableData: this.adjustFreightTableForSpeed(apiResponse.tabela_frete, 1.1)
     }
@@ -267,6 +301,8 @@ class QualPApi {
       distance: Math.round(baseRoute.distance * 1.03 * 10) / 10, // 3% mais distância
       estimatedCost: Math.round(baseRoute.estimatedCost * 1.05 * 100) / 100, // 5% mais caro
       efficiency: 'alta',
+      routeImageUrl: apiResponse.rota_imagem,
+      weighStations: baseRoute.weighStations,
       freightTableData: this.adjustFreightTableForSpeed(apiResponse.tabela_frete, 1.03)
     }
 
@@ -376,6 +412,9 @@ class QualPApi {
     // Extrair detalhes dos pedágios
     const tollDetails = this.extractTollDetails(apiResponse)
 
+    // Extrair detalhes das balanças
+    const weighStationDetails = this.extractWeighStationDetails(apiResponse)
+
     // Calcular custo estimado básico
     const estimatedCost = this.calculateEstimatedCost(distanceKm, params)
 
@@ -387,6 +426,7 @@ class QualPApi {
       console.warn('Polilinha foi solicitada mas não foi retornada pela API QUALP')
     }
 
+
     return [{
       id: `qualp_route_${apiResponse.id_transacao}_${routeType}`,
       distance: Math.round(distanceKm * 10) / 10,
@@ -397,7 +437,9 @@ class QualPApi {
       points,
       tollCost: Math.round(tollCost * 100) / 100,
       freightTableData: apiResponse.tabela_frete,
-      tollStations: tollDetails.tollStations
+      routeImageUrl: apiResponse.rota_imagem,
+      tollStations: tollDetails.tollStations,
+      weighStations: weighStationDetails
     }]
   }
 
@@ -466,6 +508,42 @@ class QualPApi {
     }
   }
 
+  /**
+   * Extrai informações detalhadas sobre balanças (postos de pesagem) da resposta QUALP
+   */
+  extractWeighStationDetails(apiResponse: QualPApiResponse): Array<{
+    id: number
+    name: string
+    location: QualRoutePoint
+    roadway: string
+    km: string
+    direction: string
+    concessionaire: string
+    concessionaireId: number
+    logo: string
+    uf: string
+  }> {
+    if (!apiResponse.balancas || !Array.isArray(apiResponse.balancas)) {
+      return []
+    }
+
+    return apiResponse.balancas.map((weighStation) => ({
+      id: weighStation.id,
+      name: weighStation.nome,
+      location: {
+        latitude: weighStation.lat,
+        longitude: weighStation.lng,
+        address: `${weighStation.rodovia} KM ${weighStation.km}, ${weighStation.uf}`
+      },
+      roadway: weighStation.rodovia,
+      km: weighStation.km,
+      direction: weighStation.sentido,
+      concessionaire: weighStation.concessionaria,
+      concessionaireId: weighStation.concessionaria_id,
+      logo: weighStation.logo,
+      uf: weighStation.uf
+    }))
+  }
 
   /**
    * Obtém dados da tabela de frete da resposta QUALP

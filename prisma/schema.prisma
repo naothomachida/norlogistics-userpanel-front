@@ -361,3 +361,33 @@ model ManutencaoVeiculo {
 
   @@map("manutencoes_veiculos")
 }
+
+// Cache de Rotas da API Qualp
+model RouteCache {
+  id              String   @id @default(uuid())
+  payloadHash     String   @unique  // Hash do payload da requisição
+  origem          String
+  destino         String
+  pontoParadas    String?  // JSON string dos waypoints
+  tipoVeiculo     String
+  eixosVeiculo    String?
+  categoriaFrete  String?
+  tipoCarga       String?
+  mostrarPedagios Boolean  @default(true)
+  mostrarTabela   Boolean  @default(true)
+  mostrarRota     Boolean  @default(true)
+
+  // Resposta da API Qualp
+  qualpResponse   String   // JSON string da resposta completa
+
+  // Metadados
+  primeiraConsulta DateTime @default(now())
+  ultimaConsulta   DateTime @default(now())
+  totalConsultas   Int      @default(1)
+  forcarAtualizacao Boolean @default(false)  // Flag para forçar nova consulta à API
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("route_cache")
+}

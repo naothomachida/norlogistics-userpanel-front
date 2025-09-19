@@ -51,66 +51,87 @@ export default function GoogleRouteMap({
 
   // Handle polyline and bounds in useEffect
   useEffect(() => {
-    if (!mapRef.current) return
+    // Add a small delay to ensure the map is fully ready
+    const updateMap = () => {
+      if (!mapRef.current) return
 
-    console.log('Processing polyline:', { polyline, originCoords, destCoords })
+      console.log('Processing polyline:', { polyline, originCoords, destCoords })
 
-    // If we have polyline, decode and fit bounds
-    if (polyline) {
-      try {
-        console.log('Decoding polyline with Mapbox library...')
-        const decoded = polylineDecoder.decode(polyline)
-        console.log(`Polyline decoded: ${decoded.length} points`)
-        console.log('First 3 points:', decoded.slice(0, 3))
-        console.log('First point detailed:', decoded[0])
-        console.log('Last point detailed:', decoded[decoded.length - 1])
+      // If we have polyline, decode and fit bounds
+      if (polyline) {
+        try {
+          console.log('Decoding polyline with Mapbox library...')
+          const decoded = polylineDecoder.decode(polyline)
+          console.log(`Polyline decoded: ${decoded.length} points`)
 
-        // Fix coordinates - seems like they are 10x larger than expected
-        const googleLatLngs = decoded.map(([lat, lng]) => ({
-          lat: lat / 10,
-          lng: lng / 10
-        }))
-        console.log('Fixed first point:', googleLatLngs[0])
-        console.log('Fixed last point:', googleLatLngs[googleLatLngs.length - 1])
-        setDecodedPath(googleLatLngs)
+          // Fix coordinates - seems like they are 10x larger than expected
+          const googleLatLngs = decoded.map(([lat, lng]) => ({
+            lat: lat / 10,
+            lng: lng / 10
+          }))
+          console.log('Fixed first point:', googleLatLngs[0])
+          console.log('Fixed last point:', googleLatLngs[googleLatLngs.length - 1])
+          setDecodedPath(googleLatLngs)
 
-        if (googleLatLngs.length > 0) {
-          // Get first and last points to create simple bounds
-          const firstPoint = googleLatLngs[0]
-          const lastPoint = googleLatLngs[googleLatLngs.length - 1]
+          if (googleLatLngs.length > 0) {
+            // Use fitBounds for better automatic zoom and center
+            const bounds = new google.maps.LatLngBounds()
 
-          console.log('Setting center and zoom based on route endpoints')
-          console.log('First point:', firstPoint)
-          console.log('Last point:', lastPoint)
-          console.log('Total polyline points:', googleLatLngs.length)
+            // Add all points to bounds (sample every 10th point for performance)
+            const samplePoints = googleLatLngs.filter((_, index) => index % 10 === 0 || index === 0 || index === googleLatLngs.length - 1)
+            samplePoints.forEach(point => {
+              bounds.extend(new google.maps.LatLng(point.lat, point.lng))
+            })
 
-          // Calculate center point
-          const centerLat = (firstPoint.lat + lastPoint.lat) / 2
-          const centerLng = (firstPoint.lng + lastPoint.lng) / 2
+            console.log('Fitting bounds to route with', samplePoints.length, 'sample points')
 
-          console.log('Center calculated:', { lat: centerLat, lng: centerLng })
+            // Fit bounds with padding
+            mapRef.current.fitBounds(bounds, {
+              top: 50,
+              right: 50,
+              bottom: 50,
+              left: 50
+            })
 
-          // Set center and zoom
-          mapRef.current.setCenter({ lat: centerLat, lng: centerLng })
-          mapRef.current.setZoom(9)
+            // Set a minimum zoom level after fitBounds
+            setTimeout(() => {
+              if (mapRef.current) {
+                const currentZoom = mapRef.current.getZoom()
+                if (currentZoom !== undefined && currentZoom > 13) {
+                  mapRef.current.setZoom(13)
+                } else if (currentZoom !== undefined && currentZoom < 9) {
+                  mapRef.current.setZoom(9)
+                }
+              }
+            }, 100)
 
-          console.log('Map centered and zoomed to level 12')
+            console.log('Map bounds fitted to route')
+          }
+        } catch (error) {
+          console.error('Error decoding polyline:', error)
         }
-      } catch (error) {
-        console.error('Error decoding polyline:', error)
+      } else if (originCoords && destCoords) {
+        console.log('Setting center and zoom for markers')
+
+        // Calculate center point between origin and destination
+        const centerLat = (originCoords[0] + destCoords[0]) / 2
+        const centerLng = (originCoords[1] + destCoords[1]) / 2
+
+        // Set center and zoom for markers
+        mapRef.current.setCenter({ lat: centerLat, lng: centerLng })
+        mapRef.current.setZoom(11)
+
+        console.log('Markers map centered and zoomed to level 11')
       }
-    } else if (originCoords && destCoords) {
-      console.log('Setting center and zoom for markers')
+    }
 
-      // Calculate center point between origin and destination
-      const centerLat = (originCoords[0] + destCoords[0]) / 2
-      const centerLng = (originCoords[1] + destCoords[1]) / 2
+    // Try immediately first
+    updateMap()
 
-      // Set center and zoom for markers
-      mapRef.current.setCenter({ lat: centerLat, lng: centerLng })
-      mapRef.current.setZoom(12)
-
-      console.log('Markers map centered and zoomed to level 12')
+    // If map reference isn't ready, try again in a moment
+    if (!mapRef.current) {
+      const timeout = setTimeout(updateMap, 200)
+      return () => clearTimeout(timeout)
     }
   }, [polyline, originCoords, destCoords])
 
@@ -124,7 +145,7 @@ export default function GoogleRouteMap({
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           center={defaultCenter}
-          zoom={4}
+          zoom={9}
           onLoad={onMapLoad}
           options={mapOptions}
         >

@@ -47,7 +47,7 @@ export default function ApiDebugPanel({
   }
 
   return (
-    <div className="bg-gray-900 rounded-lg shadow-lg border border-gray-700">
+    <div className="bg-gray-900 rounded-lg shadow-lg border border-gray-700 max-w-full overflow-hidden">
       <div
         className="px-4 py-3 bg-gray-800 rounded-t-lg cursor-pointer flex items-center justify-between"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -168,7 +168,7 @@ export default function ApiDebugPanel({
           </div>
 
           {/* Content */}
-          <div className="bg-black rounded-lg p-4 max-h-96 overflow-auto">
+          <div className="bg-black rounded-lg p-4 max-h-96 max-w-full overflow-auto">
             {error && (
               <div className="text-red-400 font-mono text-sm mb-4 p-3 bg-red-900/20 rounded border border-red-800">
                 <div className="font-bold mb-2">❌ Error:</div>
@@ -187,7 +187,7 @@ export default function ApiDebugPanel({
                     📋 Copy
                   </button>
                 </div>
-                <pre className="text-green-400 text-xs whitespace-pre-wrap font-mono">
+                <pre className="text-green-400 text-xs whitespace-nowrap font-mono overflow-x-auto">
                   {formatJson(payload)}
                 </pre>
               </div>
@@ -204,7 +204,7 @@ export default function ApiDebugPanel({
                     📋 Copy
                   </button>
                 </div>
-                <pre className="text-blue-400 text-xs whitespace-pre-wrap font-mono">
+                <pre className="text-blue-400 text-xs whitespace-nowrap font-mono overflow-x-auto">
                   {formatJson(response)}
                 </pre>
               </div>
@@ -252,7 +252,7 @@ export default function ApiDebugPanel({
                     📋 Copy
                   </button>
                 </div>
-                <pre className="text-orange-400 text-xs whitespace-pre-wrap font-mono">
+                <pre className="text-orange-400 text-xs whitespace-nowrap font-mono overflow-x-auto">
                   {formatJson(qualpPayload)}
                 </pre>
               </div>
@@ -269,7 +269,7 @@ export default function ApiDebugPanel({
                     📋 Copy
                   </button>
                 </div>
-                <pre className="text-orange-400 text-xs whitespace-pre-wrap font-mono">
+                <pre className="text-orange-400 text-xs whitespace-nowrap font-mono overflow-x-auto">
                   {formatJson(qualpResponse)}
                 </pre>
               </div>

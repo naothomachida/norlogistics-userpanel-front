@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { calculateBestRoutes } from '@/lib/qualp-api'
+import { calculateBestRoutes, QualRouteOption } from '@/lib/qualp-api'
 import { routeCostCalculator, defaultVehicleSpecs } from '@/lib/route-cost-calculator'
+import { routeCacheManager } from '@/lib/route-cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +15,8 @@ export async function POST(request: NextRequest) {
       profitMargin = 20,
       useHistoricalData = true,
       freightCategory = 'A',
-      cargoType = 'geral'
+      cargoType = 'geral',
+      forceUpdate = false  // Nova flag para forçar atualização
     } = body
 
     if (!origin || !destination) {
@@ -27,25 +29,63 @@ export async function POST(request: NextRequest) {
     // Atualizar preço do combustível
     routeCostCalculator.updateFuelPrice(fuelPrice)
 
-    // Calcular rotas usando a API Qualp com configurações completas
-    const routeResults = await calculateBestRoutes(origin, destination, {
+    // Parâmetros para o cache
+    const cacheParams = {
+      origin,
+      destination,
       waypoints,
       vehicleType: body.vehicleType || 'truck',
       vehicleAxis: body.vehicleAxis || 'all',
+      freightCategory: freightCategory,
+      cargoType: cargoType,
       topSpeed: body.topSpeed || null,
-      fuelPrice,
       fuelConsumption: body.fuelConsumption ? parseFloat(body.fuelConsumption) : undefined,
-      costPerKm: 2.8,
       showTolls: body.showTolls ?? true,
       showFreightTable: body.showFreightTable ?? true,
-      showPolyline: body.showPolyline ?? true
-    })
+      showPolyline: body.showPolyline ?? true,
+      forceUpdate: forceUpdate
+    }
+
+    let routeResults
+    let fromCache = false
+
+    // Tentar buscar no cache primeiro
+    const cachedEntry = await routeCacheManager.findCacheEntry(cacheParams)
+
+    if (cachedEntry) {
+      // Usar dados do cache
+      routeResults = JSON.parse(cachedEntry.qualpResponse)
+      fromCache = true
+
+      console.log(`🗃️ Usando dados do cache para rota ${origin} → ${destination}`)
+    } else {
+      // Fazer nova consulta à API Qualp
+      console.log(`🌐 Consultando API Qualp para rota ${origin} → ${destination}`)
+
+      routeResults = await calculateBestRoutes(origin, destination, {
+        waypoints,
+        vehicleType: body.vehicleType || 'truck',
+        vehicleAxis: body.vehicleAxis || 'all',
+        topSpeed: body.topSpeed || null,
+        fuelPrice,
+        fuelConsumption: body.fuelConsumption ? parseFloat(body.fuelConsumption) : undefined,
+        costPerKm: 2.8,
+        showTolls: body.showTolls ?? true,
+        showFreightTable: body.showFreightTable ?? true,
+        showPolyline: body.showPolyline ?? true
+      })
+
+      // Salvar no cache (async, não bloquear resposta)
+      routeCacheManager.saveCacheEntry(cacheParams, routeResults).catch(error => {
+        console.error('Erro ao salvar no cache:', error)
+      })
+    }
 
     // Obter especificações do veículo
     const vehicleSpecs = defaultVehicleSpecs[vehicleType] || defaultVehicleSpecs.caminhao_medio
 
     // Calcular custos para cada rota usando dados reais do QUALP
-    const routeCostings = routeResults.routes.map(route => {
+    const routeCostings = routeResults.routes.map((route: QualRouteOption) => {
       let costing = routeCostCalculator.calculateRouteCost(
         route,
         vehicleSpecs,
@@ -131,6 +171,15 @@ export async function POST(request: NextRequest) {
           showTolls: body.showTolls ?? true,
           showFreightTable: body.showFreightTable ?? true,
           showPolyline: body.showPolyline ?? true
+        },
+        cache: {
+          fromCache,
+          cacheEntry: fromCache ? {
+            id: cachedEntry?.id,
+            totalConsultas: cachedEntry?.totalConsultas,
+            primeiraConsulta: cachedEntry?.primeiraConsulta,
+            ultimaConsulta: cachedEntry?.ultimaConsulta
+          } : null
         }
       }
     }
