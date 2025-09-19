@@ -145,25 +145,25 @@ class QualPApi {
         "show": {
           "tolls": params.showTolls ?? true,
           "freight_table": params.showFreightTable ?? true,
-          "maneuvers": false,
+          "maneuvers": "full",
           "truck_scales": true,
-          "static_image": false,
+          "static_image": true,
           "link_to_qualp": true,
           "private_places": false,
           "polyline": params.showPolyline ?? true,
           "simplified_polyline": false,
-          "ufs": false,
-          "fuel_consumption": false,
-          "link_to_qualp_report": false,
-          "segments_information": false
+          "ufs": true,
+          "fuel_consumption": true,
+          "link_to_qualp_report": true,
+          "segments_information": true
         },
-        "format": "JSON",
+        "format": "json",
         "exception_key": ""
       }
 
       console.log('Enviando para QUALP API:', JSON.stringify(requestData, null, 2))
 
-      // Fazer requisição conforme documentação QUALP v4
+      // Fazer requisição conforme exemplo funcional
       const response = await fetch(`${this.baseUrl}/rotas/v4`, {
         method: 'POST',
         headers: {
@@ -172,9 +172,7 @@ class QualPApi {
           'Access-Token': this.apiKey
         },
         body: JSON.stringify({
-          params: {
-            json: JSON.stringify(requestData)
-          }
+          params: { json: JSON.stringify(requestData) }
         })
       })
 
