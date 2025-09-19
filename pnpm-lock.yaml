@@ -12,7 +12,7 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       '@prisma/client':
-        specifier: ^6.16.1
+        specifier: 6.16.2
         version: 6.16.2(prisma@6.16.2(typescript@5.8.3))(typescript@5.8.3)
       '@radix-ui/react-slot':
         specifier: ^1.2.3
@@ -59,9 +59,6 @@ importers:
       next:
         specifier: 15.5.3
         version: 15.5.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      prisma:
-        specifier: ^6.16.1
-        version: 6.16.2(typescript@5.8.3)
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -111,6 +108,9 @@ importers:
       eslint-config-next:
         specifier: 15.5.3
         version: 15.5.3(eslint@9.26.0(jiti@2.5.1))(typescript@5.8.3)
+      prisma:
+        specifier: 6.16.2
+        version: 6.16.2(typescript@5.8.3)
       tailwindcss:
         specifier: ^4
         version: 4.1.13
