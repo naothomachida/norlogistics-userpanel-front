@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { Layout } from '@/components/layout'
 import { SolicitacaoCard } from '@/components/business/solicitacao-card'
 import { Badge } from '@/components/ui/badge'
 import { APP_TEXT } from '@/lib/text-constants'
@@ -64,31 +65,35 @@ export default function MinhasSolicitacoesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Carregando suas solicitações...</p>
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Carregando suas solicitações...</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600">{error}</p>
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <p className="text-red-600">{error}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
@@ -106,18 +111,12 @@ export default function MinhasSolicitacoesPage() {
   const sortedStatuses = statusOrder.filter(status => groupedSolicitacoes[status]?.length > 0)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <Package className="w-8 h-8 text-purple-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Minhas Solicitações</h1>
-          </div>
-          <p className="text-gray-600">
-            Acompanhe o status de todas as suas solicitações de coleta
-          </p>
-        </div>
+    <Layout
+      title="Minhas Solicitações"
+      description="Acompanhe o status de todas as suas solicitações de coleta"
+    >
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+        <div className="max-w-7xl mx-auto">
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -187,7 +186,8 @@ export default function MinhasSolicitacoesPage() {
             </p>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </Layout>
   )
 }
