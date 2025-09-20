@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Layout } from '@/components/layout'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setSolicitacao, nextStep, prevStep, clearSolicitacao } from '@/store/slices/solicitacaoSlice'
+import { ChevronDown } from 'lucide-react'
 
 const TIPOS_VEICULO = [
   { value: 'VAN', label: 'Van' },
@@ -26,6 +27,21 @@ export default function SolicitarColetaPage() {
   const [showHoraColeta, setShowHoraColeta] = useState(false)
   const [showHoraEntrega, setShowHoraEntrega] = useState(false)
   const [showPontoRetorno, setShowPontoRetorno] = useState(false)
+
+  // Estados para controlar expansão das etapas no desktop
+  const [expandedSteps, setExpandedSteps] = useState({
+    1: true,
+    2: true,
+    3: true,
+    4: true
+  })
+
+  const toggleStep = (step: number) => {
+    setExpandedSteps(prev => ({
+      ...prev,
+      [step]: !prev[step]
+    }))
+  }
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -148,6 +164,415 @@ export default function SolicitarColetaPage() {
   if (!isAuthenticated) {
     return <div>Carregando...</div>
   }
+
+  // Função para renderizar etapa 1
+  const renderStep1 = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Cliente (Empresa)</label>
+          <input
+            type="text"
+            value="Cliente não configurado"
+            readOnly
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Nome do Solicitante</label>
+          <input
+            type="text"
+            value={user?.nome || ''}
+            readOnly
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <input
+            type="email"
+            value={user?.email || ''}
+            readOnly
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Telefone</label>
+          <input
+            type="tel"
+            value="Telefone não configurado"
+            readOnly
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Centro de Custo</label>
+          <input
+            type="text"
+            value="Centro de custo não configurado"
+            readOnly
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Gestor Responsável</label>
+          <input
+            type="text"
+            value="Gestor não configurado"
+            readOnly
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  // Função para renderizar etapa 2
+  const renderStep2 = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Ponto de Coleta *</label>
+          <input
+            type="text"
+            value={currentSolicitacao?.pontoColeta || ''}
+            onChange={(e) => handleInputChange('pontoColeta', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Endereço da Coleta *</label>
+          <input
+            type="text"
+            value={currentSolicitacao?.enderecoColeta || ''}
+            onChange={(e) => handleInputChange('enderecoColeta', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Data da Coleta *</label>
+          <input
+            type="date"
+            value={currentSolicitacao?.dataColeta || ''}
+            onChange={(e) => handleInputChange('dataColeta', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          {!showHoraColeta ? (
+            <button
+              type="button"
+              onClick={() => setShowHoraColeta(true)}
+              className="mt-1 inline-flex items-center px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded border-0 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            >
+              + informar horário
+            </button>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Hora da Coleta</label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="time"
+                  value={currentSolicitacao?.horaColeta || ''}
+                  onChange={(e) => handleInputChange('horaColeta', e.target.value)}
+                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHoraColeta(false)
+                    handleInputChange('horaColeta', '')
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Ponto de Entrega *</label>
+          <input
+            type="text"
+            value={currentSolicitacao?.pontoEntrega || ''}
+            onChange={(e) => handleInputChange('pontoEntrega', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Endereço da Entrega *</label>
+          <input
+            type="text"
+            value={currentSolicitacao?.enderecoEntrega || ''}
+            onChange={(e) => handleInputChange('enderecoEntrega', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Data da Entrega *</label>
+          <input
+            type="date"
+            value={currentSolicitacao?.dataEntrega || ''}
+            onChange={(e) => handleInputChange('dataEntrega', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          {!showHoraEntrega ? (
+            <button
+              type="button"
+              onClick={() => setShowHoraEntrega(true)}
+              className="mt-1 inline-flex items-center px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded border-0 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            >
+              + informar horário
+            </button>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Hora da Entrega</label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="time"
+                  value={currentSolicitacao?.horaEntrega || ''}
+                  onChange={(e) => handleInputChange('horaEntrega', e.target.value)}
+                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHoraEntrega(false)
+                    handleInputChange('horaEntrega', '')
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        {!showPontoRetorno ? (
+          <button
+            type="button"
+            onClick={() => setShowPontoRetorno(true)}
+            className="inline-flex items-center px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded border-0 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          >
+            + adicionar ponto de retorno
+          </button>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-gray-900">Ponto de Retorno (Opcional)</h4>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPontoRetorno(false)
+                  handleInputChange('pontoRetorno', '')
+                  handleInputChange('enderecoRetorno', '')
+                }}
+                className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+              >
+                × remover
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Ponto de Retorno</label>
+                <input
+                  type="text"
+                  value={currentSolicitacao?.pontoRetorno || ''}
+                  onChange={(e) => handleInputChange('pontoRetorno', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Endereço do Retorno</label>
+                <input
+                  type="text"
+                  value={currentSolicitacao?.enderecoRetorno || ''}
+                  onChange={(e) => handleInputChange('enderecoRetorno', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  // Função para renderizar etapa 3
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700">Descrição do Material *</label>
+          <textarea
+            value={currentSolicitacao?.descricaoMaterial || ''}
+            onChange={(e) => handleInputChange('descricaoMaterial', e.target.value)}
+            rows={3}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Quantidade de Volumes *</label>
+          <input
+            type="number"
+            value={currentSolicitacao?.quantidadeVolumes || ''}
+            onChange={(e) => handleInputChange('quantidadeVolumes', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Dimensões *</label>
+          <input
+            type="text"
+            placeholder="Ex: 100x50x30 cm"
+            value={currentSolicitacao?.dimensoes || ''}
+            onChange={(e) => handleInputChange('dimensoes', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Tipo de Embalagem *</label>
+          <input
+            type="text"
+            placeholder="Ex: Caixa, Pallet, etc."
+            value={currentSolicitacao?.tipoEmbalagem || ''}
+            onChange={(e) => handleInputChange('tipoEmbalagem', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Peso Total (kg) *</label>
+          <input
+            type="number"
+            step="0.01"
+            value={currentSolicitacao?.pesoTotal || ''}
+            onChange={(e) => handleInputChange('pesoTotal', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Número da DANFE</label>
+          <input
+            type="text"
+            value={currentSolicitacao?.numeroDanfe || ''}
+            onChange={(e) => handleInputChange('numeroDanfe', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Valor da DANFE (R$)</label>
+          <input
+            type="number"
+            step="0.01"
+            value={currentSolicitacao?.valorDanfe || ''}
+            onChange={(e) => handleInputChange('valorDanfe', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Tipo de Veículo Sugerido *</label>
+          <select
+            value={currentSolicitacao?.tipoVeiculo || ''}
+            onChange={(e) => handleInputChange('tipoVeiculo', e.target.value)}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          >
+            <option value="">Selecione o tipo</option>
+            {TIPOS_VEICULO.map((tipo) => (
+              <option key={tipo.value} value={tipo.value}>
+                {tipo.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700">Observações</label>
+          <textarea
+            value={currentSolicitacao?.observacoes || ''}
+            onChange={(e) => handleInputChange('observacoes', e.target.value)}
+            rows={3}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  // Função para renderizar etapa 4
+  const renderStep4 = () => (
+    <div className="space-y-4">
+      <div className="bg-gray-50 p-4 rounded-md">
+        <h4 className="font-medium text-gray-900 mb-2">Resumo da Solicitação</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-black">
+          <div><strong>Cliente:</strong> Cliente não configurado</div>
+          <div><strong>Solicitante:</strong> {user?.nome}</div>
+          <div><strong>Coleta:</strong> {currentSolicitacao?.pontoColeta}</div>
+          <div><strong>Entrega:</strong> {currentSolicitacao?.pontoEntrega}</div>
+          <div><strong>Material:</strong> {currentSolicitacao?.descricaoMaterial}</div>
+          <div><strong>Tipo de Veículo:</strong> {TIPOS_VEICULO.find(t => t.value === currentSolicitacao?.tipoVeiculo)?.label}</div>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 p-4 rounded-md">
+        <h4 className="font-medium text-gray-900 mb-2">Cálculos do Serviço</h4>
+        <div className="space-y-1 text-sm text-black">
+          <div className="flex justify-between">
+            <span>KM Total (estimado):</span>
+            <span>100 km</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Valor do Pedágio:</span>
+            <span>R$ {(currentSolicitacao?.valorPedagio || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Valor do Serviço:</span>
+            <span>R$ 250,00</span>
+          </div>
+          <div className="flex justify-between font-medium border-t pt-1">
+            <span>Valor Total:</span>
+            <span>R$ {(250 + (currentSolicitacao?.valorPedagio || 0)).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-gray-700">Valor do Pedágio (R$)</label>
+        <input
+          type="number"
+          step="0.01"
+          value={currentSolicitacao?.valorPedagio || ''}
+          onChange={(e) => handleInputChange('valorPedagio', parseFloat(e.target.value) || 0)}
+          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-black"
+        />
+      </div>
+    </div>
+  )
 
   // Function to render summary based on current step and filled data
   const renderSummary = () => {
@@ -340,504 +765,257 @@ export default function SolicitarColetaPage() {
     >
       <div className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Summary Sidebar */}
-            <div className="lg:col-span-1">
-              {renderSummary()}
-            </div>
-            
-            {/* Main Form */}
-            <div className="lg:col-span-2">
-              <div className="bg-white shadow rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  {/* Progress Steps */}
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between">
-                      {[1, 2, 3, 4].map((step, index) => (
-                        <div key={step} className="flex items-center flex-1">
-                          <div className="flex flex-col items-center w-full">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                step <= currentStep
-                                  ? 'bg-purple-600 text-white'
-                                  : 'bg-gray-300 text-gray-600'
-                              }`}
-                            >
-                              {step}
+          {/* Layout para Mobile - Mantém o sistema de etapas 1,2,3,4 */}
+          <div className="lg:hidden">
+            <div className="grid grid-cols-1 gap-8">
+              {/* Summary Sidebar para Mobile */}
+              <div className="order-2">
+                {renderSummary()}
+              </div>
+
+              {/* Main Form para Mobile */}
+              <div className="order-1">
+                <div className="bg-white shadow rounded-lg">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    {/* Progress Steps */}
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between">
+                        {[1, 2, 3, 4].map((step, index) => (
+                          <div key={step} className="flex items-center flex-1">
+                            <div className="flex flex-col items-center w-full">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                  step <= currentStep
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-300 text-gray-600'
+                                }`}
+                              >
+                                {step}
+                              </div>
+                              <div className="mt-2 text-xs text-gray-600 text-center">
+                                {step === 1 && 'Solicitante'}
+                                {step === 2 && 'Coleta/Entrega'}
+                                {step === 3 && 'Material'}
+                                {step === 4 && 'Confirmação'}
+                              </div>
                             </div>
-                            <div className="mt-2 text-xs text-gray-600 text-center">
-                              {step === 1 && 'Solicitante'}
-                              {step === 2 && 'Coleta/Entrega'}
-                              {step === 3 && 'Material'}
-                              {step === 4 && 'Confirmação'}
-                            </div>
+                            {step < 4 && (
+                              <div
+                                className={`flex-1 h-1 mx-4 ${
+                                  step < currentStep ? 'bg-purple-600' : 'bg-gray-300'
+                                }`}
+                              />
+                            )}
                           </div>
-                          {step < 4 && (
-                            <div
-                              className={`flex-1 h-1 mx-4 ${
-                                step < currentStep ? 'bg-purple-600' : 'bg-gray-300'
-                              }`}
-                            />
-                          )}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-            <div className="px-6 py-4">
-              {error && (
-                <div className="mb-4 rounded-md bg-red-50 p-4">
-                  <div className="text-sm text-red-700">{error}</div>
-                </div>
-              )}
+                  <div className="px-6 py-4">
+                    {error && (
+                      <div className="mb-4 rounded-md bg-red-50 p-4">
+                        <div className="text-sm text-red-700">{error}</div>
+                      </div>
+                    )}
 
-            {/* Step 1: Informações do Solicitante */}
-            {currentStep === 1 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Passo 1: Informações do Solicitante</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Cliente (Empresa)</label>
-                    <input
-                      type="text"
-                      value="Cliente não configurado"
-                      readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
-                    />
+                    {/* Step Content para Mobile */}
+                    {currentStep === 1 && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-gray-900">Passo 1: Informações do Solicitante</h3>
+                        {renderStep1()}
+                      </div>
+                    )}
+
+                    {currentStep === 2 && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-gray-900">Passo 2: Informações da Coleta e Entrega</h3>
+                        {renderStep2()}
+                      </div>
+                    )}
+
+                    {currentStep === 3 && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-gray-900">Passo 3: Informações do Material</h3>
+                        {renderStep3()}
+                      </div>
+                    )}
+
+                    {currentStep === 4 && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-gray-900">Passo 4: Confirmação e Submissão</h3>
+                        {renderStep4()}
+                      </div>
+                    )}
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Nome do Solicitante</label>
-                    <input
-                      type="text"
-                      value={user?.nome || ''}
-                      readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <input
-                      type="email"
-                      value={user?.email || ''}
-                      readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Telefone</label>
-                    <input
-                      type="tel"
-                      value="Telefone não configurado"
-                      readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Centro de Custo</label>
-                    <input
-                      type="text"
-                      value="Centro de custo não configurado"
-                      readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Gestor Responsável</label>
-                    <input
-                      type="text"
-                      value="Gestor não configurado"
-                      readOnly
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-900"
-                    />
+
+                  {/* Navigation Buttons para Mobile */}
+                  <div className="px-6 py-4 bg-gray-50 flex justify-between">
+                    {currentStep > 1 && (
+                      <button
+                        onClick={handlePrev}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        Voltar
+                      </button>
+                    )}
+
+                    {currentStep < 4 && (
+                      <button
+                        onClick={handleNext}
+                        className="ml-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700"
+                      >
+                        Avançar
+                      </button>
+                    )}
+
+                    {currentStep === 4 && (
+                      <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading ? 'Enviando...' : 'Enviar Solicitação'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
 
-            {/* Step 2: Informações da Coleta e Entrega */}
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Passo 2: Informações da Coleta e Entrega</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Ponto de Coleta *</label>
-                    <input
-                      type="text"
-                      value={currentSolicitacao?.pontoColeta || ''}
-                      onChange={(e) => handleInputChange('pontoColeta', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
+          {/* Layout para Desktop - Etapas colapsáveis, todas visíveis */}
+          <div className="hidden lg:block">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Summary Sidebar para Desktop */}
+              <div className="lg:col-span-1">
+                {renderSummary()}
+              </div>
+
+              {/* Main Form para Desktop */}
+              <div className="lg:col-span-2 space-y-6">
+                {error && (
+                  <div className="mb-4 rounded-md bg-red-50 p-4">
+                    <div className="text-sm text-red-700">{error}</div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Endereço da Coleta *</label>
-                    <input
-                      type="text"
-                      value={currentSolicitacao?.enderecoColeta || ''}
-                      onChange={(e) => handleInputChange('enderecoColeta', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Data da Coleta *</label>
-                    <input
-                      type="date"
-                      value={currentSolicitacao?.dataColeta || ''}
-                      onChange={(e) => handleInputChange('dataColeta', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    {!showHoraColeta ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowHoraColeta(true)}
-                        className="mt-1 inline-flex items-center px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded border-0 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        + informar horário
-                      </button>
-                    ) : (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Hora da Coleta</label>
-                        <div className="mt-1 flex gap-2">
-                          <input
-                            type="time"
-                            value={currentSolicitacao?.horaColeta || ''}
-                            onChange={(e) => handleInputChange('horaColeta', e.target.value)}
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowHoraColeta(false)
-                              handleInputChange('horaColeta', '')
-                            }}
-                            className="px-3 py-2 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          >
-                            ×
-                          </button>
+                )}
+
+                {/* Etapa 1 - Colapsável */}
+                <div className="bg-white shadow rounded-lg">
+                  <div
+                    className="px-6 py-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50"
+                    onClick={() => toggleStep(1)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                          1
                         </div>
+                        <h3 className="text-lg font-medium text-gray-900">Informações do Solicitante</h3>
                       </div>
-                    )}
+                      <ChevronDown
+                        className={`w-5 h-5 text-gray-500 transition-transform ${
+                          expandedSteps[1] ? 'transform rotate-180' : ''
+                        }`}
+                      />
+                    </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Ponto de Entrega *</label>
-                    <input
-                      type="text"
-                      value={currentSolicitacao?.pontoEntrega || ''}
-                      onChange={(e) => handleInputChange('pontoEntrega', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Endereço da Entrega *</label>
-                    <input
-                      type="text"
-                      value={currentSolicitacao?.enderecoEntrega || ''}
-                      onChange={(e) => handleInputChange('enderecoEntrega', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Data da Entrega *</label>
-                    <input
-                      type="date"
-                      value={currentSolicitacao?.dataEntrega || ''}
-                      onChange={(e) => handleInputChange('dataEntrega', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    {!showHoraEntrega ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowHoraEntrega(true)}
-                        className="mt-1 inline-flex items-center px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded border-0 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      >
-                        + informar horário
-                      </button>
-                    ) : (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Hora da Entrega</label>
-                        <div className="mt-1 flex gap-2">
-                          <input
-                            type="time"
-                            value={currentSolicitacao?.horaEntrega || ''}
-                            onChange={(e) => handleInputChange('horaEntrega', e.target.value)}
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowHoraEntrega(false)
-                              handleInputChange('horaEntrega', '')
-                            }}
-                            className="px-3 py-2 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  {expandedSteps[1] && (
+                    <div className="px-6 py-4">
+                      {renderStep1()}
+                    </div>
+                  )}
                 </div>
 
-                <div className="border-t pt-4">
-                  {!showPontoRetorno ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowPontoRetorno(true)}
-                      className="inline-flex items-center px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded border-0 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                    >
-                      + adicionar ponto de retorno
-                    </button>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-gray-900">Ponto de Retorno (Opcional)</h4>
+                {/* Etapa 2 - Colapsável */}
+                <div className="bg-white shadow rounded-lg">
+                  <div
+                    className="px-6 py-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50"
+                    onClick={() => toggleStep(2)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                          2
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900">Informações da Coleta e Entrega</h3>
+                      </div>
+                      <ChevronDown
+                        className={`w-5 h-5 text-gray-500 transition-transform ${
+                          expandedSteps[2] ? 'transform rotate-180' : ''
+                        }`}
+                      />
+                    </div>
+                  </div>
+                  {expandedSteps[2] && (
+                    <div className="px-6 py-4">
+                      {renderStep2()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Etapa 3 - Colapsável */}
+                <div className="bg-white shadow rounded-lg">
+                  <div
+                    className="px-6 py-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50"
+                    onClick={() => toggleStep(3)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                          3
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900">Informações do Material</h3>
+                      </div>
+                      <ChevronDown
+                        className={`w-5 h-5 text-gray-500 transition-transform ${
+                          expandedSteps[3] ? 'transform rotate-180' : ''
+                        }`}
+                      />
+                    </div>
+                  </div>
+                  {expandedSteps[3] && (
+                    <div className="px-6 py-4">
+                      {renderStep3()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Etapa 4 - Colapsável */}
+                <div className="bg-white shadow rounded-lg">
+                  <div
+                    className="px-6 py-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50"
+                    onClick={() => toggleStep(4)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                          4
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900">Confirmação e Submissão</h3>
+                      </div>
+                      <ChevronDown
+                        className={`w-5 h-5 text-gray-500 transition-transform ${
+                          expandedSteps[4] ? 'transform rotate-180' : ''
+                        }`}
+                      />
+                    </div>
+                  </div>
+                  {expandedSteps[4] && (
+                    <div className="px-6 py-4">
+                      {renderStep4()}
+
+                      {/* Botão Submit para Desktop */}
+                      <div className="mt-6 pt-4 border-t border-gray-200">
                         <button
-                          type="button"
-                          onClick={() => {
-                            setShowPontoRetorno(false)
-                            handleInputChange('pontoRetorno', '')
-                            handleInputChange('enderecoRetorno', '')
-                          }}
-                          className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          onClick={handleSubmit}
+                          disabled={loading}
+                          className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          × remover
+                          {loading ? 'Enviando...' : 'Enviar Solicitação'}
                         </button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Ponto de Retorno</label>
-                          <input
-                            type="text"
-                            value={currentSolicitacao?.pontoRetorno || ''}
-                            onChange={(e) => handleInputChange('pontoRetorno', e.target.value)}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Endereço do Retorno</label>
-                          <input
-                            type="text"
-                            value={currentSolicitacao?.enderecoRetorno || ''}
-                            onChange={(e) => handleInputChange('enderecoRetorno', e.target.value)}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                          />
-                        </div>
-                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Informações do Material */}
-            {currentStep === 3 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Passo 3: Informações do Material</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Descrição do Material *</label>
-                    <textarea
-                      value={currentSolicitacao?.descricaoMaterial || ''}
-                      onChange={(e) => handleInputChange('descricaoMaterial', e.target.value)}
-                      rows={3}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Quantidade de Volumes *</label>
-                    <input
-                      type="number"
-                      value={currentSolicitacao?.quantidadeVolumes || ''}
-                      onChange={(e) => handleInputChange('quantidadeVolumes', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Dimensões *</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 100x50x30 cm"
-                      value={currentSolicitacao?.dimensoes || ''}
-                      onChange={(e) => handleInputChange('dimensoes', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Tipo de Embalagem *</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Caixa, Pallet, etc."
-                      value={currentSolicitacao?.tipoEmbalagem || ''}
-                      onChange={(e) => handleInputChange('tipoEmbalagem', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Peso Total (kg) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={currentSolicitacao?.pesoTotal || ''}
-                      onChange={(e) => handleInputChange('pesoTotal', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Número da DANFE</label>
-                    <input
-                      type="text"
-                      value={currentSolicitacao?.numeroDanfe || ''}
-                      onChange={(e) => handleInputChange('numeroDanfe', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Valor da DANFE (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={currentSolicitacao?.valorDanfe || ''}
-                      onChange={(e) => handleInputChange('valorDanfe', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Tipo de Veículo Sugerido *</label>
-                    <select
-                      value={currentSolicitacao?.tipoVeiculo || ''}
-                      onChange={(e) => handleInputChange('tipoVeiculo', e.target.value)}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    >
-                      <option value="">Selecione o tipo</option>
-                      {TIPOS_VEICULO.map((tipo) => (
-                        <option key={tipo.value} value={tipo.value}>
-                          {tipo.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Observações</label>
-                    <textarea
-                      value={currentSolicitacao?.observacoes || ''}
-                      onChange={(e) => handleInputChange('observacoes', e.target.value)}
-                      rows={3}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Confirmação */}
-            {currentStep === 4 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Passo 4: Confirmação e Submissão</h3>
-                
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <h4 className="font-medium text-gray-900 mb-2">Resumo da Solicitação</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-black">
-                    <div><strong>Cliente:</strong> Cliente não configurado</div>
-                    <div><strong>Solicitante:</strong> {user?.nome}</div>
-                    <div><strong>Coleta:</strong> {currentSolicitacao?.pontoColeta}</div>
-                    <div><strong>Entrega:</strong> {currentSolicitacao?.pontoEntrega}</div>
-                    <div><strong>Material:</strong> {currentSolicitacao?.descricaoMaterial}</div>
-                    <div><strong>Tipo de Veículo:</strong> {TIPOS_VEICULO.find(t => t.value === currentSolicitacao?.tipoVeiculo)?.label}</div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-md">
-                  <h4 className="font-medium text-gray-900 mb-2">Cálculos do Serviço</h4>
-                  <div className="space-y-1 text-sm text-black">
-                    <div className="flex justify-between">
-                      <span>KM Total (estimado):</span>
-                      <span>100 km</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Valor do Pedágio:</span>
-                      <span>R$ {(currentSolicitacao?.valorPedagio || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Valor do Serviço:</span>
-                      <span>R$ 250,00</span>
-                    </div>
-                    <div className="flex justify-between font-medium border-t pt-1">
-                      <span>Valor Total:</span>
-                      <span>R$ {(250 + (currentSolicitacao?.valorPedagio || 0)).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700">Valor do Pedágio (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={currentSolicitacao?.valorPedagio || ''}
-                    onChange={(e) => handleInputChange('valorPedagio', parseFloat(e.target.value) || 0)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 text-black"
-                  />
-                </div>
-              </div>
-            )}
-            </div>
-
-                {/* Navigation Buttons */}
-                <div className="px-6 py-4 bg-gray-50 flex justify-between">
-                  {currentStep > 1 && (
-                    <button
-                      onClick={handlePrev}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                    >
-                      Voltar
-                    </button>
-                  )}
-                  
-                  {currentStep < 4 && (
-                    <button
-                      onClick={handleNext}
-                      className="ml-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700"
-                    >
-                      Avançar
-                    </button>
-                  )}
-                  
-                  {currentStep === 4 && (
-                    <button
-                      onClick={handleSubmit}
-                      disabled={loading}
-                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? 'Enviando...' : 'Enviar Solicitação'}
-                    </button>
                   )}
                 </div>
               </div>
