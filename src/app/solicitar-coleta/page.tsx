@@ -29,7 +29,7 @@ export default function SolicitarColetaPage() {
   const [showPontoRetorno, setShowPontoRetorno] = useState(false)
 
   // Estados para controlar expansão das etapas no desktop
-  const [expandedSteps, setExpandedSteps] = useState({
+  const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({
     1: true,
     2: true,
     3: true,
