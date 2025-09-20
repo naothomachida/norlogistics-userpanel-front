@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSolicitacoes } from '@/hooks/useApi'
+import { useDashboardAnalytics } from '@/hooks/useDashboardAnalytics'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 import { Solicitacao } from '@/lib/api-types'
 import { Layout } from '@/components/layout'
 import { StatCard, ActionCard, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui'
 import { SolicitacaoCard } from '@/components/business'
+import { ValueChart, QuantityChart } from '@/components/charts'
+import { RequestsCard, PeriodFilter } from '@/components/dashboard'
 import { APP_TEXT } from '@/lib/text-constants'
 
 interface SolicitacaoExtended extends Solicitacao {
@@ -35,6 +38,18 @@ export default function DashboardClient() {
   const { data: solicitacoesPendentesRaw, loading, refetch } = useSolicitacoes({ status: 'PENDENTE' })
   const solicitacoesPendentes = solicitacoesPendentesRaw as SolicitacaoExtended[]
   const [processando, setProcessando] = useState<string | null>(null)
+  const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'month' | 'year'>('month')
+
+  // Hook para dados de analytics
+  const {
+    data: analyticsData,
+    loading: analyticsLoading,
+    error: analyticsError
+  } = useDashboardAnalytics(
+    selectedPeriod,
+    user?.role === 'GESTOR' ? user?.gestor?.id : undefined,
+    user?.role === 'SOLICITANTE' ? user?.solicitante?.id : undefined
+  )
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -76,37 +91,110 @@ export default function DashboardClient() {
 
   const getDashboardContent = () => {
     if (user?.role === 'GESTOR') {
+      const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        }).format(value)
+      }
+
+      const pendentesStats = analyticsData?.currentPeriodStats.find(s => s.status === 'PENDENTE')
+      const aprovadasStats = analyticsData?.currentPeriodStats.find(s => s.status === 'APROVADA')
+      const totalValue = analyticsData?.summary.totalValue || 0
+      const totalCount = analyticsData?.summary.totalCount || 0
+
       return (
         <div className="space-y-6">
+          {/* Filtro de Período */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Dashboard Analytics</h2>
+            <PeriodFilter
+              currentPeriod={selectedPeriod}
+              onChange={setSelectedPeriod}
+            />
+          </div>
+
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               title="Solicitações Pendentes"
-              value={solicitacoesPendentes?.length || 0}
+              value={pendentesStats?.count || 0}
               icon="📋"
-              description={loading ? 'Carregando...' : `${solicitacoesPendentes?.length || 0} aguardando aprovação`}
+              description={analyticsLoading ? 'Carregando...' : `${formatCurrency(pendentesStats?.value || 0)} em valores`}
               color="yellow"
             />
             <StatCard
-              title="Aprovadas Hoje"
-              value={0}
+              title="Aprovadas no Período"
+              value={aprovadasStats?.count || 0}
               icon="✅"
-              description="0 aprovações realizadas"
+              description={formatCurrency(aprovadasStats?.value || 0)}
               color="green"
             />
             <StatCard
               title="Total Solicitações"
-              value="..."
+              value={totalCount}
               icon="📊"
-              description="Este mês"
+              description={`${formatCurrency(totalValue)} no período`}
               color="blue"
             />
             <StatCard
-              title="Economia Estimada"
-              value="R$ ..."
-              icon="💰"
-              description="Comparado ao mês anterior"
+              title="Em Andamento"
+              value={analyticsData?.inProgressRequests?.length || 0}
+              icon="🚛"
+              description="Solicitações em execução"
               color="purple"
+            />
+          </div>
+
+          {/* Gráficos */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ValueChart
+              data={analyticsData?.chartData || []}
+              period={selectedPeriod}
+              type="bar"
+              title={`Valores das Solicitações - ${selectedPeriod === 'day' ? 'Hoje' : selectedPeriod === 'month' ? 'Este Mês' : 'Este Ano'}`}
+            />
+            <QuantityChart
+              data={analyticsData?.chartData || []}
+              period={selectedPeriod}
+              type="line"
+              title={`Quantidade de Solicitações - ${selectedPeriod === 'day' ? 'Hoje' : selectedPeriod === 'month' ? 'Este Mês' : 'Este Ano'}`}
+            />
+          </div>
+
+          {/* Gráfico de Pizza - Apenas para mês e ano */}
+          {selectedPeriod !== 'day' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <QuantityChart
+                data={analyticsData?.chartData || []}
+                period={selectedPeriod}
+                type="pie"
+                title="Distribuição por Status"
+              />
+              <div className="lg:col-span-2">
+                <ValueChart
+                  data={analyticsData?.chartData || []}
+                  period={selectedPeriod}
+                  type="line"
+                  title="Evolução dos Valores"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Cards de Solicitações */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RequestsCard
+              title="Solicitações Pendentes"
+              requests={analyticsData?.pendingRequests || []}
+              type="pending"
+            />
+            <RequestsCard
+              title="Solicitações em Andamento"
+              requests={analyticsData?.inProgressRequests || []}
+              type="inProgress"
             />
           </div>
 
@@ -131,51 +219,75 @@ export default function DashboardClient() {
               href="/admin"
             />
           </div>
-
-          {/* Solicitações Pendentes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Solicitações Pendentes de Aprovação</CardTitle>
-              <CardDescription>
-                Analise e aprove/reprove as solicitações de transporte
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-4">Carregando solicitações...</div>
-              ) : solicitacoesPendentes?.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  Não há solicitações pendentes
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {solicitacoesPendentes?.map((solicitacao) => (
-                    <SolicitacaoCard
-                      key={solicitacao.id}
-                      solicitacao={solicitacao}
-                      onApprove={() => handleApprovar(solicitacao.id)}
-                      onReject={() => handleReprovar(solicitacao.id)}
-                      processing={processando === solicitacao.id}
-                      showActions={true}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       )
     }
 
-    // Dashboard padrão para outros tipos de usuário
+    // Dashboard para outros tipos de usuário (SOLICITANTE, etc.)
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value)
+    }
+
+    const pendentesStats = analyticsData?.currentPeriodStats.find(s => s.status === 'PENDENTE')
+    const aprovadasStats = analyticsData?.currentPeriodStats.find(s => s.status === 'APROVADA')
+    const totalValue = analyticsData?.summary.totalValue || 0
+    const totalCount = analyticsData?.summary.totalCount || 0
+
     return (
       <div className="space-y-6">
+        {/* Filtro de Período */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Minhas Estatísticas</h2>
+          <PeriodFilter
+            currentPeriod={selectedPeriod}
+            onChange={setSelectedPeriod}
+          />
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Minhas Solicitações"
+            value={totalCount}
+            icon="📋"
+            description={`${formatCurrency(totalValue)} no período`}
+            color="blue"
+          />
+          <StatCard
+            title="Pendentes"
+            value={pendentesStats?.count || 0}
+            icon="⏳"
+            description={formatCurrency(pendentesStats?.value || 0)}
+            color="yellow"
+          />
+          <StatCard
+            title="Aprovadas"
+            value={aprovadasStats?.count || 0}
+            icon="✅"
+            description={formatCurrency(aprovadasStats?.value || 0)}
+            color="green"
+          />
+          <StatCard
+            title="Em Andamento"
+            value={analyticsData?.inProgressRequests?.length || 0}
+            icon="🚛"
+            description="Solicitações em execução"
+            color="purple"
+          />
+        </div>
+
+        {/* Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <ActionCard
             title="Nova Solicitação"
             description="Solicite um novo transporte"
             icon="🚛"
-            href="/nova-solicitacao"
+            href="/solicitar-coleta"
           />
           <ActionCard
             title="Minhas Solicitações"
@@ -190,6 +302,46 @@ export default function DashboardClient() {
             href="/calcular-rotas"
           />
         </div>
+
+        {/* Gráficos Simplificados */}
+        {analyticsData && analyticsData.chartData.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ValueChart
+              data={analyticsData.chartData}
+              period={selectedPeriod}
+              type="bar"
+              title="Valores das Minhas Solicitações"
+            />
+            <QuantityChart
+              data={analyticsData.chartData}
+              period={selectedPeriod}
+              type="pie"
+              title="Status das Solicitações"
+            />
+          </div>
+        )}
+
+        {/* Cards de Solicitações */}
+        {analyticsData && (analyticsData.pendingRequests.length > 0 || analyticsData.inProgressRequests.length > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {analyticsData.pendingRequests.length > 0 && (
+              <RequestsCard
+                title="Minhas Solicitações Pendentes"
+                requests={analyticsData.pendingRequests}
+                type="pending"
+                maxItems={3}
+              />
+            )}
+            {analyticsData.inProgressRequests.length > 0 && (
+              <RequestsCard
+                title="Minhas Solicitações em Andamento"
+                requests={analyticsData.inProgressRequests}
+                type="inProgress"
+                maxItems={3}
+              />
+            )}
+          </div>
+        )}
       </div>
     )
   }
