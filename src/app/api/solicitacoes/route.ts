@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
     console.log('Received data:', JSON.stringify(data, null, 2))
-    
+
     const {
       solicitanteId,
       clienteId,
@@ -141,7 +141,8 @@ export async function POST(request: NextRequest) {
       kmTotal,
       valorPedagio,
       valorServico,
-      valorTotal
+      valorTotal,
+      directApproval // Nova flag para aprovação direta
     } = data
 
     if (!solicitanteId || !clienteId || !centroCustoId || !pontoColeta || !pontoEntrega || !dataColeta || !dataEntrega) {
@@ -204,57 +205,110 @@ export async function POST(request: NextRequest) {
     const count = await prisma.solicitacao.count()
     const numeroOrdem = `ORD${String(count + 1).padStart(6, '0')}`
 
-    const solicitacao = await prisma.solicitacao.create({
-      data: {
-        numeroOrdem,
-        solicitanteId,
-        clienteId,
-        centroCustoId,
-        gestorId,
-        pontoColeta,
-        enderecoColeta,
-        dataColeta: new Date(dataColeta),
-        horaColeta: horaColeta || '',
-        pontoEntrega,
-        enderecoEntrega,
-        dataEntrega: new Date(dataEntrega),
-        horaEntrega: horaEntrega || '',
-        pontoRetorno,
-        enderecoRetorno,
-        dataRetorno: dataRetorno ? new Date(dataRetorno) : null,
-        horaRetorno: horaRetorno || null,
-        descricaoMaterial,
-        quantidadeVolumes: parseInt(quantidadeVolumes),
-        dimensoes,
-        tipoEmbalagem,
-        pesoTotal: parseFloat(pesoTotal),
-        numeroDanfe,
-        valorDanfe: valorDanfe ? parseFloat(valorDanfe) : null,
-        tipoVeiculo,
-        observacoes,
-        kmTotal: parseFloat(kmTotal) || 0,
-        valorPedagio: parseFloat(valorPedagio || 0),
-        valorServico: parseFloat(valorServico) || 0,
-        valorTotal: parseFloat(valorTotal) || 0,
-        status: 'PENDENTE'
-      },
-      include: {
-        solicitante: {
-          include: {
-            usuario: {
-              select: {
-                nome: true,
-                email: true
+    // Determinar status inicial baseado no tipo de aprovação
+    const initialStatus = directApproval ? 'APROVADA' : 'PENDENTE'
+
+    // Executar tudo em uma transação
+    const result = await prisma.$transaction(async (tx) => {
+      // Criar a solicitação
+      const solicitacao = await tx.solicitacao.create({
+        data: {
+          numeroOrdem,
+          solicitanteId,
+          clienteId,
+          centroCustoId,
+          gestorId,
+          pontoColeta,
+          enderecoColeta,
+          dataColeta: new Date(dataColeta),
+          horaColeta: horaColeta || '',
+          pontoEntrega,
+          enderecoEntrega,
+          dataEntrega: new Date(dataEntrega),
+          horaEntrega: horaEntrega || '',
+          pontoRetorno,
+          enderecoRetorno,
+          dataRetorno: dataRetorno ? new Date(dataRetorno) : null,
+          horaRetorno: horaRetorno || null,
+          descricaoMaterial,
+          quantidadeVolumes: parseInt(quantidadeVolumes),
+          dimensoes,
+          tipoEmbalagem,
+          pesoTotal: parseFloat(pesoTotal),
+          numeroDanfe,
+          valorDanfe: valorDanfe ? parseFloat(valorDanfe) : null,
+          tipoVeiculo,
+          observacoes,
+          kmTotal: parseFloat(kmTotal) || 0,
+          valorPedagio: parseFloat(valorPedagio || 0),
+          valorServico: parseFloat(valorServico) || 0,
+          valorTotal: parseFloat(valorTotal) || 0,
+          status: initialStatus
+        },
+        include: {
+          solicitante: {
+            include: {
+              usuario: {
+                select: {
+                  nome: true,
+                  email: true
+                }
+              }
+            }
+          },
+          cliente: true,
+          centroCusto: true,
+          gestor: {
+            include: {
+              usuario: {
+                select: {
+                  nome: true,
+                  email: true
+                }
               }
             }
           }
-        },
-        cliente: true,
-        centroCusto: true
+        }
+      })
+
+      // Se for aprovação direta, criar registro de aprovação
+      if (directApproval && gestorId) {
+        await tx.aprovacao.create({
+          data: {
+            solicitacaoId: solicitacao.id,
+            gestorId: gestorId,
+            aprovada: true,
+            observacao: 'Aprovação direta pelo solicitante'
+          }
+        })
       }
+
+      return solicitacao
     })
 
-    return NextResponse.json(solicitacao, { status: 201 })
+    // TODO: Implementar sistema de notificação
+    // Se for aprovação direta: notificar gestor sobre a aprovação
+    // Se for para aprovação: notificar gestor para analisar
+    try {
+      if (result.gestor?.usuario?.email) {
+        const gestorEmail = result.gestor.usuario.email
+        const gestorNome = result.gestor.usuario.nome
+        const solicitanteNome = result.solicitante.usuario.nome
+
+        if (directApproval) {
+          console.log(`📧 Notificação para gestor ${gestorNome} (${gestorEmail}): Solicitação ${numeroOrdem} foi aprovada diretamente por ${solicitanteNome}`)
+          // Aqui você pode integrar com serviço de email (Nodemailer, SendGrid, etc.)
+        } else {
+          console.log(`📧 Notificação para gestor ${gestorNome} (${gestorEmail}): Nova solicitação ${numeroOrdem} aguardando aprovação de ${solicitanteNome}`)
+          // Aqui você pode integrar com serviço de email (Nodemailer, SendGrid, etc.)
+        }
+      }
+    } catch (notificationError) {
+      console.warn('Erro ao enviar notificação:', notificationError)
+      // Não falhar a criação da solicitação por causa da notificação
+    }
+
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
     console.error('Erro ao criar solicitação:', error)
     return NextResponse.json(
