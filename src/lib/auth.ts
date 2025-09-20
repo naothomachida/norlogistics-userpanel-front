@@ -1,8 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
 
-const secretKey = process.env.JWT_SECRET || 'your-secret-key'
+const secretKey = process.env.JWT_SECRET || 'nor-fullstack-jwt-secret-key-2024'
 const key = new TextEncoder().encode(secretKey)
+
+console.log('JWT_SECRET loaded:', !!process.env.JWT_SECRET)
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(12)

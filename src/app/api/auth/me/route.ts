@@ -5,8 +5,10 @@ import { prisma } from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get('token')?.value
+    console.log('Token encontrado:', !!token)
 
     if (!token) {
+      console.log('Nenhum token encontrado nos cookies')
       return NextResponse.json(
         { error: 'Token não encontrado' },
         { status: 401 }
@@ -14,7 +16,10 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = await verifyToken(token)
+    console.log('Payload válido:', !!payload)
+
     if (!payload) {
+      console.log('Token inválido ou expirado')
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
